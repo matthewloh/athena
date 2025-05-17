@@ -42,3 +42,42 @@ The detailed requirements for Coursework 2 can be found in:
 
 - **CW2 Brief:** @CW2/6002CEM_CW2_APRIL2025.md
 
+## Feature Deep Dive Summaries
+
+This section summarizes the core features detailed in the `gemini/feature_deep_dives/` directory. These documents provide in-depth exploration of each feature, including UI/UX considerations, system architecture with Supabase and Flutter, LLM integration strategies, and design chart suggestions.
+
+- **Part 1: User Authentication & Profile Management (@gemini/feature_deep_dives/part_1.md)**
+
+  - **Responsibilities:** Secure user account creation (email/password), login, logout, password reset, and basic profile management (name, preferred subjects).
+  - **Core Technologies:** Flutter, Supabase Auth for identity, Supabase PostgreSQL for `profiles` table with RLS.
+  - **Key Aspects:** Focuses on secure identity, data persistence, and personalized experiences. User preferences from profiles will inform LLM personalization in other features.
+
+- **Part 2: AI Chatbot (Academic Assistance & LLM Integration) (@gemini/feature_deep_dives/part_2.md)**
+
+  - **Responsibilities:** Provide instant academic support via a chat interface. Answer questions, explain concepts, help with homework, and maintain conversation context. Store chat history.
+  - **Core Technologies:** Flutter for UI, Supabase Edge Functions (Dart/TypeScript) to securely call external LLM APIs (e.g., OpenAI, Gemini via Vercel AI SDK), Supabase PostgreSQL for `chat_history` table.
+  - **Key Aspects:** Complex UI, backend logic for LLM calls, prompt engineering, and secure API key management. Potential for RAG by linking to user's study materials.
+
+- **Part 3: Study Material Management and Note Summarization (RAG & Content Management) (@gemini/feature_deep_dives/part_3.md)**
+
+  - **Responsibilities:** Allow users to add study materials (typed, text file, image OCR). View, manage, and request AI-generated summaries of these materials. Enable RAG for the AI Chatbot.
+  - **Core Technologies:** Flutter, Supabase PostgreSQL for `study_materials` table (metadata, text, OCR content, summaries), Supabase Storage for file uploads, Supabase Edge Function for summarization via LLM, `google_mlkit_text_recognition` for OCR.
+  - **Key Aspects:** Data persistence (files & metadata), cloud storage, LLM for summarization, OCR as a second API. Forms the backbone for personalized AI and review systems.
+
+- **Part 4: Adaptive Review System (Quizzes & Spaced Repetition) (@gemini/feature_deep_dives/part_4.md)**
+
+  - **Responsibilities:** Enable users to create quizzes from study materials (manually or via AI generation) or create manual flashcards. Implement a spaced repetition system for reviewing quiz items. Track progress.
+  - **Core Technologies:** Flutter, Supabase PostgreSQL for `quizzes` and `quiz_items` tables (including spaced repetition fields like `easiness_factor`, `interval_days`, `next_review_date`). Optional Supabase Edge Function for AI question generation.
+  - **Key Aspects:** Algorithmic complexity (spaced repetition), UI for quizzes/flashcards, robust data persistence. Potential LLM use for question generation.
+
+- **Part 5: Intelligent Study Planner (@gemini/feature_deep_dives/part_5.md)**
+
+  - **Responsibilities:** Allow users to create study goals and schedule study sessions with reminders. View planner/agenda. Mark sessions complete. Offer basic intelligent suggestions (e.g., schedule review for due items).
+  - **Core Technologies:** Flutter, Supabase PostgreSQL for `study_goals` and `study_sessions` tables, `flutter_local_notifications` for reminders (device API usage).
+  - **Key Aspects:** UI for scheduling, data persistence for goals/sessions, device notifications. Basic intelligence through rule-based suggestions based on other app data.
+
+- **Part 6: User Dashboard & Progress Tracking (@gemini/feature_deep_dives/part_6.md)**
+  - **Responsibilities:** Provide a consolidated overview of user activities, achievements, and upcoming tasks. Aggregate data from Chatbot, Review System, Planner, and Material Management.
+  - **Core Technologies:** Flutter, Supabase PostgreSQL (reading from multiple tables). Potential use of Supabase Database Views or RPC Functions for efficient data aggregation.
+  - **Key Aspects:** Data aggregation from multiple sources, UI for information presentation (potentially charts). Central hub for user interaction and motivation.
+
