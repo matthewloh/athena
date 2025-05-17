@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:athena/theme/app_colors.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,112 +12,146 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
+      title: 'Athena',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        fontFamily: 'Inter', // Set Inter as the default font
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.athenaBlue,
+          brightness: Brightness.light,
+        ),
+        scaffoldBackgroundColor: AppColors.athenaOffWhite,
+        appBarTheme: AppBarTheme(
+          backgroundColor: AppColors.athenaBlue,
+          foregroundColor: AppColors.white,
+          elevation: 2,
+          titleTextStyle: const TextStyle(
+            fontFamily:
+                'Inter', // Or Overused Grotesk if preferred for AppBar titles
+            fontSize: 20,
+            fontWeight:
+                FontWeight.w500, // Corresponds to a common 'medium' weight
+            color: AppColors.white,
+            fontVariations: <FontVariation>[FontVariation('wght', 500.0)],
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.athenaBlue,
+            foregroundColor: AppColors.white,
+            minimumSize: const Size(200, 50),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            textStyle: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 18,
+              fontWeight: FontWeight.w500, // Medium weight
+              fontVariations: <FontVariation>[FontVariation('wght', 500.0)],
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.athenaBlue,
+            side: const BorderSide(color: AppColors.athenaBlue, width: 1.5),
+            minimumSize: const Size(200, 50),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            textStyle: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 18,
+              fontWeight: FontWeight.w500, // Medium weight
+              fontVariations: <FontVariation>[FontVariation('wght', 500.0)],
+            ),
+          ),
+        ),
+        textTheme: const TextTheme(
+          // Updated to use Inter by default due to ThemeData.fontFamily
+          // Specific overrides below if needed, or use Overused Grotesk directly in widgets
+          headlineMedium: TextStyle(
+            fontFamily: 'Overused Grotesk', // Specific font for this style
+            color: AppColors.athenaDarkGrey,
+            fontWeight:
+                FontWeight.bold, // This will be controlled by fontVariations
+            fontVariations: <FontVariation>[
+              FontVariation('wght', 700.0), // Bold for Overused Grotesk
+            ],
+          ),
+          titleMedium: TextStyle(
+            // fontFamily: 'Inter', // Inherited from ThemeData
+            color: AppColors.athenaDarkGrey,
+            // fontWeight and fontVariations can be set here or in the widget
+          ),
+        ),
+        useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const LandingPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+class LandingPage extends StatelessWidget {
+  const LandingPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
+      appBar: AppBar(title: const Text('Athena')),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Image.asset(
+                'assets/images/logo.png', // Path to your logo
+                height: 128, // Adjust size as needed
+                width: 128, // Adjust size as needed
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'Welcome to Athena!',
+                style: textTheme.headlineMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  // fontWeight is now controlled by fontVariations in TextTheme
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Your AI-powered study companion to enhance your learning journey.',
+                style: textTheme.titleMedium?.copyWith(
+                  color: AppColors.athenaDarkGrey.withOpacity(0.9),
+                  fontSize: 16, // Slightly adjusted size
+                  fontVariations: const <FontVariation>[
+                    FontVariation('wght', 400.0), // Regular weight for Inter
+                    FontVariation('opsz', 16.0), // Optical size for Inter
+                  ],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 48),
+              ElevatedButton(
+                onPressed: () {
+                  // TODO: Navigate to Login Screen
+                  print('Login button pressed');
+                },
+                child: const Text('Login'),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: () {
+                  // TODO: Navigate to Sign Up Screen
+                  print('Sign Up button pressed');
+                },
+                child: const Text('Sign Up'),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
