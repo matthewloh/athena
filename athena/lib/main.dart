@@ -1,21 +1,33 @@
+import 'package:athena/core/router/app_router.dart';
 import 'package:flutter/material.dart';
-import 'package:athena/theme/app_colors.dart';
+import 'package:athena/core/theme/app_colors.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Supabase
+  await Supabase.initialize(
+    url: const String.fromEnvironment('SUPABASE_URL'),
+    anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
+  );
+
+  runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'Athena',
       theme: ThemeData(
-        fontFamily: 'Inter', // Set Inter as the default font
+        fontFamily: 'Inter',
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.athenaBlue,
           brightness: Brightness.light,
@@ -26,11 +38,9 @@ class MyApp extends StatelessWidget {
           foregroundColor: AppColors.white,
           elevation: 2,
           titleTextStyle: const TextStyle(
-            fontFamily:
-                'Inter', // Or Overused Grotesk if preferred for AppBar titles
+            fontFamily: 'Inter',
             fontSize: 20,
-            fontWeight:
-                FontWeight.w500, // Corresponds to a common 'medium' weight
+            fontWeight: FontWeight.w500,
             color: AppColors.white,
             fontVariations: <FontVariation>[FontVariation('wght', 500.0)],
           ),
@@ -44,7 +54,7 @@ class MyApp extends StatelessWidget {
             textStyle: const TextStyle(
               fontFamily: 'Inter',
               fontSize: 18,
-              fontWeight: FontWeight.w500, // Medium weight
+              fontWeight: FontWeight.w500,
               fontVariations: <FontVariation>[FontVariation('wght', 500.0)],
             ),
           ),
@@ -58,100 +68,26 @@ class MyApp extends StatelessWidget {
             textStyle: const TextStyle(
               fontFamily: 'Inter',
               fontSize: 18,
-              fontWeight: FontWeight.w500, // Medium weight
+              fontWeight: FontWeight.w500,
               fontVariations: <FontVariation>[FontVariation('wght', 500.0)],
             ),
           ),
         ),
         textTheme: const TextTheme(
-          // Updated to use Inter by default due to ThemeData.fontFamily
-          // Specific overrides below if needed, or use Overused Grotesk directly in widgets
           headlineMedium: TextStyle(
-            fontFamily: 'Overused Grotesk', // Specific font for this style
+            fontFamily: 'Overused Grotesk',
             color: AppColors.athenaDarkGrey,
-            fontWeight:
-                FontWeight.bold, // This will be controlled by fontVariations
-            fontVariations: <FontVariation>[
-              FontVariation('wght', 700.0), // Bold for Overused Grotesk
-            ],
+            fontWeight: FontWeight.bold,
+            fontVariations: <FontVariation>[FontVariation('wght', 700.0)],
           ),
-          titleMedium: TextStyle(
-            // fontFamily: 'Inter', // Inherited from ThemeData
-            color: AppColors.athenaDarkGrey,
-            // fontWeight and fontVariations can be set here or in the widget
-          ),
+          titleMedium: TextStyle(color: AppColors.athenaDarkGrey),
         ),
         useMaterial3: true,
       ),
-      home: const LandingPage(),
+      routerConfig: router,
     );
   }
 }
 
-class LandingPage extends StatelessWidget {
-  const LandingPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Athena')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Image.asset(
-                'assets/images/logo.png', // Path to your logo
-                height: 128, // Adjust size as needed
-                width: 128, // Adjust size as needed
-              ),
-              const SizedBox(height: 32),
-              Text(
-                'Welcome to Athena!',
-                style: textTheme.headlineMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  // fontWeight is now controlled by fontVariations in TextTheme
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Your AI-powered study companion to enhance your learning journey.',
-                style: textTheme.titleMedium?.copyWith(
-                  color: AppColors.athenaDarkGrey.withOpacity(0.9),
-                  fontSize: 16, // Slightly adjusted size
-                  fontVariations: const <FontVariation>[
-                    FontVariation('wght', 400.0), // Regular weight for Inter
-                    FontVariation('opsz', 16.0), // Optical size for Inter
-                  ],
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 48),
-              ElevatedButton(
-                onPressed: () {
-                  // TODO: Navigate to Login Screen
-                  print('Login button pressed');
-                },
-                child: const Text('Login'),
-              ),
-              const SizedBox(height: 16),
-              OutlinedButton(
-                onPressed: () {
-                  // TODO: Navigate to Sign Up Screen
-                  print('Sign Up button pressed');
-                },
-                child: const Text('Sign Up'),
-              ),
-              const SizedBox(height: 40),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+// LandingPage, MyHomePage and _MyHomePageState are now removed as LandingScreen is created
+// in features/auth/presentation/views/ and routing is handled by GoRouter.

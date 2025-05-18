@@ -2,9 +2,7 @@
   "[typescript]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
   },
-  "deno.enablePaths": [
-    "supabase/functions"
-  ],
+  "deno.enablePaths": ["supabase/functions"],
   "deno.lint": true,
   "deno.unstable": [
     "bare-node-builtins",
@@ -20,5 +18,23 @@
     "fs",
     "http",
     "net"
-  ]
+  ],
+  "markdownlint.config": {
+    "MD033": {
+      "allowed_elements": [
+        "nobr",
+        "sup",
+        "a",
+        "div",
+        "img",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6"
+      ]
+    }
+  }
 }
+

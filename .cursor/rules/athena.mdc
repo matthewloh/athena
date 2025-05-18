@@ -17,6 +17,9 @@ This rule outlines the "Athena" mobile application project for the 6002CEM Cours
 ## Core Technologies
 
 - **Frontend:** Flutter (Dart)
+  - **State Management:** Riverpod
+  - **Navigation:** GoRouter
+  - **UI Components:** `supabase_auth_ui` for authentication forms.
 - **Backend & Database:** Supabase
   - Authentication: Supabase Auth
   - Database: Supabase PostgreSQL with `pgvector` extension
@@ -25,7 +28,43 @@ This rule outlines the "Athena" mobile application project for the 6002CEM Cours
 - **AI Integration:**
   - Vercel AI SDK (for LLM abstraction, used within Supabase Edge Functions)
   - LLM (e.g., Gemini, OpenAI - accessed via Vercel AI SDK)
-- **Local Persistence:** Hive or sqflite for offline capabilities.
+- **Local Persistence:** Hive or sqflite for offline capabilities (planned).
+
+## Project Architecture & Directory Structure
+
+The project follows a structured approach to organize code within the `lib/` directory, separating core functionalities from feature-specific modules. This promotes
+maintainability, scalability, and separation of concerns.
+The **Athena Flutter project** is located within the `athena/` subdirectory of the overall repository. All Flutter-specific code, including the `lib/` directory, `pubspec.yaml`, etc., resides within `repo_root/athena/`.
+
+The project follows a structured approach to organize code within the `athena/lib/` directory, separating core functionalities from feature-specific modules. This promotes maintainability, scalability, and separation of concerns.
+
+- **`athena/lib/core/`**: Contains shared code used across multiple features.
+
+  - `constants/`: Application-wide constants (e.g., `app_route_names.dart`).
+  - `errors/`: Defines custom error/failure classes (e.g., `failures.dart`).
+  - `models/`: Shared data models not specific to any single feature.
+  - `providers/`: Global Riverpod providers (e.g., `supabase_providers.dart` for Supabase client).
+  - `router/`: Navigation setup using GoRouter (e.g., `app_router.dart`).
+  - `theme/`: Application-wide theme configurations, colors, and styles (e.g., `app_colors.dart`).
+  - `utils/`: Utility functions and helper classes.
+  - `widgets/`: Common reusable widgets shared across the application.
+
+- **`athena/lib/features/`**: Contains individual feature modules. Each feature aims to follow a Clean Architecture-inspired layered approach:
+  - **`feature_name/`** (e.g., `auth/`, `home/`)
+    - **`data/`**: Handles data sourcing and concrete implementations.
+      - `datasources/`: Abstract definitions and implementations for fetching data from local or remote sources (e.g., `auth_supabase_datasource.dart`).
+      - `models/`: Data Transfer Objects (DTOs) specific to the data layer (can be different from domain entities).
+      - `repositories/`: Concrete implementations of repository interfaces defined in the domain layer (e.g., `auth_repository_impl.dart`).
+    - **`domain/`**: Contains the core business logic and definitions, independent of UI and data layers.
+      - `entities/`: Business objects/models for the feature (e.g., `user_entity.dart`).
+      - `repositories/`: Abstract repository interfaces defining contracts for data operations (e.g., `auth_repository.dart`).
+      - `usecases/`: Encapsulates specific business operations or user interactions (e.g., `login_usecase.dart`, `signup_usecase.dart`).
+    - **`presentation/`**: Handles UI and user interaction, managed by ViewModels.
+      - `viewmodel/` or `provider/`: Contains ViewModels (e.g., Riverpod `StateNotifier`s or `@riverpod` annotated classes like `auth_viewmodel.dart`) that manage UI state and interact with domain usecases.
+      - `views/` or `screens/`: Flutter widgets representing full screens (e.g., `login_screen.dart`, `landing_screen.dart`).
+      - `widgets/`: UI components specific to this feature.
+
+This structure is designed to make the codebase modular, testable, and easier to navigate as the application grows.
 
 ## Key Project Documents
 
@@ -44,18 +83,18 @@ The detailed requirements for Coursework 2 can be found in:
 
 ## Feature Deep Dive Summaries
 
-This section summarizes the core features detailed in the `gemini/feature_deep_dives/` directory. These documents provide in-depth exploration of each feature, including UI/UX considerations, system architecture with Supabase and Flutter, LLM integration strategies, and design chart suggestions.
+This section summarizes the core features detailed in the `gemini/feature_deep_dives/` directory. These documents provide in-depth exploration of each feature, including UI/UX considerations, system architecture with Supabase and Flutter, LLM integration strategies, and design chart suggestions. The implementation details within these deep dives will align with the architecture described above.
 
 - **Part 1: User Authentication & Profile Management (@gemini/feature_deep_dives/part_1.md)**
 
   - **Responsibilities:** Secure user account creation (email/password), login, logout, password reset, and basic profile management (name, preferred subjects).
-  - **Core Technologies:** Flutter, Supabase Auth for identity, Supabase PostgreSQL for `profiles` table with RLS.
+  - **Core Technologies:** Flutter (with Riverpod & GoRouter), Supabase Auth for identity, Supabase PostgreSQL for `profiles` table with RLS, `supabase_auth_ui` for forms.
   - **Key Aspects:** Focuses on secure identity, data persistence, and personalized experiences. User preferences from profiles will inform LLM personalization in other features.
 
 - **Part 2: AI Chatbot (Academic Assistance & LLM Integration) (@gemini/feature_deep_dives/part_2.md)**
 
   - **Responsibilities:** Provide instant academic support via a chat interface. Answer questions, explain concepts, help with homework, and maintain conversation context. Store chat history.
-  - **Core Technologies:** Flutter for UI, Supabase Edge Functions (Dart/TypeScript) to securely call external LLM APIs (e.g., OpenAI, Gemini via Vercel AI SDK), Supabase PostgreSQL for `chat_history` table.
+  - **Core Technologies:** Flutter, Supabase Edge Functions (Dart/TypeScript) to securely call external LLM APIs (e.g., OpenAI, Gemini via Vercel AI SDK), Supabase PostgreSQL for `chat_history` table.
   - **Key Aspects:** Complex UI, backend logic for LLM calls, prompt engineering, and secure API key management. Potential for RAG by linking to user's study materials.
 
 - **Part 3: Study Material Management and Note Summarization (RAG & Content Management) (@gemini/feature_deep_dives/part_3.md)**
@@ -80,4 +119,14 @@ This section summarizes the core features detailed in the `gemini/feature_deep_d
   - **Responsibilities:** Provide a consolidated overview of user activities, achievements, and upcoming tasks. Aggregate data from Chatbot, Review System, Planner, and Material Management.
   - **Core Technologies:** Flutter, Supabase PostgreSQL (reading from multiple tables). Potential use of Supabase Database Views or RPC Functions for efficient data aggregation.
   - **Key Aspects:** Data aggregation from multiple sources, UI for information presentation (potentially charts). Central hub for user interaction and motivation.
+
+## Product Document Maintenance
+
+- **File Location:** `gemini/project/product_document.md`
+- **Purpose:** This document tracks the overall progress of the Athena application, feature by feature.
+- **Action Required:** After significant feature implementations, updates, or changes in scope, ensure this `product_document.md` is reviewed and updated to reflect the current state of the application. This includes:
+  - Modifying the status of feature parts (e.g., "Not Started", "Partially Complete", "Completed").
+  - Updating the "Current Implementation Details & Progress" for the relevant feature part.
+  - Adjusting the "Next Steps / To-Do" list for affected features.
+- **Goal:** Keep the `product_document.md` as an accurate, up-to-date reference for project status and planning.
 
