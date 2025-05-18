@@ -7,7 +7,7 @@ part of 'auth_providers.dart';
 // **************************************************************************
 
 String _$authRemoteDataSourceHash() =>
-    r'545f7f00843b1ddb302964095f9d45b808780a7c';
+    r'ed5c2e6a5f4e6a35e8e7faf63e36abdeb4105da8';
 
 /// See also [authRemoteDataSource].
 @ProviderFor(authRemoteDataSource)
@@ -26,7 +26,7 @@ final authRemoteDataSourceProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AuthRemoteDataSourceRef = AutoDisposeProviderRef<AuthRemoteDataSource>;
-String _$authRepositoryHash() => r'a678f8abf1b6fe259300fddf49676238f81d2901';
+String _$authRepositoryHash() => r'05c6159f6976986da64509d15b55d499b8b724b4';
 
 /// See also [authRepository].
 @ProviderFor(authRepository)
@@ -44,7 +44,7 @@ final authRepositoryProvider = AutoDisposeProvider<AuthRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AuthRepositoryRef = AutoDisposeProviderRef<AuthRepository>;
-String _$loginUsecaseHash() => r'6efa34135b112f73e463eb771c231012604b93cc';
+String _$loginUsecaseHash() => r'b6751a7f38c360fca93a350f3e61557414fb1290';
 
 /// See also [loginUsecase].
 @ProviderFor(loginUsecase)
@@ -60,7 +60,7 @@ final loginUsecaseProvider = AutoDisposeProvider<LoginUsecase>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef LoginUsecaseRef = AutoDisposeProviderRef<LoginUsecase>;
-String _$signUpUsecaseHash() => r'896db7a378eec87396a6cb46fb502cabe639d757';
+String _$signUpUsecaseHash() => r'd14169e377694fd46343442f0e0cad565859757c';
 
 /// See also [signUpUsecase].
 @ProviderFor(signUpUsecase)
@@ -78,7 +78,7 @@ final signUpUsecaseProvider = AutoDisposeProvider<SignUpUsecase>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SignUpUsecaseRef = AutoDisposeProviderRef<SignUpUsecase>;
-String _$logoutUsecaseHash() => r'95e7156a2705f6cb390e8e1d850c8788d05896d7';
+String _$logoutUsecaseHash() => r'e36ab735f48ab426b385a2696090d10a9c222999';
 
 /// See also [logoutUsecase].
 @ProviderFor(logoutUsecase)
@@ -97,7 +97,7 @@ final logoutUsecaseProvider = AutoDisposeProvider<LogoutUsecase>.internal(
 // ignore: unused_element
 typedef LogoutUsecaseRef = AutoDisposeProviderRef<LogoutUsecase>;
 String _$getAuthStateChangesUsecaseHash() =>
-    r'9ac6bad2b3db6d9b43badf997232e0e3982b933c';
+    r'29d594cdc536c6b040887e43bfb029887056255c';
 
 /// See also [getAuthStateChangesUsecase].
 @ProviderFor(getAuthStateChangesUsecase)
@@ -118,7 +118,7 @@ final getAuthStateChangesUsecaseProvider =
 typedef GetAuthStateChangesUsecaseRef =
     AutoDisposeProviderRef<GetAuthStateChangesUsecase>;
 String _$getUserProfileUsecaseHash() =>
-    r'06c2a00ae61feffc7e6093a0a8df8ae16f7530b7';
+    r'4d967248cfc4f6cd19f04e292f4a242250182dc9';
 
 /// See also [getUserProfileUsecase].
 @ProviderFor(getUserProfileUsecase)
@@ -139,7 +139,7 @@ final getUserProfileUsecaseProvider =
 typedef GetUserProfileUsecaseRef =
     AutoDisposeProviderRef<GetUserProfileUsecase>;
 String _$updateUserProfileUsecaseHash() =>
-    r'5c3dc2088f4b8f2a4038ca1b68e67473ff7151a2';
+    r'db775879cf0cfe93334f07ab83e76a35fb174c09';
 
 /// See also [updateUserProfileUsecase].
 @ProviderFor(updateUserProfileUsecase)
@@ -159,7 +159,7 @@ final updateUserProfileUsecaseProvider =
 // ignore: unused_element
 typedef UpdateUserProfileUsecaseRef =
     AutoDisposeProviderRef<UpdateUserProfileUsecase>;
-String _$supabaseClientHash() => r'36e9cae00709545a85bfe4a5a2cb98d8686a01ea';
+String _$supabaseClientHash() => r'834a58d6ae4b94e36f4e04a10d8a7684b929310e';
 
 /// See also [supabaseClient].
 @ProviderFor(supabaseClient)
