@@ -1,8 +1,3 @@
----
-description: 
-globs: 
-alwaysApply: true
----
 # Athena App - 6002CEM CW2 Project Rule
 
 This rule outlines the "Athena" mobile application project for the 6002CEM Coursework 2.
@@ -189,4 +184,3 @@ This section summarizes the core features of the Athena application:
    - Use repository pattern for data access
    - Implement use cases for business logic
    - Use ViewModels/Providers for UI state management
-

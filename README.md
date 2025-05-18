@@ -97,7 +97,11 @@ When running on an Android emulator, you'll need to create a port forwarding to 
    adb reverse tcp:54323 tcp:54323  # For Supabase Studio
    ```
 
-This creates a tunnel so when your app tries to connect to localhost:54321 inside the emulator, it gets forwarded to your development machine.
+4. Sometimes you need to run:
+
+   ```bash
+   flutter clean && flutter pub get && dart run build_runner clean && dart run build_runner build --delete-conflicting-outputs
+   ```
 
 ## Key Links
 

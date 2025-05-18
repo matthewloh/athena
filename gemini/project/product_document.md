@@ -8,10 +8,10 @@ This document tracks the development progress of the Athena AI-powered study com
 
 - **Part 1 (Authentication & Profile)**: Partially Complete (Missing Password Reset, Deep-linking Email Verification, Profile Picture Upload).
 - **Part 2 (AI Chatbot)**: Not Started.
-- **Part 3 (Study Material Management)**: Not Started.
-- **Part 4 (Adaptive Review System)**: Not Started.
+- **Part 3 (Study Material Management)**: 🚧 **Partially Complete** (UI Scaffold implemented).
+- **Part 4 (Adaptive Review System)**: 🚧 **Partially Complete** (UI Scaffold implemented).
 - **Part 5 (Intelligent Study Planner)**: Not Started.
-- **Part 6 (User Dashboard)**: Not Started.
+- **Part 6 (User Dashboard)**: 🚧 **Partially Complete** (Home screen implemented with navigation).
 
 ## 2. Core Architecture & Code Expectations
 
@@ -164,51 +164,68 @@ The Athena application follows a structured and modern development approach:
 ### **Part 3: Study Material Management and Note Summarization (RAG & Content Management)**
 
 - **Reference:** `@gemini/feature_deep_dives/part_3.md`
-- **Status:** 🟡 **Not Started**
+- **Status:** 🚧 **Partially Complete** (UI Scaffold implemented)
 
 - **Summary of Responsibilities:** Allow users to add study materials (typed, text file, image OCR). View, manage, and request AI-generated summaries of these materials. Enable RAG for the AI Chatbot.
 - **Key Technologies Involved:** Flutter, Supabase PostgreSQL for `study_materials` table (metadata, text, OCR content, summaries), Supabase Storage for file uploads, Supabase Edge Function for summarization via LLM, `google_mlkit_text_recognition` for OCR.
 
 - **Current Implementation Details & Progress:**
 
-  - No implementation yet.
+  - **UI Implementation:**
+    - `MaterialsScreen` created with a clean, modern interface
+    - Subject filter tabs for material categorization 
+    - Material cards with subject icons, titles, descriptions, and tags
+    - Empty state UI with prompt to add materials
+    - Modal sheet for adding materials with multiple input options (Type/Paste, Upload, Camera, Gallery)
+    - Action buttons for AI summarization and quiz generation
+  - **Navigation:**
+    - Route added for materials screen, accessible from home screen
 
-- **File Structure (Expected):**
-
-  - `athena/lib/features/study_material/` (similar layered structure)
-  - `supabase/functions/summarize-material/index.ts` (Edge Function)
+- **File Structure (Current):**
+  - `athena/lib/features/study_materials/presentation/views/materials_screen.dart`
 
 - **Next Steps / To-Do:**
   - Design `study_materials` table schema.
   - Implement file upload to Supabase Storage.
   - Integrate OCR for images.
   - Develop Edge Function for summarization.
-  - Build Flutter UI for material management and display.
+  - Implement data layer (repositories, datasources) and domain layer (entities, usecases).
+  - Connect UI to actual data sources and backend functionality.
 
 ---
 
 ### **Part 4: Adaptive Review System (Quizzes & Spaced Repetition)**
 
 - **Reference:** `@gemini/feature_deep_dives/part_4.md`
-- **Status:** 🟡 **Not Started**
+- **Status:** 🚧 **Partially Complete** (UI Scaffold implemented)
 
 - **Summary of Responsibilities:** Enable users to create quizzes from study materials (manually or via AI generation) or create manual flashcards. Implement a spaced repetition system for reviewing quiz items. Track progress.
 - **Key Technologies Involved:** Flutter, Supabase PostgreSQL for `quizzes` and `quiz_items` tables (including spaced repetition fields). Optional Supabase Edge Function for AI question generation.
 
 - **Current Implementation Details & Progress:**
 
-  - No implementation yet.
+  - **UI Implementation:**
+    - `ReviewScreen` created with statistics dashboard showing due items, total items, and accuracy
+    - Quick review button for items due today
+    - Quiz set cards with detailed information:
+      - Subject icons and category tags
+      - Status indicators (Due items, Recently reviewed)
+      - Item counts and last review dates
+      - Action buttons for editing and reviewing
+    - Empty state UI with prompt to create quizzes
+    - Modal sheet for creating quizzes with multiple options (Manual Entry, AI Generated, Import)
+  - **Navigation:**
+    - Route added for review screen, accessible from home screen
 
-- **File Structure (Expected):**
-
-  - `athena/lib/features/quiz/` (similar layered structure)
-  - `athena/lib/features/flashcard/` (if treated separately, or combined)
-  - `supabase/functions/generate-questions/index.ts` (Optional Edge Function)
+- **File Structure (Current):**
+  - `athena/lib/features/review/presentation/views/review_screen.dart`
 
 - **Next Steps / To-Do:**
   - Design database schema for quizzes, items, and spaced repetition metadata.
   - Implement core spaced repetition algorithm.
-  - Develop UI for quiz creation, taking, and review.
+  - Develop quiz creation, editing, and review functionality.
+  - Implement data layer (repositories, datasources) and domain layer (entities, usecases).
+  - Connect UI to actual data sources and backend functionality.
   - Optionally, integrate AI for question generation.
 
 ---
@@ -239,19 +256,34 @@ The Athena application follows a structured and modern development approach:
 ### **Part 6: User Dashboard & Progress Tracking**
 
 - **Reference:** `@gemini/feature_deep_dives/part_6.md`
-- **Status:** 🟡 **Not Started**
+- **Status:** 🚧 **Partially Complete** (Home screen implemented)
 
 - **Summary of Responsibilities:** Provide a consolidated overview of user activities, achievements, and upcoming tasks. Aggregate data from Chatbot, Review System, Planner, and Material Management.
 - **Key Technologies Involved:** Flutter, Supabase PostgreSQL (reading from multiple tables). Potential use of Supabase Database Views or RPC Functions for efficient data aggregation.
 
 - **Current Implementation Details & Progress:**
 
-  - No implementation yet.
+  - **UI Implementation:**
+    - Redesigned `HomeScreen` with modern dashboard layout
+    - Feature grid with cards for all major app functions:
+      - AI Chatbot
+      - Study Materials
+      - Adaptive Review
+      - Study Planner
+    - Quick action cards for common tasks
+    - Proper navigation to all feature screens
+  - **Navigation:**
+    - Home screen serves as the main hub for app navigation
+    - Direct links to all major feature screens
 
-- **File Structure (Expected):**
-
-  - `athena/lib/features/dashboard/` (similar layered structure)
+- **File Structure (Current):**
+  - `athena/lib/screens/home_screen.dart`
+  - `athena/lib/features/home/README.md` (with implementation plan)
 
 - **Next Steps / To-Do:**
   - Design data aggregation strategies (Views, RPCs).
-  - Develop UI for displaying dashboard information, potentially with charts.
+  - Implement actual dashboard data fetching and display.
+  - Connect the home screen widgets to real data from other features.
+  - Add analytics and statistics summaries from other features.
+  - Implement progress tracking and achievement displays.
+  - Reorganize home screen code into the features/home directory structure.

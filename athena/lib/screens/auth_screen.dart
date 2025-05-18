@@ -1,18 +1,15 @@
-import 'package:athena/core/constants/app_route_names.dart';
-import 'package:athena/core/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/auth_service.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class AuthScreen extends ConsumerStatefulWidget {
+  const AuthScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -35,14 +32,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
-      await ref.read(appAuthProvider.notifier).signInWithPassword(
+      await ref
+          .read(authProvider.notifier)
+          .signInWithPassword(
             _emailController.text.trim(),
             _passwordController.text.trim(),
           );
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e is AuthException ? e.message : e.toString();
+          _errorMessage = e.toString();
         });
       }
     } finally {
@@ -57,9 +56,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sign In to Athena'),
-      ),
+      appBar: AppBar(title: const Text('Sign In to Athena')),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -74,7 +71,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Text(
                       _errorMessage!,
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -115,33 +114,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _signIn,
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Sign In'),
+                  child:
+                      _isLoading
+                          ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : const Text('Sign In'),
                 ),
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () {
+                    // Show forgot password dialog
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Password reset not implemented yet')),
+                      const SnackBar(
+                        content: Text('Password reset not implemented yet'),
+                      ),
                     );
                   },
                   child: const Text('Forgot Password?'),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("Don't have an account?"),
-                    TextButton(
-                      onPressed: () => context.goNamed(AppRouteNames.signup),
-                      child: const Text('Sign Up'),
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -150,4 +142,4 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
-} 
+}
