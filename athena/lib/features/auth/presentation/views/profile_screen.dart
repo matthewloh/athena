@@ -1,10 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:athena/core/providers/auth_provider.dart';
 import 'package:athena/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -18,7 +19,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _isLoading = false;
   String? _errorMessage;
   String? _avatarUrl;
-  File? _avatarFile;
   final TextEditingController _fullNameController = TextEditingController();
 
   Future<void> _uploadAvatar() async {
@@ -32,7 +32,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (image == null) return;
 
     setState(() {
-      _avatarFile = File(image.path);
       _isLoading = true;
       _errorMessage = null;
     });
@@ -42,18 +41,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final user = supabase.auth.currentUser;
       if (user == null) throw Exception('User not logged in');
 
-      // Upload image to storage
+      // Generate filename
       final fileName =
           '${user.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      await supabase.storage.from('avatars').upload(fileName, _avatarFile!);
 
-      // Get public URL
-      final imageUrl = supabase.storage.from('avatars').getPublicUrl(fileName);
+      // Read file as bytes (works on both web and mobile)
+      final Uint8List bytes = await image.readAsBytes();
 
-      // Update user profile
+      // Upload bytes using uploadBinary (compatible with web)
+      await supabase.storage
+          .from('avatars')
+          .uploadBinary(
+            fileName,
+            bytes,
+            fileOptions: const FileOptions(
+              contentType: 'image/jpeg',
+              upsert: true,
+            ),
+          );
+
+      // Get signed URL with long expiration instead of public URL
+      final imageUrl = await supabase.storage
+          .from('avatars')
+          .createSignedUrl(fileName, 60 * 60 * 24 * 365); // 1 year expiration
+
+      debugPrint('Image uploaded, URL: $imageUrl');
+
+      // Update user profile with just the filename, not the full URL
       await supabase
           .from('profiles')
-          .update({'avatar_url': imageUrl})
+          .update({'avatar_url': fileName})
           .eq('id', user.id);
 
       setState(() {
@@ -69,6 +86,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         );
       }
     } catch (e) {
+      debugPrint('Error uploading avatar: $e');
       if (mounted) {
         setState(() {
           _errorMessage = 'Failed to update profile photo. Please try again.';
@@ -107,11 +125,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               .eq('id', user.id)
               .single();
 
+      final avatarUrl = response['avatar_url'] as String?;
+
+      // If avatar URL exists, convert it to a signed URL
+      String? signedAvatarUrl;
+      if (avatarUrl != null && avatarUrl.isNotEmpty) {
+        // Extract filename from the URL - assuming avatar_url stores the filename or full path
+        final filePathComponents = avatarUrl.split('/');
+        final fileName = filePathComponents.last;
+
+        // Create a signed URL for the avatar
+        try {
+          signedAvatarUrl = await supabase.storage
+              .from('avatars')
+              .createSignedUrl(fileName, 60 * 60 * 24); // 1 day expiration
+          debugPrint('Created signed URL: $signedAvatarUrl');
+        } catch (e) {
+          debugPrint('Error creating signed URL: $e');
+        }
+      }
+
+      debugPrint(
+        'Loaded profile with avatar URL: ${signedAvatarUrl ?? avatarUrl}',
+      );
+
       setState(() {
-        _avatarUrl = response['avatar_url'] as String?;
+        _avatarUrl = signedAvatarUrl ?? avatarUrl;
         _fullNameController.text = response['full_name'] as String? ?? '';
       });
     } catch (e) {
+      debugPrint('Error loading profile: $e');
       if (mounted) {
         setState(() {
           _errorMessage = 'Failed to load profile. Please try again.';
@@ -161,6 +204,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         );
       }
     } catch (e) {
+      debugPrint('Error updating profile: $e');
       if (mounted) {
         setState(() {
           _errorMessage = 'Failed to update profile. Please try again.';
@@ -192,6 +236,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         context.go('/landing');
       }
     } catch (e) {
+      debugPrint('Error signing out: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -219,6 +264,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void dispose() {
     _fullNameController.dispose();
     super.dispose();
+  }
+
+  Widget _buildAvatarImage() {
+    if (_avatarUrl == null || _avatarUrl!.isEmpty) {
+      return Icon(
+        Icons.person,
+        size: 60,
+        color: AppColors.athenaBlue.withValues(alpha: 0.7),
+      );
+    }
+
+    debugPrint('Using avatar URL for image: $_avatarUrl');
+
+    return Image.network(
+      _avatarUrl!,
+      fit: BoxFit.cover,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Center(
+          child: CircularProgressIndicator(
+            value:
+                loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        (loadingProgress.expectedTotalBytes ?? 1)
+                    : null,
+            color: AppColors.athenaPurple,
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        debugPrint('Error loading image: $error');
+        return Icon(
+          Icons.broken_image_rounded,
+          size: 60,
+          color: AppColors.error,
+        );
+      },
+    );
   }
 
   @override
@@ -266,20 +349,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             child: CircleAvatar(
                               radius: 60,
                               backgroundColor: AppColors.athenaOffWhite,
-                              backgroundImage:
-                                  _avatarUrl != null
-                                      ? NetworkImage(_avatarUrl!)
-                                      : null,
-                              child:
-                                  _avatarUrl == null
-                                      ? Icon(
-                                        Icons.person,
-                                        size: 60,
-                                        color: AppColors.athenaBlue.withValues(
-                                          alpha: 0.7,
-                                        ),
-                                      )
-                                      : null,
+                              child: ClipOval(
+                                child: SizedBox(
+                                  width: 120,
+                                  height: 120,
+                                  child: _buildAvatarImage(),
+                                ),
+                              ),
                             ),
                           ),
                           Positioned(
