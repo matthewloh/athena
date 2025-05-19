@@ -139,6 +139,7 @@ class MaterialsScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.athenaPurple,
+        heroTag: 'materials_fab',
         child: const Icon(Icons.add),
         onPressed: () {
           _showAddMaterialDialog(context);

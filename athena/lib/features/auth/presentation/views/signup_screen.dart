@@ -17,7 +17,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
   String? _successMessage;
@@ -41,15 +42,18 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     });
 
     try {
-      await ref.read(appAuthProvider.notifier).signUp(
+      await ref
+          .read(appAuthProvider.notifier)
+          .signUp(
             _emailController.text.trim(),
             _passwordController.text.trim(),
             data: {'full_name': _fullNameController.text.trim()},
           );
-      
+
       if (mounted) {
         setState(() {
-          _successMessage = 'Sign Up successful! Please check your email to verify your account.';
+          _successMessage =
+              'Sign Up successful! Please check your email to verify your account.';
         });
       }
     } catch (e) {
@@ -70,9 +74,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Athena Account'),
-      ),
+      appBar: AppBar(title: const Text('Create Athena Account')),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -87,7 +89,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Text(
                       _errorMessage!,
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -96,7 +100,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Text(
                       _successMessage!,
-                      style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -174,13 +180,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _signUp,
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Create Account'),
+                  child:
+                      _isLoading
+                          ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : const Text('Create Account'),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -200,4 +207,4 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       ),
     );
   }
-} 
+}

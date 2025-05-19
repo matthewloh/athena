@@ -175,5 +175,181 @@ final reviewItemsProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ReviewItemsRef = AutoDisposeFutureProviderRef<List<ReviewItem>>;
+String _$helloEdgeFunctionHash() => r'0c43515ae154e2a59dc4f22a15df0f3d72db3d1a';
+
+/// Copied from Dart SDK
+class _SystemHash {
+  _SystemHash._();
+
+  static int combine(int hash, int value) {
+    // ignore: parameter_assignments
+    hash = 0x1fffffff & (hash + value);
+    // ignore: parameter_assignments
+    hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
+    return hash ^ (hash >> 6);
+  }
+
+  static int finish(int hash) {
+    // ignore: parameter_assignments
+    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
+    // ignore: parameter_assignments
+    hash = hash ^ (hash >> 11);
+    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
+  }
+}
+
+/// Provider for calling the hello-name edge function
+///
+/// Copied from [helloEdgeFunction].
+@ProviderFor(helloEdgeFunction)
+const helloEdgeFunctionProvider = HelloEdgeFunctionFamily();
+
+/// Provider for calling the hello-name edge function
+///
+/// Copied from [helloEdgeFunction].
+class HelloEdgeFunctionFamily extends Family<AsyncValue<Map<String, dynamic>>> {
+  /// Provider for calling the hello-name edge function
+  ///
+  /// Copied from [helloEdgeFunction].
+  const HelloEdgeFunctionFamily();
+
+  /// Provider for calling the hello-name edge function
+  ///
+  /// Copied from [helloEdgeFunction].
+  HelloEdgeFunctionProvider call(String userName) {
+    return HelloEdgeFunctionProvider(userName);
+  }
+
+  @override
+  HelloEdgeFunctionProvider getProviderOverride(
+    covariant HelloEdgeFunctionProvider provider,
+  ) {
+    return call(provider.userName);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'helloEdgeFunctionProvider';
+}
+
+/// Provider for calling the hello-name edge function
+///
+/// Copied from [helloEdgeFunction].
+class HelloEdgeFunctionProvider
+    extends AutoDisposeFutureProvider<Map<String, dynamic>> {
+  /// Provider for calling the hello-name edge function
+  ///
+  /// Copied from [helloEdgeFunction].
+  HelloEdgeFunctionProvider(String userName)
+    : this._internal(
+        (ref) => helloEdgeFunction(ref as HelloEdgeFunctionRef, userName),
+        from: helloEdgeFunctionProvider,
+        name: r'helloEdgeFunctionProvider',
+        debugGetCreateSourceHash:
+            const bool.fromEnvironment('dart.vm.product')
+                ? null
+                : _$helloEdgeFunctionHash,
+        dependencies: HelloEdgeFunctionFamily._dependencies,
+        allTransitiveDependencies:
+            HelloEdgeFunctionFamily._allTransitiveDependencies,
+        userName: userName,
+      );
+
+  HelloEdgeFunctionProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.userName,
+  }) : super.internal();
+
+  final String userName;
+
+  @override
+  Override overrideWith(
+    FutureOr<Map<String, dynamic>> Function(HelloEdgeFunctionRef provider)
+    create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: HelloEdgeFunctionProvider._internal(
+        (ref) => create(ref as HelloEdgeFunctionRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        userName: userName,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<Map<String, dynamic>> createElement() {
+    return _HelloEdgeFunctionProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is HelloEdgeFunctionProvider && other.userName == userName;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, userName.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin HelloEdgeFunctionRef
+    on AutoDisposeFutureProviderRef<Map<String, dynamic>> {
+  /// The parameter `userName` of this provider.
+  String get userName;
+}
+
+class _HelloEdgeFunctionProviderElement
+    extends AutoDisposeFutureProviderElement<Map<String, dynamic>>
+    with HelloEdgeFunctionRef {
+  _HelloEdgeFunctionProviderElement(super.provider);
+
+  @override
+  String get userName => (origin as HelloEdgeFunctionProvider).userName;
+}
+
+String _$edgeFunctionNameHash() => r'1928df5262f9aa7dd8f1108914d9603782b38aa7';
+
+/// Provider to track the input name for the edge function
+///
+/// Copied from [EdgeFunctionName].
+@ProviderFor(EdgeFunctionName)
+final edgeFunctionNameProvider =
+    AutoDisposeNotifierProvider<EdgeFunctionName, String>.internal(
+      EdgeFunctionName.new,
+      name: r'edgeFunctionNameProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$edgeFunctionNameHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$EdgeFunctionName = AutoDisposeNotifier<String>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

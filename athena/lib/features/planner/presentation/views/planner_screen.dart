@@ -135,6 +135,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.orange,
+        heroTag: 'planner_fab',
         child: const Icon(Icons.add),
         onPressed: () {
           _showAddDialog(context);

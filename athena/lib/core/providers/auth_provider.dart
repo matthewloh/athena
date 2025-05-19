@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:athena/core/constants/constants.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -51,6 +52,20 @@ class AppAuth extends _$AppAuth {
     }
   }
 
+  Future<void> signInWithOtp(String email) async {
+    try {
+      await supabaseClient.auth.signInWithOtp(
+        email: email,
+        emailRedirectTo: kIsWeb ? null : Constants.supabaseLoginCallbackUrl,
+      );
+      // Note: This doesn't immediately update the auth state
+      // The user will need to click the magic link sent to their email
+    } catch (e) {
+      debugPrint('Error signing in with OTP: $e');
+      rethrow;
+    }
+  }
+
   Future<void> signUp(
     String email,
     String password, {
@@ -61,6 +76,7 @@ class AppAuth extends _$AppAuth {
         password: password,
         email: email,
         data: data,
+        emailRedirectTo: Constants.supabaseLoginCallbackUrl,
       );
       // The stream will automatically update from onAuthStateChange
     } catch (e) {

@@ -203,7 +203,7 @@ class HomeScreen extends ConsumerWidget {
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
                   color: AppColors.athenaPurple.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),

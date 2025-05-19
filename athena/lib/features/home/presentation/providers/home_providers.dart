@@ -1,3 +1,4 @@
+import 'package:athena/core/providers/supabase_providers.dart';
 import 'package:athena/features/home/data/repositories/dashboard_repository_impl.dart';
 import 'package:athena/features/home/domain/entities/dashboard_data.dart';
 import 'package:athena/features/home/domain/repositories/dashboard_repository.dart';
@@ -60,4 +61,29 @@ Future<List<UpcomingSession>> upcomingSessions(Ref ref) async {
 Future<List<ReviewItem>> reviewItems(Ref ref) async {
   final repository = ref.watch(dashboardRepositoryProvider);
   return await repository.getReviewItems();
+}
+
+/// Provider for calling the hello-name edge function
+@riverpod
+Future<Map<String, dynamic>> helloEdgeFunction(Ref ref, String userName) async {
+  final supabase = ref.read(supabaseClientProvider);
+  final response = await supabase.functions.invoke(
+    'hello-name',
+    body: {'name': userName},
+  );
+
+  return response.data as Map<String, dynamic>;
+}
+
+/// Provider to track the input name for the edge function
+@riverpod
+class EdgeFunctionName extends _$EdgeFunctionName {
+  @override
+  String build() {
+    return 'Scholar';
+  }
+
+  void updateName(String name) {
+    state = name;
+  }
 }

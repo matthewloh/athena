@@ -177,6 +177,7 @@ class ReviewScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.athenaSupportiveGreen,
+        heroTag: 'review_fab',
         child: const Icon(Icons.add),
         onPressed: () {
           _showCreateQuizDialog(context);

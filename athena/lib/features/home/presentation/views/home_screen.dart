@@ -172,7 +172,8 @@ class HomeScreen extends ConsumerWidget {
                             color: AppColors.athenaBlue.withValues(alpha: 0.9),
                             onTap: () {
                               // Navigate to chatbot using navigation provider instead of GoRouter
-                              ref.read(navigationIndexProvider.notifier).state = 1;
+                              ref.read(navigationIndexProvider.notifier).state =
+                                  1;
                             },
                           ),
                           _buildFeatureCard(
@@ -185,7 +186,8 @@ class HomeScreen extends ConsumerWidget {
                             ),
                             onTap: () {
                               // Navigate to study materials using navigation provider
-                              ref.read(navigationIndexProvider.notifier).state = 2;
+                              ref.read(navigationIndexProvider.notifier).state =
+                                  2;
                             },
                           ),
                           _buildFeatureCard(
@@ -198,7 +200,8 @@ class HomeScreen extends ConsumerWidget {
                             ),
                             onTap: () {
                               // Navigate to review system using navigation provider
-                              ref.read(navigationIndexProvider.notifier).state = 3;
+                              ref.read(navigationIndexProvider.notifier).state =
+                                  3;
                             },
                           ),
                           _buildFeatureCard(
@@ -209,7 +212,8 @@ class HomeScreen extends ConsumerWidget {
                             color: Colors.orange.withValues(alpha: 0.9),
                             onTap: () {
                               // Navigate to planner using navigation provider
-                              ref.read(navigationIndexProvider.notifier).state = 4;
+                              ref.read(navigationIndexProvider.notifier).state =
+                                  4;
                             },
                           ),
                         ],
@@ -290,7 +294,9 @@ class HomeScreen extends ConsumerWidget {
                             ElevatedButton(
                               onPressed: () {
                                 // Navigate to planner
-                                ref.read(navigationIndexProvider.notifier).state = 4;
+                                ref
+                                    .read(navigationIndexProvider.notifier)
+                                    .state = 4;
                               },
                               style: ElevatedButton.styleFrom(
                                 minimumSize: const Size(double.infinity, 45),
@@ -382,7 +388,9 @@ class HomeScreen extends ConsumerWidget {
                             OutlinedButton(
                               onPressed: () {
                                 // Navigate to review
-                                ref.read(navigationIndexProvider.notifier).state = 3;
+                                ref
+                                    .read(navigationIndexProvider.notifier)
+                                    .state = 3;
                               },
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size(double.infinity, 45),
@@ -409,6 +417,228 @@ class HomeScreen extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // Show a cool bottom sheet to demonstrate edge function with Riverpod
+          _showEdgeFunctionDemo(context, ref);
+        },
+        tooltip: 'Call Edge Function',
+        heroTag: 'home_fab',
+        child: const Icon(Icons.api),
+      ),
+    );
+  }
+
+  void _showEdgeFunctionDemo(BuildContext context, WidgetRef ref) {
+    final currentName = ref.read(edgeFunctionNameProvider);
+    final textController = TextEditingController(text: currentName);
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppColors.athenaBlue.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.cloudy_snowing, color: AppColors.athenaBlue),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Supabase Edge Function',
+                          style: TextStyle(
+                            fontSize: 18, 
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: textController,
+                      decoration: InputDecoration(
+                        labelText: 'Your Name',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.send),
+                          onPressed: () {
+                            final name = textController.text.trim();
+                            if (name.isNotEmpty) {
+                              ref.read(edgeFunctionNameProvider.notifier).updateName(name);
+                              // Force rebuild by invalidating the provider
+                                                             ref.invalidate(helloEdgeFunctionProvider(name));
+                            }
+                          },
+                        ),
+                      ),
+                      onSubmitted: (value) {
+                        if (value.isNotEmpty) {
+                          ref.read(edgeFunctionNameProvider.notifier).updateName(value);
+                          // Force rebuild by invalidating the provider
+                          ref.invalidate(helloEdgeFunctionProvider(value));
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Response:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Consumer(
+                            builder: (context, ref, child) {
+                              final name = ref.watch(edgeFunctionNameProvider);
+                              final asyncResponse = ref.watch(helloEdgeFunctionProvider(name));
+                              
+                              return asyncResponse.when(
+                                data: (data) {
+                                  // Success state
+                                  return _buildSuccessState(data);
+                                },
+                                loading: () {
+                                  // Loading state
+                                  return _buildLoadingState();
+                                },
+                                error: (error, stackTrace) {
+                                  // Error state
+                                  return _buildErrorState(error);
+                                },
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Async State Management:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '• Riverpod provides typesafe async state handling\n'
+                      '• .when() handles all states: data, loading, error\n'
+                      '• Edge functions run in isolated environments\n'
+                      '• StateProvider tracks user input across rebuilds',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+  
+  Widget _buildSuccessState(Map<String, dynamic> data) {
+    return AnimatedOpacity(
+      opacity: 1.0,
+      duration: const Duration(milliseconds: 500),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.athenaBlue.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.athenaBlue.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.green),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                data['message'] ?? 'No message received',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildLoadingState() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            height: 24,
+            width: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          SizedBox(width: 16),
+          Text('Calling edge function...'),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildErrorState(Object error) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.red[200]!),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: Colors.red[700]),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Error: ${error.toString()}',
+              style: TextStyle(
+                color: Colors.red[700],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
