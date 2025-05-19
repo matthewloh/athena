@@ -7,6 +7,7 @@ import '../screens/auth_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/loading_screen.dart';
 import 'auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 part 'router_service.g.dart';
 
@@ -83,6 +84,36 @@ GoRouter router(Ref ref) {
         name: 'home',
         path: '/',
         builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: '/',
+        pageBuilder: (context, state) {
+          // Check for auth code in query parameters
+          final code = state.uri.queryParameters['code'];
+          if (code != null) {
+            // Handle auth code here
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              // Process the code and then navigate
+              Future.microtask(() async {
+                try {
+                  final supabase = Supabase.instance.client;
+                  // Exchange code for session
+                  await supabase.auth.exchangeCodeForSession(code);
+                  // Navigate to home after successful auth
+                  if (context.mounted) {
+                    context.go('/home');
+                  }
+                } catch (e) {
+                  // Handle errors
+                  debugPrint('Error processing auth code: $e');
+                }
+              });
+            });
+          }
+
+          // Return your normal home page
+          return MaterialPage(child: HomeScreen());
+        },
       ),
     ],
   );
