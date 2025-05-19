@@ -6,6 +6,7 @@ import 'package:athena/features/auth/presentation/views/login_screen.dart';
 import 'package:athena/features/auth/presentation/views/profile_screen.dart';
 import 'package:athena/features/auth/presentation/views/signup_screen.dart';
 import 'package:athena/features/navigation/main_navigation_screen.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -46,6 +47,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final loggingIn = state.matchedLocation == '/${AppRouteNames.login}';
       final signingUp = state.matchedLocation == '/${AppRouteNames.signup}';
       final onLanding = state.matchedLocation == '/${AppRouteNames.landing}';
+      final onAuthCallback =
+          state.matchedLocation == '/${AppRouteNames.authCallback}';
+
+      // If on auth callback, don't redirect (needed for web auth flow)
+      if (onAuthCallback) {
+        return null;
+      }
 
       // If authenticated and on an auth/landing page, redirect to home
       if (isAuthenticated && (loggingIn || signingUp || onLanding)) {
@@ -80,6 +88,63 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: AppRouteNames.profile,
         builder: (context, state) => const ProfileScreen(),
       ),
+      // Auth callback route for web authentication flow
+      GoRoute(
+        path: '/${AppRouteNames.authCallback}',
+        name: AppRouteNames.authCallback,
+        builder: (context, state) {
+          if (kIsWeb) {
+            // Process the auth token if present in URL
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
+              // Get auth code from URL using GoRouter's state object
+              final code = state.uri.queryParameters['code'];
+
+              if (code != null) {
+                try {
+                  // Exchange auth code for session
+                  await Supabase.instance.client.auth.exchangeCodeForSession(
+                    code,
+                  );
+
+                  // If successful, navigate to home
+                  if (context.mounted) {
+                    context.go('/${AppRouteNames.home}');
+                  }
+                } catch (e) {
+                  debugPrint('Error processing auth token: $e');
+                  // If there's an error, still show the loading indicator
+                  // The redirect will eventually take them to login
+                }
+              } else {
+                // If no code is found, redirect to login
+                if (context.mounted) {
+                  context.go('/${AppRouteNames.login}');
+                }
+              }
+            });
+
+            // Show loading UI during processing
+            return Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Completing authentication...',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          } else {
+            // Redirect to home if somehow this route is accessed on mobile
+            return const Scaffold(body: Center(child: Text('Redirecting...')));
+          }
+        },
+      ),
       // Main navigation shell that contains the bottom navigation bar
       // This is the key change - using a ShellRoute for the main navigation
       ShellRoute(
@@ -89,7 +154,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/${AppRouteNames.home}',
             name: AppRouteNames.home,
-            builder: (context, state) => const SizedBox(), // Placeholder, the actual view is managed by IndexedStack
+            builder:
+                (context, state) =>
+                    const SizedBox(), // Placeholder, the actual view is managed by IndexedStack
           ),
         ],
       ),

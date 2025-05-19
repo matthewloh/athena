@@ -7,6 +7,7 @@ class AppRouteNames {
   static const String login = 'login';
   static const String signup = 'signup';
   static const String profile = 'profile';
+  static const String authCallback = 'auth-callback';
 
   // Main app routes
   static const String home = 'home';

@@ -9,9 +9,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
 
+  // Initialize Supabase with platform-specific redirect URL
   await Supabase.initialize(
     url: const String.fromEnvironment('SUPABASE_URL'),
     anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
+    authOptions: FlutterAuthClientOptions(authFlowType: AuthFlowType.pkce),
   );
 
   runApp(const ProviderScope(child: MyApp()));

@@ -1,6 +1,6 @@
 -- Create a table for public profiles
 CREATE TABLE profiles (
-  id UUID REFERENCES auth.users NOT NULL PRIMARY KEY,
+  id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL PRIMARY KEY,
   updated_at TIMESTAMP WITH TIME ZONE,
   username TEXT UNIQUE,
   full_name TEXT,
