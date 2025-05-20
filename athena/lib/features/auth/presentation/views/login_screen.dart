@@ -106,6 +106,83 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _recoverPassword() async {
+    if (_emailController.text.trim().isEmpty) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Please enter your email address in the email field to recover password.';
+        });
+      }
+      return;
+    }
+    if (!_emailController.text.contains('@')) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Please enter a valid email address in the email field.';
+        });
+      }
+      return;
+    }
+
+    final String? emailForRecovery = await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        final TextEditingController recoveryEmailController = TextEditingController(text: _emailController.text.trim());
+        return AlertDialog(
+          title: const Text('Reset Password'),
+          content: TextField(
+            controller: recoveryEmailController,
+            decoration: const InputDecoration(hintText: "Enter your email"),
+            keyboardType: TextInputType.emailAddress,
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Submit'),
+              onPressed: () {
+                Navigator.of(context).pop(recoveryEmailController.text.trim());
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    if (emailForRecovery == null || emailForRecovery.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _successMessage = null;
+    });
+
+    try {
+      await ref.read(appAuthProvider.notifier).recoverPassword(emailForRecovery);
+      if (mounted) {
+        setState(() {
+          _successMessage = 'Password recovery email sent! Check your inbox.';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e is AuthException ? e.message : e.toString();
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -215,13 +292,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Password reset not implemented yet'),
-                      ),
-                    );
-                  },
+                  onPressed: _isLoading ? null : _recoverPassword,
                   child: const Text('Forgot Password?'),
                 ),
                 const SizedBox(height: 16),

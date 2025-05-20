@@ -12,6 +12,13 @@ void main() async {
   await Supabase.initialize(
     url: const String.fromEnvironment('SUPABASE_URL'),
     anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
+    authOptions: FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.pkce, // set to pkce by default
+    ),
+    realtimeClientOptions: const RealtimeClientOptions(
+      logLevel: RealtimeLogLevel.info,
+    ),
+    storageOptions: const StorageClientOptions(retryAttempts: 10),
   );
 
   runApp(const ProviderScope(child: MyApp()));
