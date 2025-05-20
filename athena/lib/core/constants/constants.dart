@@ -3,5 +3,6 @@ class Constants {
 
   static const String appName = 'Athena';
 
-  static const String supabaseLoginCallbackUrl = 'app.helloathena://login-callback';
+  static const String supabaseLoginCallbackUrlMobile = 'app.helloathena://login-callback';
+  static const String supabaseLoginCallbackUrlWeb = 'https://www.helloathena.app';
 }
