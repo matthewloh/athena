@@ -47,15 +47,17 @@ GoRouter router(Ref ref) {
     ),
     redirect: (context, state) {
       final isAuthenticated = authNotifier.currentUser != null;
-      final isLoggingIn = state.matchedLocation == '/login';
-      final isProcessingAuthCallback =
-          state.matchedLocation == '/auth/callback';
-      final isLoading = state.matchedLocation == '/loading';
+      // Use state.uri.path for more precise path matching, ignoring query parameters for the check
+      final currentPath = state.uri.path;
+      final isLoggingIn = currentPath == '/login';
+      final isProcessingAuthCallback = currentPath == '/auth/callback';
+      final isLoading = currentPath == '/loading';
 
-      if (isLoading) return null; // Allow navigation to loading screen
-      if (isProcessingAuthCallback) {
-        return null; // Allow navigation to auth callback screen
-      }
+      // Log current state for debugging
+      debugPrint('[GoRouter Redirect] Path: $currentPath, Query: ${state.uri.queryParameters}, IsAuthenticated: $isAuthenticated');
+
+      if (isLoading) return null; 
+      if (isProcessingAuthCallback) return null; 
 
       if (!isAuthenticated && !isLoggingIn) {
         return '/login';
