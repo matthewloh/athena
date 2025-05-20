@@ -1,0 +1,11 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "app.helloathena.athena",
+    "sha256_cert_fingerprints": [
+      "61:DC:A4:6A:C9:FC:38:02:4B:DE:AE:6B:F3:77:78:80:C7:60:FA:DE:B8:77:D2:93:0D:0F:D4:E7:DD:36:A8:EB", 
+      "8D:61:B8:A1:27:11:0E:A0:26:07:CC:20:CC:DD:3C:A4:4C:7C:A4:E7:6C:DC:28:7A:88:1A:02:CF:26:9B:B9:5D"
+    ]
+  }
+}] 

@@ -56,7 +56,7 @@ class AppAuth extends _$AppAuth {
     try {
       await supabaseClient.auth.signInWithOtp(
         email: email,
-        emailRedirectTo: kIsWeb ? null : Constants.supabaseLoginCallbackUrl,
+        emailRedirectTo: kIsWeb ? 'https://www.helloathena.app/auth/callback' : Constants.supabaseLoginCallbackUrl,
       );
       // Note: This doesn't immediately update the auth state
       // The user will need to click the magic link sent to their email
@@ -76,7 +76,7 @@ class AppAuth extends _$AppAuth {
         password: password,
         email: email,
         data: data,
-        emailRedirectTo: Constants.supabaseLoginCallbackUrl,
+        emailRedirectTo: kIsWeb ? 'https://www.helloathena.app/auth/callback' : Constants.supabaseLoginCallbackUrl,
       );
       // The stream will automatically update from onAuthStateChange
     } catch (e) {
@@ -97,7 +97,9 @@ class AppAuth extends _$AppAuth {
 
   Future<void> recoverPassword(String email) async {
     try {
-      final redirectUrl = kIsWeb ? '${Uri.base.origin}/reset' : null;
+      final redirectUrl = kIsWeb 
+          ? 'https://www.helloathena.app/auth/reset-password' 
+          : 'app.helloathena://auth/reset-password-callback'; // Ensure this deep link is handled
       await supabaseClient.auth.resetPasswordForEmail(
         email,
         redirectTo: redirectUrl,
