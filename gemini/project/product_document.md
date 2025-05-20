@@ -173,7 +173,7 @@ The Athena application follows a structured and modern development approach:
 
   - **UI Implementation:**
     - `MaterialsScreen` created with a clean, modern interface
-    - Subject filter tabs for material categorization 
+    - Subject filter tabs for material categorization
     - Material cards with subject icons, titles, descriptions, and tags
     - Empty state UI with prompt to add materials
     - Modal sheet for adding materials with multiple input options (Type/Paste, Upload, Camera, Gallery)
