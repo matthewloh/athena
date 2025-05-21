@@ -2,7 +2,6 @@ import 'package:athena/core/constants/app_route_names.dart';
 import 'package:athena/core/providers/auth_provider.dart';
 import 'package:athena/core/theme/app_colors.dart';
 import 'package:athena/features/home/presentation/providers/home_providers.dart';
-import 'package:athena/features/navigation/main_navigation_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -171,9 +170,8 @@ class HomeScreen extends ConsumerWidget {
                             description: 'Get instant academic support',
                             color: AppColors.athenaBlue.withValues(alpha: 0.9),
                             onTap: () {
-                              // Navigate to chatbot using navigation provider instead of GoRouter
-                              ref.read(navigationIndexProvider.notifier).state =
-                                  1;
+                              // Navigate to chatbot using GoRouter
+                              context.goNamed(AppRouteNames.chat);
                             },
                           ),
                           _buildFeatureCard(
@@ -185,9 +183,8 @@ class HomeScreen extends ConsumerWidget {
                               alpha: 0.9,
                             ),
                             onTap: () {
-                              // Navigate to study materials using navigation provider
-                              ref.read(navigationIndexProvider.notifier).state =
-                                  2;
+                              // Navigate to study materials using GoRouter
+                              context.goNamed(AppRouteNames.materials);
                             },
                           ),
                           _buildFeatureCard(
@@ -199,9 +196,8 @@ class HomeScreen extends ConsumerWidget {
                               alpha: 0.9,
                             ),
                             onTap: () {
-                              // Navigate to review system using navigation provider
-                              ref.read(navigationIndexProvider.notifier).state =
-                                  3;
+                              // Navigate to review system using GoRouter
+                              context.goNamed(AppRouteNames.review);
                             },
                           ),
                           _buildFeatureCard(
@@ -211,9 +207,8 @@ class HomeScreen extends ConsumerWidget {
                             description: 'Schedule your study sessions',
                             color: Colors.orange.withValues(alpha: 0.9),
                             onTap: () {
-                              // Navigate to planner using navigation provider
-                              ref.read(navigationIndexProvider.notifier).state =
-                                  4;
+                              // Navigate to planner using GoRouter
+                              context.goNamed(AppRouteNames.planner);
                             },
                           ),
                         ],
@@ -294,9 +289,7 @@ class HomeScreen extends ConsumerWidget {
                             ElevatedButton(
                               onPressed: () {
                                 // Navigate to planner
-                                ref
-                                    .read(navigationIndexProvider.notifier)
-                                    .state = 4;
+                                context.goNamed(AppRouteNames.planner);
                               },
                               style: ElevatedButton.styleFrom(
                                 minimumSize: const Size(double.infinity, 45),
@@ -388,9 +381,7 @@ class HomeScreen extends ConsumerWidget {
                             OutlinedButton(
                               onPressed: () {
                                 // Navigate to review
-                                ref
-                                    .read(navigationIndexProvider.notifier)
-                                    .state = 3;
+                                context.goNamed(AppRouteNames.review);
                               },
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size(double.infinity, 45),
@@ -433,7 +424,7 @@ class HomeScreen extends ConsumerWidget {
   void _showEdgeFunctionDemo(BuildContext context, WidgetRef ref) {
     final currentName = ref.read(edgeFunctionNameProvider);
     final textController = TextEditingController(text: currentName);
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -463,13 +454,16 @@ class HomeScreen extends ConsumerWidget {
                             color: AppColors.athenaBlue.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Icon(Icons.cloudy_snowing, color: AppColors.athenaBlue),
+                          child: Icon(
+                            Icons.cloudy_snowing,
+                            color: AppColors.athenaBlue,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         const Text(
                           'Supabase Edge Function',
                           style: TextStyle(
-                            fontSize: 18, 
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -488,16 +482,20 @@ class HomeScreen extends ConsumerWidget {
                           onPressed: () {
                             final name = textController.text.trim();
                             if (name.isNotEmpty) {
-                              ref.read(edgeFunctionNameProvider.notifier).updateName(name);
+                              ref
+                                  .read(edgeFunctionNameProvider.notifier)
+                                  .updateName(name);
                               // Force rebuild by invalidating the provider
-                                                             ref.invalidate(helloEdgeFunctionProvider(name));
+                              ref.invalidate(helloEdgeFunctionProvider(name));
                             }
                           },
                         ),
                       ),
                       onSubmitted: (value) {
                         if (value.isNotEmpty) {
-                          ref.read(edgeFunctionNameProvider.notifier).updateName(value);
+                          ref
+                              .read(edgeFunctionNameProvider.notifier)
+                              .updateName(value);
                           // Force rebuild by invalidating the provider
                           ref.invalidate(helloEdgeFunctionProvider(value));
                         }
@@ -525,8 +523,10 @@ class HomeScreen extends ConsumerWidget {
                           Consumer(
                             builder: (context, ref, child) {
                               final name = ref.watch(edgeFunctionNameProvider);
-                              final asyncResponse = ref.watch(helloEdgeFunctionProvider(name));
-                              
+                              final asyncResponse = ref.watch(
+                                helloEdgeFunctionProvider(name),
+                              );
+
                               return asyncResponse.when(
                                 data: (data) {
                                   // Success state
@@ -569,7 +569,7 @@ class HomeScreen extends ConsumerWidget {
       },
     );
   }
-  
+
   Widget _buildSuccessState(Map<String, dynamic> data) {
     return AnimatedOpacity(
       opacity: 1.0,
@@ -579,7 +579,9 @@ class HomeScreen extends ConsumerWidget {
         decoration: BoxDecoration(
           color: AppColors.athenaBlue.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.athenaBlue.withValues(alpha: 0.3)),
+          border: Border.all(
+            color: AppColors.athenaBlue.withValues(alpha: 0.3),
+          ),
         ),
         child: Row(
           children: [
@@ -588,9 +590,7 @@ class HomeScreen extends ConsumerWidget {
             Expanded(
               child: Text(
                 data['message'] ?? 'No message received',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.w500),
               ),
             ),
           ],
@@ -598,7 +598,7 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildLoadingState() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20),
@@ -616,7 +616,7 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildErrorState(Object error) {
     return Container(
       padding: const EdgeInsets.all(12),

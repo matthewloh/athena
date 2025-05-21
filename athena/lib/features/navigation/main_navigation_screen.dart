@@ -1,37 +1,40 @@
+import 'package:athena/core/constants/app_route_names.dart';
 import 'package:athena/core/theme/app_colors.dart';
-import 'package:athena/features/chatbot/presentation/views/chatbot_screen.dart';
-import 'package:athena/features/home/presentation/views/home_screen.dart';
-import 'package:athena/features/planner/presentation/views/planner_screen.dart';
-import 'package:athena/features/review/presentation/views/review_screen.dart';
-import 'package:athena/features/study_materials/presentation/views/materials_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-final navigationIndexProvider = StateProvider<int>((ref) => 0);
+import 'package:go_router/go_router.dart';
 
 class MainNavigationScreen extends ConsumerWidget {
-  const MainNavigationScreen({super.key});
+  final Widget child;
+
+  const MainNavigationScreen({super.key, required this.child});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedIndex = ref.watch(navigationIndexProvider);
+    final String? currentRouteName = GoRouter.of(context).routeInformationProvider.value.uri.pathSegments.isNotEmpty
+        ? GoRouter.of(context).routeInformationProvider.value.uri.pathSegments.last
+        : AppRouteNames.home;
 
-    // List of screens for bottom navigation
-    final screens = [
-      const HomeScreen(),
-      const ChatbotScreen(),
-      const MaterialsScreen(),
-      const ReviewScreen(),
-      const PlannerScreen(),
-    ];
+    int selectedIndex = 0;
+    if (currentRouteName == AppRouteNames.chat) {
+      selectedIndex = 1;
+    } else if (currentRouteName == AppRouteNames.materials) {
+      selectedIndex = 2;
+    } else if (currentRouteName == AppRouteNames.review) {
+      selectedIndex = 3;
+    } else if (currentRouteName == AppRouteNames.planner) {
+      selectedIndex = 4;
+    } else if (currentRouteName == AppRouteNames.home) {
+      selectedIndex = 0;
+    }
 
     return Scaffold(
-      body: IndexedStack(index: selectedIndex, children: screens),
+      body: child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: Colors.black.withOpacity(0.1),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -66,7 +69,23 @@ class MainNavigationScreen extends ConsumerWidget {
             ),
           ],
           onTap: (index) {
-            ref.read(navigationIndexProvider.notifier).state = index;
+            switch (index) {
+              case 0:
+                context.goNamed(AppRouteNames.home);
+                break;
+              case 1:
+                context.goNamed(AppRouteNames.chat);
+                break;
+              case 2:
+                context.goNamed(AppRouteNames.materials);
+                break;
+              case 3:
+                context.goNamed(AppRouteNames.review);
+                break;
+              case 4:
+                context.goNamed(AppRouteNames.planner);
+                break;
+            }
           },
         ),
       ),

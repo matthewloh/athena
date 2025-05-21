@@ -32,7 +32,8 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="www.helloathena.app" />
+                <data android:scheme="https" android:host="www.helloathena.app"
+                    android:pathPattern=".*" />
                 <!-- Optionally add http if you need to support it -->
                 <data android:scheme="http" android:host="www.helloathena.app" />
             </intent-filter>

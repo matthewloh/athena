@@ -7,7 +7,12 @@ import 'package:athena/features/auth/presentation/views/landing_screen.dart';
 import 'package:athena/features/auth/presentation/views/login_screen.dart';
 import 'package:athena/features/auth/presentation/views/profile_screen.dart';
 import 'package:athena/features/auth/presentation/views/signup_screen.dart';
+import 'package:athena/features/chatbot/presentation/views/chatbot_screen.dart';
+import 'package:athena/features/home/presentation/views/home_screen.dart';
 import 'package:athena/features/navigation/main_navigation_screen.dart';
+import 'package:athena/features/planner/presentation/views/planner_screen.dart';
+import 'package:athena/features/review/presentation/views/review_screen.dart';
+import 'package:athena/features/study_materials/presentation/views/materials_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -106,6 +111,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: AppRouteNames.profile,
         builder: (context, state) => const ProfileScreen(),
       ),
+      // Route for Loading Screen
       // Route for HTTPS Auth Callback
       GoRoute(
         path: '/${AppRouteNames.authCallback}',
@@ -116,14 +122,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // This is the key change - using a ShellRoute for the main navigation
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
-        builder: (context, state, child) => const MainNavigationScreen(),
+        builder: (BuildContext context, GoRouterState state, Widget child) {
+          // MainNavigationScreen now receives the active screen as a child
+          return MainNavigationScreen(child: child);
+        },
         routes: [
           GoRoute(
             path: '/${AppRouteNames.home}',
             name: AppRouteNames.home,
-            builder:
-                (context, state) =>
-                    const SizedBox(), // Placeholder, the actual view is managed by IndexedStack
+            builder: (context, state) => const HomeScreen(),
+          ),
+          GoRoute(
+            path: '/${AppRouteNames.chat}',
+            name: AppRouteNames.chat,
+            builder: (context, state) => const ChatbotScreen(),
+          ),
+          GoRoute(
+            path: '/${AppRouteNames.materials}',
+            name: AppRouteNames.materials,
+            builder: (context, state) => const MaterialsScreen(),
+          ),
+          GoRoute(
+            path: '/${AppRouteNames.review}',
+            name: AppRouteNames.review,
+            builder: (context, state) => const ReviewScreen(),
+          ),
+          GoRoute(
+            path: '/${AppRouteNames.planner}',
+            name: AppRouteNames.planner,
+            builder: (context, state) => const PlannerScreen(),
           ),
         ],
       ),
