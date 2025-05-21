@@ -1,10 +1,14 @@
-import 'package:athena/core/constants/app_route_names.dart';
-import 'package:athena/core/providers/auth_provider.dart';
 import 'package:athena/core/theme/app_colors.dart';
+import 'package:athena/features/auth/presentation/widgets/email_password_social_sign_in_form.dart';
+import 'package:athena/features/auth/presentation/widgets/login_method_toggle.dart';
+import 'package:athena/features/auth/presentation/widgets/magic_link_sign_in_form.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:supabase_auth_ui/supabase_auth_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+// Define the enum for login methods here
+enum LoginMethod { emailPasswordSocial, magicLink }
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -14,300 +18,229 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  bool _isLoading = false;
-  bool _isOtpLoading = false;
   String? _errorMessage;
   String? _successMessage;
+  LoginMethod _selectedLoginMethod = LoginMethod.emailPasswordSocial;
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
     super.dispose();
   }
 
-  Future<void> _signIn() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-      _successMessage = null;
-    });
-
-    try {
-      await ref
-          .read(appAuthProvider.notifier)
-          .signInWithPassword(
-            _emailController.text.trim(),
-            _passwordController.text.trim(),
-          );
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e is AuthException ? e.message : e.toString();
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _signInWithOtp() async {
-    if (_emailController.text.trim().isEmpty) {
-      setState(() {
-        _errorMessage = 'Please enter your email address';
-      });
-      return;
-    }
-
-    if (!_emailController.text.contains('@')) {
-      setState(() {
-        _errorMessage = 'Please enter a valid email';
-      });
-      return;
-    }
-
-    setState(() {
-      _isOtpLoading = true;
-      _errorMessage = null;
-      _successMessage = null;
-    });
-
-    try {
-      await ref
-          .read(appAuthProvider.notifier)
-          .signInWithOtp(_emailController.text.trim());
-
-      if (mounted) {
-        setState(() {
-          _successMessage = 'Magic link sent! Check your email to sign in.';
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e is AuthException ? e.message : e.toString();
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isOtpLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _recoverPassword() async {
-    if (_emailController.text.trim().isEmpty) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'Please enter your email address in the email field to recover password.';
-        });
-      }
-      return;
-    }
-    if (!_emailController.text.contains('@')) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'Please enter a valid email address in the email field.';
-        });
-      }
-      return;
-    }
-
-    final String? emailForRecovery = await showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        final TextEditingController recoveryEmailController = TextEditingController(text: _emailController.text.trim());
-        return AlertDialog(
-          title: const Text('Reset Password'),
-          content: TextField(
-            controller: recoveryEmailController,
-            decoration: const InputDecoration(hintText: "Enter your email"),
-            keyboardType: TextInputType.emailAddress,
+  Widget _buildMessageArea() {
+    if (_errorMessage != null) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 0.0, bottom: 10.0),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.error.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
           ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Submit'),
-              onPressed: () {
-                Navigator.of(context).pop(recoveryEmailController.text.trim());
-              },
-            ),
-          ],
-        );
-      },
-    );
+          child: Row(
+            children: [
+              Icon(Icons.error_outline, color: AppColors.error),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  _errorMessage!,
+                  style: TextStyle(
+                    color: AppColors.error,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (_successMessage != null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10.0, top: 10.0),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.success.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.check_circle_outline, color: AppColors.success),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  _successMessage!,
+                  style: TextStyle(
+                    color: AppColors.athenaDarkGrey,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
 
-    if (emailForRecovery == null || emailForRecovery.isEmpty) return;
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-      _successMessage = null;
-    });
-
-    try {
-      await ref.read(appAuthProvider.notifier).recoverPassword(emailForRecovery);
-      if (mounted) {
-        setState(() {
-          _successMessage = 'Password recovery email sent! Check your inbox.';
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e is AuthException ? e.message : e.toString();
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+  void _handleError(dynamic error) {
+    if (mounted) {
+      setState(() {
+        _successMessage = null;
+        if (error is AuthException) {
+          _errorMessage = error.message;
+        } else {
+          _errorMessage = error.toString();
+        }
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Sign In to Athena')),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (_errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Text(
-                      _errorMessage!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                      textAlign: TextAlign.center,
+      backgroundColor: AppColors.athenaOffWhite,
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: screenWidth * 0.03,
+            vertical: 16,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 500),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(height: screenHeight * 0.02),
+                        Image.asset(
+                          'assets/images/logo.png',
+                          height: screenHeight * 0.15,
+                        ),
+                        SizedBox(height: screenHeight * 0.025),
+                        const Text(
+                          'Welcome to Athena!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.athenaDarkGrey,
+                          ),
+                        ),
+                        SizedBox(height: screenHeight * 0.005),
+                        Text(
+                          'Sign in to continue your learning journey',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(
+                            color: AppColors.athenaMediumGrey,
+                            fontSize: 15,
+                          ),
+                        ),
+                        SizedBox(height: screenHeight * 0.03),
+                        Card(
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                              vertical: 16.0,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _buildMessageArea(),
+                                LoginMethodToggle(
+                                  selectedMethod: _selectedLoginMethod,
+                                  onMethodSelected: (method) {
+                                    if (mounted) {
+                                      setState(() {
+                                        _selectedLoginMethod = method;
+                                        _errorMessage = null;
+                                        _successMessage = null;
+                                      });
+                                    }
+                                  },
+                                ),
+                                if (_selectedLoginMethod ==
+                                    LoginMethod.emailPasswordSocial)
+                                  EmailPasswordSocialSignInForm(
+                                    onSignInComplete: (response) {
+                                      if (mounted) {
+                                        setState(() {
+                                          _errorMessage = null;
+                                          _successMessage = null;
+                                        });
+                                      }
+                                    },
+                                    onSignUpComplete: (response) {
+                                      if (mounted) {
+                                        setState(() {
+                                          _errorMessage = null;
+                                          _successMessage =
+                                              'Sign up successful! Please verify your email and sign in.';
+                                        });
+                                      }
+                                    },
+                                    onPasswordResetEmailSentCallback: () {
+                                      if (mounted) {
+                                        setState(() {
+                                          _errorMessage = null;
+                                          _successMessage =
+                                              'Password recovery email sent! Check your inbox.';
+                                        });
+                                      }
+                                    },
+                                    onSocialSuccess: (response) {
+                                      if (mounted) {
+                                        setState(() {
+                                          _errorMessage = null;
+                                          _successMessage =
+                                              'Successfully signed in with social provider.';
+                                        });
+                                      }
+                                    },
+                                    onError: _handleError,
+                                  ),
+                                if (_selectedLoginMethod ==
+                                    LoginMethod.magicLink)
+                                  MagicLinkSignInForm(
+                                    onSuccess: (response) {
+                                      if (mounted) {
+                                        setState(() {
+                                          _errorMessage = null;
+                                          _successMessage =
+                                              'Magic link sent! Check your email inbox.';
+                                        });
+                                      }
+                                    },
+                                    onError: _handleError,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                if (_successMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Text(
-                      _successMessage!,
-                      style: TextStyle(
-                        color: AppColors.athenaSupportiveGreen,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.email),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!value.contains('@')) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock),
-                  ),
-                  obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _signIn,
-                  child:
-                      _isLoading
-                          ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                          : const Text('Sign In with Password'),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'OR',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: _isOtpLoading ? null : _signInWithOtp,
-                  icon:
-                      _isOtpLoading
-                          ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                          : const Icon(Icons.email_outlined),
-                  label: const Text('Sign In with Magic Link'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: _isLoading ? null : _recoverPassword,
-                  child: const Text('Forgot Password?'),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("Don't have an account?"),
-                    TextButton(
-                      onPressed: () => context.goNamed(AppRouteNames.signup),
-                      child: const Text('Sign Up'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

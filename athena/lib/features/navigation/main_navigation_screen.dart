@@ -11,9 +11,14 @@ class MainNavigationScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final String? currentRouteName = GoRouter.of(context).routeInformationProvider.value.uri.pathSegments.isNotEmpty
-        ? GoRouter.of(context).routeInformationProvider.value.uri.pathSegments.last
-        : AppRouteNames.home;
+    final String currentRouteName =
+        GoRouter.of(
+              context,
+            ).routeInformationProvider.value.uri.pathSegments.isNotEmpty
+            ? GoRouter.of(
+              context,
+            ).routeInformationProvider.value.uri.pathSegments.last
+            : AppRouteNames.home;
 
     int selectedIndex = 0;
     if (currentRouteName == AppRouteNames.chat) {
@@ -34,7 +39,7 @@ class MainNavigationScreen extends ConsumerWidget {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),

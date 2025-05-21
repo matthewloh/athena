@@ -6,7 +6,7 @@ This document tracks the development progress of the Athena AI-powered study com
 
 **Current Overall Status:**
 
-- **Part 1 (Authentication & Profile)**: Partially Complete (Missing Password Reset, Deep-linking Email Verification, Profile Picture Upload).
+- **Part 1 (Authentication & Profile)**: Partially Complete (Core login/signup, profile view/edit, and email verification deep-linking functional. Missing Password Reset, Profile Picture Upload).
 - **Part 2 (AI Chatbot)**: Not Started.
 - **Part 3 (Study Material Management)**: 🚧 **Partially Complete** (UI Scaffold implemented).
 - **Part 4 (Adaptive Review System)**: 🚧 **Partially Complete** (UI Scaffold implemented).
@@ -67,9 +67,9 @@ The Athena application follows a structured and modern development approach:
 ### **Part 1: User Authentication & Profile Management**
 
 - **Reference:** `@gemini/feature_deep_dives/part_1.md`
-- **Status:** 🚧 **Partially Complete** (Core functionality implemented)
+- **Status:** 🚧 **Partially Complete** (Core functionality and email verification deep-linking implemented)
 
-- **Summary of Responsibilities:** Secure user account creation (email/password), login, logout, password reset (planned, not yet implemented), and basic profile management (name, preferred subjects).
+- **Summary of Responsibilities:** Secure user account creation (email/password), login, logout, password reset (planned, not yet implemented), email verification (deep-linking now functional), and basic profile management (name, preferred subjects).
 - **Key Technologies Involved:** Flutter (Riverpod, GoRouter), Supabase Auth, Supabase PostgreSQL (`profiles` table), `supabase_auth_ui`.
 
 - **Current Implementation Details & Progress:**
@@ -119,8 +119,7 @@ The Athena application follows a structured and modern development approach:
   - `presentation/views/landing_screen.dart`, `login_screen.dart`, `signup_screen.dart`, `profile_screen.dart`
 
 - **Next Steps / To-Do:**
-  - Implement Password Reset functionality (requires UI, ViewModel logic, Usecase, Repository, Datasource method).
-  - Implement Email Verification (with deep-linking considerations if default Supabase behavior isn't sufficient).
+  - Implement Password Reset functionality (requires UI, ViewModel logic, Usecase, Repository, Datasource method, and handling of associated deep links).
   - Allow users to upload/manage a Profile Picture (integrating with Supabase Storage).
   - Refine error handling and user feedback on ProfileScreen for update success/failure.
 
@@ -129,35 +128,70 @@ The Athena application follows a structured and modern development approach:
 ### **Part 2: AI Chatbot (Academic Assistance & LLM Integration)**
 
 - **Reference:** `@gemini/feature_deep_dives/part_2.md`
-- **Status:** 🟡 **Not Started**
+- **Status:** 🟡 **Scaffolding Complete**
 
-- **Summary of Responsibilities:** Provide instant academic support via a chat interface. Answer questions, explain concepts, help with homework, and maintain conversation context. Store chat history.
-- **Key Technologies Involved:** Flutter, Supabase Edge Functions (TypeScript) to securely call external LLM APIs (e.g., OpenAI, Gemini via Vercel AI SDK), Supabase PostgreSQL for `chat_history` table.
+- **Summary of Responsibilities:** Provide instant academic support via a chat interface. Answer questions, explain concepts, help with homework, and maintain conversation context. Store chat history. Stream AI responses.
+- **Key Technologies Involved:** Flutter (Riverpod, GoRouter), Supabase Edge Functions (TypeScript) to securely call external LLM APIs (e.g., OpenAI, Gemini via Vercel AI SDK), Supabase PostgreSQL for `chat_messages` and `conversations` tables.
 
 - **Current Implementation Details & Progress:**
 
-  - No implementation yet.
+  - **Core Layers Scaffolded:**
+    - **Domain Layer (`features/chatbot/domain/`):**
+      - Entities: `ConversationEntity.dart`, `ChatMessageEntity.dart` (with `MessageSender` enum) created.
+      - Repositories: `ChatRepository.dart` interface defined.
+      - Use Cases: `GetConversationsUseCase.dart`, `GetChatHistoryUseCase.dart`, `SendMessageUseCase.dart`, `CreateConversationUseCase.dart` created (interfaces/placeholders).
+    - **Data Layer (`features/chatbot/data/`):**
+      - Models: `ConversationModel.dart`, `ChatMessageModel.dart` created (placeholder DTOs).
+      - Data Sources: `ChatRemoteDataSource.dart` (interface), `ChatSupabaseDataSourceImpl.dart` (placeholder class) created.
+      - Repositories: `ChatRepositoryImpl.dart` (placeholder class) created.
+    - **Presentation Layer (`features/chatbot/presentation/`):**
+      - ViewModel: `ChatViewModel.dart` (extends `AsyncNotifier`) implemented to manage `ChatState`.
+        - Handles loading initial conversations and messages for an active conversation.
+        - Manages sending messages and optimistically updates UI.
+        - Includes logic for streaming AI responses (updates UI per chunk).
+        - Uses `fold` to handle `Either` results from use cases.
+        - Defines `ChatState` and `ChatError` helper classes.
+      - Providers: `chat_providers.dart` set up to provide `ChatViewModel`, use cases, repository, and data source.
+      - Views: `chatbot_screen.dart` created.
+      - Widgets: `ChatBubble.dart`, `MessageInputBar.dart` created.
+  - \*\*UI (`chatbot_screen.dart`):
+    - Displays a list of messages using `ListView.builder` and `ChatBubble`.
+    - Integrates `MessageInputBar` for user input.
+    - Shows loading and error states based on `ChatViewModel`.
+    - Includes a scroll-to-bottom functionality.
+    - Basic AppBar with title and info dialog.
+  - **Routing:**
+    - Route to `ChatbotScreen` is defined in `app_router.dart` and accessible from the `HomeScreen`.
+  - **Error Handling:**
+    - `ChatViewModel` uses `AsyncValue` to represent loading/error/data states.
+    - `ChatError` class is used for specific error messages within `ChatState`.
+    - Use cases are expected to return `Either<Failure, SuccessType>`.
+  - **README:**
+    - `athena/lib/features/chatbot/README.md` created, detailing the feature's architecture, components, and status.
 
-- **File Structure (Expected):**
+- **File Structure (`athena/lib/features/chatbot/`):**
 
-  - `athena/lib/features/chat/`
-    - `data/datasources/chat_remote_datasource.dart` (for Supabase interactions)
-    - `data/models/chat_message_model.dart`
-    - `data/repositories/chat_repository_impl.dart`
-    - `domain/entities/chat_message_entity.dart`, `conversation_entity.dart`
-    - `domain/repositories/chat_repository.dart`
-    - `domain/usecases/send_message_usecase.dart`, `get_chat_history_usecase.dart`
-    - `presentation/providers/chat_providers.dart`
-    - `presentation/viewmodel/chat_viewmodel.dart`
-    - `presentation/views/chat_screen.dart`
-    - `presentation/widgets/chat_bubble.dart`, `message_input_bar.dart`
-  - `supabase/functions/chat-handler/index.ts` (or similar for Edge Function)
+  - `README.md`
+  - `data/datasources/chat_remote_datasource.dart`, `chat_supabase_datasource.dart`
+  - `data/models/chat_message_model.dart`, `conversation_model.dart`
+  - `data/repositories/chat_repository_impl.dart`
+  - `domain/entities/chat_message_entity.dart`, `conversation_entity.dart`
+  - `domain/repositories/chat_repository.dart`
+  - `domain/usecases/create_conversation_usecase.dart`, `get_chat_history_usecase.dart`, `get_conversations_usecase.dart`, `send_message_usecase.dart`
+  - `presentation/providers/chat_providers.dart`, `chat_providers.g.dart`
+  - `presentation/viewmodel/chat_viewmodel.dart`, `chat_viewmodel.g.dart`
+  - `presentation/views/chatbot_screen.dart`
+  - `presentation/widgets/chat_bubble.dart`, `message_input_bar.dart`
+  - `supabase/functions/chat-handler/index.ts` (or similar for Edge Function - placeholder)
 
 - **Next Steps / To-Do:**
   - Define Supabase schema for `chat_messages` and `conversations` tables.
-  - Develop the Supabase Edge Function for LLM interaction.
-  - Implement the Flutter domain, data, and presentation layers for the chat feature.
-  - Design and build the chat UI.
+  - Develop the Supabase Edge Function for LLM interaction (TypeScript, Vercel AI SDK).
+  - Fully implement `ChatSupabaseDataSourceImpl.dart` to connect to Supabase tables and the Edge Function.
+  - Fully implement `ChatRepositoryImpl.dart`.
+  - Implement actual AI response streaming logic end-to-end.
+  - Enhance conversation management (listing, selecting, starting new ones from UI).
+  - Refine UI/UX, error handling, and loading states.
 
 ---
 
@@ -182,6 +216,7 @@ The Athena application follows a structured and modern development approach:
     - Route added for materials screen, accessible from home screen
 
 - **File Structure (Current):**
+
   - `athena/lib/features/study_materials/presentation/views/materials_screen.dart`
 
 - **Next Steps / To-Do:**
@@ -218,6 +253,7 @@ The Athena application follows a structured and modern development approach:
     - Route added for review screen, accessible from home screen
 
 - **File Structure (Current):**
+
   - `athena/lib/features/review/presentation/views/review_screen.dart`
 
 - **Next Steps / To-Do:**
@@ -277,6 +313,7 @@ The Athena application follows a structured and modern development approach:
     - Direct links to all major feature screens
 
 - **File Structure (Current):**
+
   - `athena/lib/screens/home_screen.dart`
   - `athena/lib/features/home/README.md` (with implementation plan)
 

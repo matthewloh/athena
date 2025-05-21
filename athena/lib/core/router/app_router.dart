@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:async';
 
 import 'package:athena/core/constants/app_route_names.dart';
@@ -7,6 +9,7 @@ import 'package:athena/features/auth/presentation/views/landing_screen.dart';
 import 'package:athena/features/auth/presentation/views/login_screen.dart';
 import 'package:athena/features/auth/presentation/views/profile_screen.dart';
 import 'package:athena/features/auth/presentation/views/signup_screen.dart';
+import 'package:athena/features/auth/presentation/views/update_password_screen.dart';
 import 'package:athena/features/chatbot/presentation/views/chatbot_screen.dart';
 import 'package:athena/features/errors/presentation/views/not_found_screen.dart';
 import 'package:athena/features/home/presentation/views/home_screen.dart';
@@ -26,7 +29,7 @@ final _shellNavigatorKey = GlobalKey<NavigatorState>();
 // It's good practice to make the router a provider itself so it can access other providers.
 final appRouterProvider = Provider<GoRouter>((ref) {
   // Watch the AppAuth provider. It provides AsyncValue<User?>
-  final authState = ref.watch(appAuthProvider);
+  // final authState = ref.watch(appAuthProvider);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
@@ -60,22 +63,65 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final authStateValue = ref.watch(appAuthProvider);
       final bool isAuthenticated = authStateValue.maybeWhen(
         data: (user) => user != null,
-        orElse: () => false, // Treat loading and error as not authenticated for this check
+        orElse:
+            () =>
+                false, // Treat loading and error as not authenticated for this check
       );
       final bool isAuthLoading = authStateValue.isLoading;
+      // Get the last event from the AppAuth notifier
+      final AuthChangeEvent? lastAuthEvent =
+          ref.read(appAuthProvider.notifier).lastAuthEvent;
 
-      // Explicitly handle the auth callback path FIRST
+      // Explicitly handle the auth callback path FIRST (for email verification, magic links, recovery)
       if (currentLocation == '/${AppRouteNames.authCallback}') {
-        // If authenticated (Supabase has processed the token from URL and auth state updated),
-        // then redirect to home.
+        // If the event is password recovery, redirect to update password screen
+        // The Supabase SDK should have processed the URL fragment and updated the session.
+        if (lastAuthEvent == AuthChangeEvent.passwordRecovery) {
+          print(
+            'GoRouter redirect: AuthCallback -> Password Recovery event, redirecting to /update-password',
+          );
+          // Check if user is already "authenticated" in the sense of having a session from the recovery link
+          if (Supabase.instance.client.auth.currentSession?.accessToken !=
+              null) {
+            return '/${AppRouteNames.updatePassword}';
+          } else {
+            // If no session from recovery link somehow, maybe back to login with error?
+            // Or trust SupaResetPassword screen to handle missing token.
+            print(
+              'GoRouter redirect: AuthCallback -> Password Recovery event, but no access token found in session. Going to /update-password anyway.',
+            );
+            return '/${AppRouteNames.updatePassword}';
+          }
+        }
+
+        // If authenticated (e.g. after email verification or magic link)
         if (isAuthenticated) {
-          print('GoRouter redirect: AuthCallback -> Authenticated, redirecting to /home');
+          print(
+            'GoRouter redirect: AuthCallback -> Authenticated (not password recovery), redirecting to /home',
+          );
           return '/${AppRouteNames.home}';
         }
-        // If not authenticated OR auth is still loading, stay on AuthCallbackScreen.
-        // This gives Supabase SDK time to process URL parameters (like ?code= or #access_token=).
-        print('GoRouter redirect: AuthCallback -> Not authenticated or loading, staying on /auth/callback');
-        return null; 
+
+        print(
+          'GoRouter redirect: AuthCallback -> Not authenticated or loading (and not password recovery), staying on /auth/callback',
+        );
+        return null;
+      }
+
+      // Route for actually updating the password (requires a valid session from recovery link)
+      if (currentLocation == '/${AppRouteNames.updatePassword}') {
+        // Ensure there's an active session, typically set by the recovery link
+        if (Supabase.instance.client.auth.currentSession?.accessToken != null) {
+          print(
+            'GoRouter redirect: On /update-password with active session, allowing access.',
+          );
+          return null; // Allow access to update password screen
+        }
+        // If somehow on this path without a session from recovery, redirect to login
+        print(
+          'GoRouter redirect: On /update-password WITHOUT active session, redirecting to /login',
+        );
+        return '/${AppRouteNames.login}';
       }
 
       final bool onAuthRelevantScreen =
@@ -86,34 +132,46 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // If authenticated (and not on auth callback screen):
       if (isAuthenticated) {
         if (onAuthRelevantScreen) {
-          print('GoRouter redirect: Authenticated on auth screen ($currentLocation), redirecting to /home');
+          print(
+            'GoRouter redirect: Authenticated on auth screen ($currentLocation), redirecting to /home',
+          );
           return '/${AppRouteNames.home}';
         }
-        print('GoRouter redirect: Authenticated on $currentLocation, no redirect needed.');
+        print(
+          'GoRouter redirect: Authenticated on $currentLocation, no redirect needed.',
+        );
         return null; // Already authenticated and on a protected route, or on a public route they can access
       }
       // If NOT authenticated (and not on auth callback screen):
       else {
-        // If auth is loading and we are trying to access a non-auth screen, 
-        // it might be too early to redirect to login. 
+        // If auth is loading and we are trying to access a non-auth screen,
+        // it might be too early to redirect to login.
         // However, for simplicity, current logic redirects.
         // Consider showing a global loading indicator if isAuthLoading is true here.
         if (isAuthLoading && !onAuthRelevantScreen && currentLocation != '/') {
           // If actively loading auth state and trying to go somewhere other than root or auth pages,
           // maybe wait or show loading. For now, let it fall through to login if not on auth relevant screen.
-          print('GoRouter redirect: Auth loading, on $currentLocation. Current logic will likely redirect to login if not on auth screen.');
+          print(
+            'GoRouter redirect: Auth loading, on $currentLocation. Current logic will likely redirect to login if not on auth screen.',
+          );
         }
 
         if (!onAuthRelevantScreen) {
-          print('GoRouter redirect: Not authenticated, not on auth screen ($currentLocation), redirecting to /login');
+          print(
+            'GoRouter redirect: Not authenticated, not on auth screen ($currentLocation), redirecting to /login',
+          );
           return '/${AppRouteNames.login}';
         }
-        print('GoRouter redirect: Not authenticated, but on auth screen ($currentLocation), no redirect needed.');
+        print(
+          'GoRouter redirect: Not authenticated, but on auth screen ($currentLocation), no redirect needed.',
+        );
         return null; // On login, signup, or landing screen, allow access
       }
     },
     errorBuilder: (context, state) {
-      print('GoRouter errorBuilder: Navigating to ${state.uri.toString()} caused an error.');
+      print(
+        'GoRouter errorBuilder: Navigating to ${state.uri.toString()} caused an error.',
+      );
       print('GoRouter errorBuilder: state.uri.path = ${state.uri.path}');
       print('GoRouter errorBuilder: state.error = ${state.error}');
       // Use the new NotFoundScreen
@@ -146,6 +204,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/${AppRouteNames.authCallback}',
         name: AppRouteNames.authCallback,
         builder: (context, state) => const AuthCallbackScreen(),
+      ),
+      GoRoute(
+        path: '/${AppRouteNames.updatePassword}',
+        name: AppRouteNames.updatePassword,
+        builder: (context, state) => const UpdatePasswordScreen(),
       ),
       // Main navigation shell that contains the bottom navigation bar
       // This is the key change - using a ShellRoute for the main navigation

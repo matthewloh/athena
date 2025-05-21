@@ -18,6 +18,10 @@ class AppRouteNames {
   static const String review = 'review';
   static const String planner = 'planner';
 
-  static const String loginCallback = 'loginCallback'; // Kept for now, though unused in current flow
-  static const String authCallback = 'auth/callback'; // Ensure this matches the actual incoming path
+  static const String loginCallback =
+      'loginCallback'; // Kept for now, though unused in current flow
+  static const String authCallback =
+      'auth/callback'; // Ensure this matches the actual incoming path
+  static const String updatePassword =
+      'update-password'; // For setting a new password after recovery link
 }
