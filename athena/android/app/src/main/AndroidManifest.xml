@@ -26,19 +26,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <!-- Accepts URIs that begin with YOUR_SCHEME://YOUR_HOST -->
-                <data
-                    android:host="login-callback"
-                    android:scheme="app.helloathena" />
-                <data
-                    android:scheme="app.helloathena"
-                    android:host="auth"
-                    android:pathPrefix="/reset-password-callback" />
-            </intent-filter>
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="true" />
             <!-- Intent-filter for App Links -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
@@ -54,7 +42,6 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <meta-data android:name="flutter_deeplinking_enabled" android:value="true" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

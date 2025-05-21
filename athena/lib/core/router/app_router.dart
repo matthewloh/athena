@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:athena/core/constants/app_route_names.dart';
 import 'package:athena/core/providers/auth_provider.dart';
+import 'package:athena/features/auth/presentation/views/auth_callback_screen.dart';
 import 'package:athena/features/auth/presentation/views/landing_screen.dart';
 import 'package:athena/features/auth/presentation/views/login_screen.dart';
 import 'package:athena/features/auth/presentation/views/profile_screen.dart';
@@ -9,7 +11,6 @@ import 'package:athena/features/navigation/main_navigation_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:athena/core/constants/app_route_names.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Private navigators
@@ -33,31 +34,56 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ),
 
     redirect: (BuildContext context, GoRouterState state) {
+      print('GoRouter redirect: state.uri = ${state.uri.toString()}');
+      print(
+        'GoRouter redirect: state.matchedLocation = ${state.matchedLocation}',
+      );
+      print('GoRouter redirect: state.fullPath = ${state.fullPath}');
+
+      final String rawPath = state.uri.path;
+      String derivedPath = rawPath;
+      if (rawPath.startsWith('//')) {
+        derivedPath = rawPath.substring(1);
+      } else if (!rawPath.startsWith('/')) {
+        derivedPath = '/$rawPath';
+      }
+      final String currentLocation = state.matchedLocation;
+      print('GoRouter redirect: derivedPath for matching = $derivedPath');
+
       final bool isAuthenticated = authState.when(
         data: (user) => user != null,
-        loading:
-            () =>
-                false, // Or handle as per your app's desired behavior during auth loading
-        error:
-            (_, __) =>
-                false, // Treat errors as not authenticated for redirection
+        loading: () => false,
+        error: (_, __) => false,
       );
 
-      final loggingIn = state.matchedLocation == '/${AppRouteNames.login}';
-      final signingUp = state.matchedLocation == '/${AppRouteNames.signup}';
-      final onLanding = state.matchedLocation == '/${AppRouteNames.landing}';
+      final bool onAuthRelevantScreen =
+          currentLocation == '/${AppRouteNames.login}' ||
+          currentLocation == '/${AppRouteNames.signup}' ||
+          currentLocation == '/${AppRouteNames.landing}';
 
-      // If authenticated and on an auth/landing page, redirect to home
-      if (isAuthenticated && (loggingIn || signingUp || onLanding)) {
-        return '/${AppRouteNames.home}';
+      // If on the auth callback route (HTTPS link)
+      if (currentLocation == '/${AppRouteNames.authCallback}') {
+        if (isAuthenticated) {
+          return '/${AppRouteNames.home}';
+        }
+        return null; // Stay on AuthCallbackScreen while processing
       }
 
-      // If not authenticated and not on an auth/landing page, redirect to login
-      if (!isAuthenticated && !loggingIn && !signingUp && !onLanding) {
-        return '/${AppRouteNames.login}';
+      // If authenticated:
+      if (isAuthenticated) {
+        if (onAuthRelevantScreen) {
+          return '/${AppRouteNames.home}';
+        }
+        return null;
       }
-
-      return null; // No redirect needed
+      // If NOT authenticated:
+      else {
+        // If not on login, signup, landing, or authCallback, redirect to login.
+        if (!onAuthRelevantScreen) {
+          return '/${AppRouteNames.login}';
+        }
+        return null;
+      }
     },
     routes: [
       GoRoute(
@@ -80,6 +106,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: AppRouteNames.profile,
         builder: (context, state) => const ProfileScreen(),
       ),
+      // Route for HTTPS Auth Callback
+      GoRoute(
+        path: '/${AppRouteNames.authCallback}',
+        name: AppRouteNames.authCallback,
+        builder: (context, state) => const AuthCallbackScreen(),
+      ),
       // Main navigation shell that contains the bottom navigation bar
       // This is the key change - using a ShellRoute for the main navigation
       ShellRoute(
@@ -89,7 +121,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/${AppRouteNames.home}',
             name: AppRouteNames.home,
-            builder: (context, state) => const SizedBox(), // Placeholder, the actual view is managed by IndexedStack
+            builder:
+                (context, state) =>
+                    const SizedBox(), // Placeholder, the actual view is managed by IndexedStack
           ),
         ],
       ),

@@ -3,6 +3,9 @@ class Constants {
 
   static const String appName = 'Athena';
 
-  static const String supabaseLoginCallbackUrlMobile = 'app.helloathena://login-callback';
-  static const String supabaseLoginCallbackUrlWeb = 'https://www.helloathena.app/auth/callback';
+  // TODO: Change to app.helloathena://login-callback but try app link first
+  static const String supabaseLoginCallbackUrlMobile =
+      'https://www.helloathena.app/auth/callback';
+  static const String supabaseLoginCallbackUrlWeb =
+      'https://www.helloathena.app/auth/callback';
 }
