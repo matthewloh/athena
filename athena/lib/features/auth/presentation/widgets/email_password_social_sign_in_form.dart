@@ -146,8 +146,7 @@ class EmailPasswordSocialSignInForm extends StatelessWidget {
             child: SupaSocialsAuth(
               socialProviders: const [OAuthProvider.google],
               colored: true,
-              redirectUrl:
-                  kIsWeb ? null : Constants.supabaseLoginCallbackUrlMobile,
+              redirectUrl: Constants.supabaseLoginCallbackUrlWeb,
               onSuccess: onSocialSuccess,
               onError: onError,
               authScreenLaunchMode: LaunchMode.inAppWebView,
