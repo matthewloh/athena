@@ -8,6 +8,7 @@ import 'package:athena/features/auth/presentation/views/login_screen.dart';
 import 'package:athena/features/auth/presentation/views/profile_screen.dart';
 import 'package:athena/features/auth/presentation/views/signup_screen.dart';
 import 'package:athena/features/chatbot/presentation/views/chatbot_screen.dart';
+import 'package:athena/features/errors/presentation/views/not_found_screen.dart';
 import 'package:athena/features/home/presentation/views/home_screen.dart';
 import 'package:athena/features/navigation/main_navigation_screen.dart';
 import 'package:athena/features/planner/presentation/views/planner_screen.dart';
@@ -115,25 +116,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       print('GoRouter errorBuilder: Navigating to ${state.uri.toString()} caused an error.');
       print('GoRouter errorBuilder: state.uri.path = ${state.uri.path}');
       print('GoRouter errorBuilder: state.error = ${state.error}');
-      // Return your existing error screen or a simple one
-      return Scaffold(
-        appBar: AppBar(title: const Text('Page Not Found')),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Error: ${state.error?.toString() ?? 'Unknown error'}'),
-              const SizedBox(height: 16),
-              Text('Failed to find a route for: ${state.uri.toString()}'),
-               const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => context.goNamed(AppRouteNames.home),
-                child: const Text('Go to Home'),
-              ),
-            ],
-          ),
-        ),
-      );
+      // Use the new NotFoundScreen
+      return NotFoundScreen(routerState: state);
     },
     routes: [
       GoRoute(
