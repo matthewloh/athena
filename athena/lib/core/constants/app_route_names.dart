@@ -19,5 +19,5 @@ class AppRouteNames {
   static const String planner = 'planner';
 
   static const String loginCallback = 'loginCallback'; // Kept for now, though unused in current flow
-  static const String authCallback = 'authCallback'; // New route name for HTTPS callback
+  static const String authCallback = 'auth/callback'; // Ensure this matches the actual incoming path
 }

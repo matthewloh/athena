@@ -44,6 +44,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         'GoRouter redirect: state.matchedLocation = ${state.matchedLocation}',
       );
       print('GoRouter redirect: state.fullPath = ${state.fullPath}');
+      print('GoRouter redirect: state.uri.path = ${state.uri.path}');
 
       final String rawPath = state.uri.path;
       String derivedPath = rawPath;
@@ -55,40 +56,84 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final String currentLocation = state.matchedLocation;
       print('GoRouter redirect: derivedPath for matching = $derivedPath');
 
-      final bool isAuthenticated = authState.when(
+      final authStateValue = ref.watch(appAuthProvider);
+      final bool isAuthenticated = authStateValue.maybeWhen(
         data: (user) => user != null,
-        loading: () => false,
-        error: (_, __) => false,
+        orElse: () => false, // Treat loading and error as not authenticated for this check
       );
+      final bool isAuthLoading = authStateValue.isLoading;
+
+      // Explicitly handle the auth callback path FIRST
+      if (currentLocation == '/${AppRouteNames.authCallback}') {
+        // If authenticated (Supabase has processed the token from URL and auth state updated),
+        // then redirect to home.
+        if (isAuthenticated) {
+          print('GoRouter redirect: AuthCallback -> Authenticated, redirecting to /home');
+          return '/${AppRouteNames.home}';
+        }
+        // If not authenticated OR auth is still loading, stay on AuthCallbackScreen.
+        // This gives Supabase SDK time to process URL parameters (like ?code= or #access_token=).
+        print('GoRouter redirect: AuthCallback -> Not authenticated or loading, staying on /auth/callback');
+        return null; 
+      }
 
       final bool onAuthRelevantScreen =
           currentLocation == '/${AppRouteNames.login}' ||
           currentLocation == '/${AppRouteNames.signup}' ||
           currentLocation == '/${AppRouteNames.landing}';
 
-      // If on the auth callback route (HTTPS link)
-      if (currentLocation == '/${AppRouteNames.authCallback}') {
-        if (isAuthenticated) {
-          return '/${AppRouteNames.home}';
-        }
-        return null; // Stay on AuthCallbackScreen while processing
-      }
-
-      // If authenticated:
+      // If authenticated (and not on auth callback screen):
       if (isAuthenticated) {
         if (onAuthRelevantScreen) {
+          print('GoRouter redirect: Authenticated on auth screen ($currentLocation), redirecting to /home');
           return '/${AppRouteNames.home}';
         }
-        return null;
+        print('GoRouter redirect: Authenticated on $currentLocation, no redirect needed.');
+        return null; // Already authenticated and on a protected route, or on a public route they can access
       }
-      // If NOT authenticated:
+      // If NOT authenticated (and not on auth callback screen):
       else {
-        // If not on login, signup, landing, or authCallback, redirect to login.
+        // If auth is loading and we are trying to access a non-auth screen, 
+        // it might be too early to redirect to login. 
+        // However, for simplicity, current logic redirects.
+        // Consider showing a global loading indicator if isAuthLoading is true here.
+        if (isAuthLoading && !onAuthRelevantScreen && currentLocation != '/') {
+          // If actively loading auth state and trying to go somewhere other than root or auth pages,
+          // maybe wait or show loading. For now, let it fall through to login if not on auth relevant screen.
+          print('GoRouter redirect: Auth loading, on $currentLocation. Current logic will likely redirect to login if not on auth screen.');
+        }
+
         if (!onAuthRelevantScreen) {
+          print('GoRouter redirect: Not authenticated, not on auth screen ($currentLocation), redirecting to /login');
           return '/${AppRouteNames.login}';
         }
-        return null;
+        print('GoRouter redirect: Not authenticated, but on auth screen ($currentLocation), no redirect needed.');
+        return null; // On login, signup, or landing screen, allow access
       }
+    },
+    errorBuilder: (context, state) {
+      print('GoRouter errorBuilder: Navigating to ${state.uri.toString()} caused an error.');
+      print('GoRouter errorBuilder: state.uri.path = ${state.uri.path}');
+      print('GoRouter errorBuilder: state.error = ${state.error}');
+      // Return your existing error screen or a simple one
+      return Scaffold(
+        appBar: AppBar(title: const Text('Page Not Found')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Error: ${state.error?.toString() ?? 'Unknown error'}'),
+              const SizedBox(height: 16),
+              Text('Failed to find a route for: ${state.uri.toString()}'),
+               const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => context.goNamed(AppRouteNames.home),
+                child: const Text('Go to Home'),
+              ),
+            ],
+          ),
+        ),
+      );
     },
     routes: [
       GoRoute(
