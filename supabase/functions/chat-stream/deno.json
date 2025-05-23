@@ -1,0 +1,13 @@
+{
+  "imports": {
+    "@supabase/functions-js": "jsr:@supabase/functions-js@2",
+    "@supabase/supabase-js": "jsr:@supabase/supabase-js@2",
+    "@ai-sdk/openai": "npm:@ai-sdk/openai@^0.0.66",
+    "ai": "npm:ai@^3.4.32",
+    "zod": "npm:zod@^3.22.4"
+  },
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window", "dom"]
+  }
+} 

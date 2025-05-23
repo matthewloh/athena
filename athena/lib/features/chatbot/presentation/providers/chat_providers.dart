@@ -1,3 +1,4 @@
+import 'package:athena/core/providers/supabase_providers.dart';
 import 'package:athena/features/chatbot/data/datasources/chat_supabase_datasource.dart';
 import 'package:athena/features/chatbot/data/repositories/chat_repository_impl.dart';
 import 'package:athena/features/chatbot/domain/repositories/chat_repository.dart';
@@ -13,7 +14,8 @@ part 'chat_providers.g.dart';
 // DataSources
 @riverpod
 ChatSupabaseDataSourceImpl chatSupabaseDataSource(Ref ref) {
-  return ChatSupabaseDataSourceImpl();
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  return ChatSupabaseDataSourceImpl(supabaseClient);
 }
 
 // Repositories
@@ -43,20 +45,27 @@ CreateConversationUseCase createConversationUseCase(Ref ref) {
   return CreateConversationUseCase(ref.watch(chatRepositoryProvider));
 }
 
-// ViewModel
-@riverpod
-class ChatViewModel extends _$ChatViewModel {
-  // TODO: Implement ChatViewModel logic
-  @override
-  Future<void> build() async {
-    // Initial data loading if any
-  }
+// Additional Use Cases for enhanced functionality
 
-  // Example method
-  // Future<void> sendMessage(String text) async {
-  //   state = const AsyncValue.loading();
-  //   state = await AsyncValue.guard(() async {
-  //     // Call usecase
-  //   });
-  // }
+@riverpod
+Future<void> updateConversation(Ref ref, String conversationId, {String? title}) async {
+  final repository = ref.read(chatRepositoryProvider);
+  // Implementation would go here - for now just a placeholder
+  // This would call repository.updateConversation with the new data
+}
+
+@riverpod
+Future<void> deleteConversation(Ref ref, String conversationId) async {
+  final repository = ref.read(chatRepositoryProvider);
+  final result = await repository.deleteConversation(conversationId);
+  return result.fold(
+    (failure) => throw Exception(failure.message),
+    (_) => null,
+  );
+}
+
+@riverpod
+Future<List<dynamic>> searchConversations(Ref ref, String query) async {
+  // Implementation would use the enhanced data source search method
+  return [];
 }
