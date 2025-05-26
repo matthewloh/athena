@@ -8,7 +8,7 @@ class GetConversationsUseCase {
 
   GetConversationsUseCase(this.repository);
 
-  Future<Either<Failure, List<ConversationEntity>>> call() {
-    return repository.getConversations();
+  Future<Either<Failure, List<ConversationEntity>>> call(String userId) {
+    return repository.getConversations(userId);
   }
 }

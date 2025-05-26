@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { openai } from "npm:@ai-sdk/openai";
-import { streamText, CoreMessage } from "npm:ai";
+import { CoreMessage, streamText } from "npm:ai";
 import { z } from "npm:zod";
 
 // Zod schemas for request validation
@@ -14,7 +14,7 @@ const ChatRequestSchema = z.object({
 
 const MessageSchema = z.object({
   id: z.string(),
-  sender: z.enum(['user', 'ai', 'system']),
+  sender: z.enum(["user", "ai", "system"]),
   content: z.string(),
   timestamp: z.string(),
 });
@@ -23,7 +23,8 @@ type ChatRequest = z.infer<typeof ChatRequestSchema>;
 type Message = z.infer<typeof MessageSchema>;
 
 // System prompt with academic focus
-const SYSTEM_PROMPT = `You are Athena, an AI-powered study companion designed to help students learn effectively. Your core principles:
+const SYSTEM_PROMPT =
+  `You are Athena, an AI-powered study companion designed to help students learn effectively. Your core principles:
 
 1. **Educational Focus**: Prioritize learning and understanding over just providing answers
 2. **Encouraging Tone**: Be supportive, patient, and motivating
@@ -47,17 +48,17 @@ Always maintain a helpful, encouraging, and educational tone.`;
 async function getConversationContext(
   supabase: any,
   conversationId: string,
-  maxMessages: number = 10
+  maxMessages: number = 10,
 ): Promise<CoreMessage[]> {
   const { data: messages, error } = await supabase
-    .from('chat_messages')
-    .select('sender, content, timestamp')
-    .eq('conversation_id', conversationId)
-    .order('timestamp', { ascending: false })
+    .from("chat_messages")
+    .select("sender, content, timestamp")
+    .eq("conversation_id", conversationId)
+    .order("timestamp", { ascending: false })
     .limit(maxMessages);
 
   if (error) {
-    console.error('Error fetching conversation context:', error);
+    console.error("Error fetching conversation context:", error);
     return [];
   }
 
@@ -65,7 +66,7 @@ async function getConversationContext(
   return messages
     .reverse()
     .map((msg: any): CoreMessage => ({
-      role: msg.sender === 'user' ? 'user' : 'assistant',
+      role: msg.sender === "user" ? "user" : "assistant",
       content: msg.content,
     }));
 }
@@ -74,11 +75,11 @@ async function getConversationContext(
 async function saveMessage(
   supabase: any,
   conversationId: string,
-  sender: 'user' | 'ai',
-  content: string
+  sender: "user" | "ai",
+  content: string,
 ): Promise<void> {
   const { error } = await supabase
-    .from('chat_messages')
+    .from("chat_messages")
     .insert({
       conversation_id: conversationId,
       sender,
@@ -86,8 +87,8 @@ async function saveMessage(
     });
 
   if (error) {
-    console.error('Error saving message:', error);
-    throw new Error('Failed to save message');
+    console.error("Error saving message:", error);
+    throw new Error("Failed to save message");
   }
 }
 
@@ -95,17 +96,17 @@ async function saveMessage(
 async function ensureConversationExists(
   supabase: any,
   conversationId: string,
-  userId: string
+  userId: string,
 ): Promise<boolean> {
   const { data, error } = await supabase
-    .from('conversations')
-    .select('id')
-    .eq('id', conversationId)
-    .eq('user_id', userId)
+    .from("conversations")
+    .select("id")
+    .eq("id", conversationId)
+    .eq("user_id", userId)
     .single();
 
-  if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-    console.error('Error checking conversation:', error);
+  if (error && error.code !== "PGRST116") { // PGRST116 is "not found"
+    console.error("Error checking conversation:", error);
     return false;
   }
 
@@ -114,13 +115,14 @@ async function ensureConversationExists(
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 200,
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers":
+          "authorization, x-client-info, apikey, content-type",
       },
     });
   }
@@ -134,18 +136,18 @@ Deno.serve(async (req) => {
         global: {
           headers: { Authorization: req.headers.get("Authorization")! },
         },
-      }
+      },
     );
 
     // Get user from auth
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { 
+        JSON.stringify({ error: "Unauthorized" }),
+        {
           status: 401,
-          headers: { 'Content-Type': 'application/json' }
-        }
+          headers: { "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -157,16 +159,16 @@ Deno.serve(async (req) => {
     const conversationExists = await ensureConversationExists(
       supabase,
       validatedRequest.conversationId,
-      user.id
+      user.id,
     );
 
     if (!conversationExists) {
       return new Response(
-        JSON.stringify({ error: 'Conversation not found or access denied' }),
-        { 
+        JSON.stringify({ error: "Conversation not found or access denied" }),
+        {
           status: 404,
-          headers: { 'Content-Type': 'application/json' }
-        }
+          headers: { "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -174,34 +176,32 @@ Deno.serve(async (req) => {
     await saveMessage(
       supabase,
       validatedRequest.conversationId,
-      'user',
-      validatedRequest.message
+      "user",
+      validatedRequest.message,
     );
 
     // Get conversation context if requested
     let messages: CoreMessage[] = [
-      { role: 'system', content: SYSTEM_PROMPT }
+      { role: "system", content: SYSTEM_PROMPT },
     ];
 
     if (validatedRequest.includeContext) {
       const contextMessages = await getConversationContext(
         supabase,
         validatedRequest.conversationId,
-        validatedRequest.maxContextMessages
+        validatedRequest.maxContextMessages,
       );
       messages.push(...contextMessages);
     }
 
     // Add the current user message
     messages.push({
-      role: 'user',
+      role: "user",
       content: validatedRequest.message,
     });
 
     // Initialize OpenAI client correctly
-    const model = openai('gpt-4o-mini', {
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
-    });
+    const model = openai("gpt-4o");
 
     // Stream the AI response
     const result = await streamText({
@@ -212,19 +212,21 @@ Deno.serve(async (req) => {
     });
 
     // Create a readable stream for the response
-    let fullResponse = '';
+    let fullResponse = "";
     const stream = new ReadableStream({
       async start(controller) {
         try {
           for await (const delta of result.textStream) {
             fullResponse += delta;
-            
+
             // Send each chunk as Server-Sent Events format
-            const chunk = `data: ${JSON.stringify({ 
-              type: 'chunk', 
-              content: delta 
-            })}\n\n`;
-            
+            const chunk = `data: ${
+              JSON.stringify({
+                type: "chunk",
+                content: delta,
+              })
+            }\n\n`;
+
             controller.enqueue(new TextEncoder().encode(chunk));
           }
 
@@ -232,25 +234,31 @@ Deno.serve(async (req) => {
           await saveMessage(
             supabase,
             validatedRequest.conversationId,
-            'ai',
-            fullResponse
+            "ai",
+            fullResponse,
           );
 
           // Send completion signal
-          const completionChunk = `data: ${JSON.stringify({ 
-            type: 'complete',
-            fullResponse 
-          })}\n\n`;
+          const completionChunk = `data: ${
+            JSON.stringify({
+              type: "complete",
+              fullResponse,
+            })
+          }\n\n`;
           controller.enqueue(new TextEncoder().encode(completionChunk));
-          
+
           controller.close();
         } catch (error) {
-          console.error('Streaming error:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          const errorChunk = `data: ${JSON.stringify({ 
-            type: 'error', 
-            error: errorMessage 
-          })}\n\n`;
+          console.error("Streaming error:", error);
+          const errorMessage = error instanceof Error
+            ? error.message
+            : "Unknown error";
+          const errorChunk = `data: ${
+            JSON.stringify({
+              type: "error",
+              error: errorMessage,
+            })
+          }\n\n`;
           controller.enqueue(new TextEncoder().encode(errorChunk));
           controller.close();
         }
@@ -259,41 +267,43 @@ Deno.serve(async (req) => {
 
     return new Response(stream, {
       headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers":
+          "authorization, x-client-info, apikey, content-type",
       },
     });
-
   } catch (error) {
-    console.error('Chat stream error:', error);
-    
+    console.error("Chat stream error:", error);
+
     if (error instanceof z.ZodError) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Invalid request format',
-          details: error.errors 
+        JSON.stringify({
+          error: "Invalid request format",
+          details: error.errors,
         }),
-        { 
+        {
           status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
+          headers: { "Content-Type": "application/json" },
+        },
       );
     }
 
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error
+      ? error.message
+      : "Unknown error";
     return new Response(
-      JSON.stringify({ 
-        error: 'Internal server error',
-        message: errorMessage 
+      JSON.stringify({
+        error: "Internal server error",
+        message: errorMessage,
       }),
-      { 
+      {
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { "Content-Type": "application/json" },
+      },
     );
   }
 });
@@ -315,4 +325,4 @@ Deno.serve(async (req) => {
       "maxContextMessages": 5
     }'
 
-*/ 
+*/

@@ -1,6 +1,7 @@
 import 'package:athena/core/constants/app_route_names.dart';
 import 'package:athena/core/providers/auth_provider.dart';
 import 'package:athena/core/theme/app_colors.dart';
+import 'package:athena/features/chatbot/presentation/views/conversation_list_screen.dart';
 import 'package:athena/features/home/presentation/providers/home_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -170,8 +171,14 @@ class HomeScreen extends ConsumerWidget {
                             description: 'Get instant academic support',
                             color: AppColors.athenaBlue.withValues(alpha: 0.9),
                             onTap: () {
-                              // Navigate to chatbot using GoRouter
-                              context.goNamed(AppRouteNames.chat);
+                              // Navigate to conversation list first
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) =>
+                                          const ConversationListScreen(),
+                                ),
+                              );
                             },
                           ),
                           _buildFeatureCard(

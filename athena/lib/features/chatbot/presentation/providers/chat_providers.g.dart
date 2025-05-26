@@ -27,7 +27,7 @@ final chatSupabaseDataSourceProvider =
 // ignore: unused_element
 typedef ChatSupabaseDataSourceRef =
     AutoDisposeProviderRef<ChatSupabaseDataSourceImpl>;
-String _$chatRepositoryHash() => r'b013fcf67d7f0237f714431b9a4cbffef887448a';
+String _$chatRepositoryHash() => r'7e3d78d721b1eec6b207ea5d646f3719e1f6e992';
 
 /// See also [chatRepository].
 @ProviderFor(chatRepository)

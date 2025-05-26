@@ -2,29 +2,17 @@ import 'dart:async';
 
 import 'package:athena/core/errors/exceptions.dart';
 import 'package:athena/core/errors/failures.dart';
-import 'package:athena/core/providers/auth_provider.dart';
 import 'package:athena/features/chatbot/data/datasources/chat_remote_datasource.dart';
 import 'package:athena/features/chatbot/data/models/conversation_model.dart'; // Required for casting
 import 'package:athena/features/chatbot/domain/entities/chat_message_entity.dart';
 import 'package:athena/features/chatbot/domain/entities/conversation_entity.dart';
 import 'package:athena/features/chatbot/domain/repositories/chat_repository.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dartz/dartz.dart';
-// ignore: depend_on_referenced_packages
 
 class ChatRepositoryImpl implements ChatRepository {
   final ChatRemoteDataSource _remoteDataSource;
-  final Ref _ref; // For accessing current user ID
 
-  ChatRepositoryImpl(this._remoteDataSource, this._ref);
-
-  String _getCurrentUserId() {
-    final user = _ref.read(appAuthProvider).valueOrNull;
-    if (user == null) {
-      throw const AuthException('User not authenticated.', statusCode: '401');
-    }
-    return user.id;
-  }
+  ChatRepositoryImpl(this._remoteDataSource);
 
   @override
   Stream<List<ChatMessageEntity>> getMessagesStream(String conversationId) {
@@ -40,12 +28,12 @@ class ChatRepositoryImpl implements ChatRepository {
 
   @override
   Future<Either<Failure, void>> sendMessage({
+    required String userId,
     required String conversationId,
     required String text,
     Map<String, dynamic>? metadata,
   }) async {
     try {
-      final userId = _getCurrentUserId();
       await _remoteDataSource.sendMessage(
         conversationId: conversationId,
         userId: userId,
@@ -96,9 +84,10 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
-  Future<Either<Failure, List<ConversationEntity>>> getConversations() async {
+  Future<Either<Failure, List<ConversationEntity>>> getConversations(
+    String userId,
+  ) async {
     try {
-      final userId = _getCurrentUserId();
       final conversations = await _remoteDataSource.getConversations(userId);
       return Right(conversations);
     } on AuthException catch (e) {
@@ -114,11 +103,11 @@ class ChatRepositoryImpl implements ChatRepository {
 
   @override
   Future<Either<Failure, ConversationEntity>> createConversation({
+    required String userId,
     String? title,
     String? firstMessageText,
   }) async {
     try {
-      final userId = _getCurrentUserId();
       final conversation = await _remoteDataSource.createConversation(
         userId,
         title: title,
@@ -128,6 +117,7 @@ class ChatRepositoryImpl implements ChatRepository {
       // If there's a firstMessageText, send it after creating the conversation
       if (firstMessageText != null && firstMessageText.isNotEmpty) {
         await sendMessage(
+          userId: userId,
           conversationId: conversation.id,
           text: firstMessageText,
         );
@@ -172,14 +162,14 @@ class ChatRepositoryImpl implements ChatRepository {
   ) async {
     try {
       if (conversation is! ConversationModel) {
-         //This is a simplistic conversion, real one might need more logic or a factory in model
+        //This is a simplistic conversion, real one might need more logic or a factory in model
         final model = ConversationModel(
           id: conversation.id,
           userId: conversation.userId,
           title: conversation.title,
           createdAt: conversation.createdAt,
           updatedAt: conversation.updatedAt,
-          lastMessageSnippet: conversation.lastMessageSnippet
+          lastMessageSnippet: conversation.lastMessageSnippet,
         );
         await _remoteDataSource.updateConversation(model);
       } else {

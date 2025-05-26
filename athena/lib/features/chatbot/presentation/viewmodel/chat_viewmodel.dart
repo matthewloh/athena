@@ -4,7 +4,9 @@ import 'package:athena/features/chatbot/domain/entities/chat_message_entity.dart
 import 'package:athena/features/chatbot/domain/entities/conversation_entity.dart';
 import 'package:athena/features/chatbot/presentation/providers/chat_providers.dart';
 import 'package:athena/core/errors/failures.dart'; // For Failure type
+import 'package:athena/core/providers/auth_provider.dart'; // For getting current user
 import 'package:dartz/dartz.dart'; // For Either type
+import 'package:flutter/foundation.dart'; // For debugPrint
 
 part 'chat_viewmodel.g.dart';
 
@@ -16,11 +18,38 @@ class ChatViewModel extends _$ChatViewModel {
   // Stream subscription for AI responses
   StreamSubscription<Either<Failure, String>>? _aiResponseSubscription;
 
+  // Stream subscription for real-time message updates
+  StreamSubscription<List<ChatMessageEntity>>? _messagesSubscription;
+
+  // Helper method to get current user ID
+  String? _getCurrentUserId() {
+    final user = ref.read(appAuthProvider).valueOrNull;
+    return user?.id;
+  }
+
   @override
   Future<ChatState> build() async {
+    // Clean up subscriptions when the provider is disposed
+    ref.onDispose(() {
+      _aiResponseSubscription?.cancel();
+      _messagesSubscription?.cancel();
+    });
+
     // Assuming getConversationsUseCaseProvider.call() returns Future<Either<Failure, List<ConversationEntity>>>
-    final Either<Failure, List<ConversationEntity>> result =
-        await ref.read(getConversationsUseCaseProvider).call();
+    final userId = _getCurrentUserId();
+    if (userId == null) {
+      return ChatState(
+        conversations: [],
+        currentMessages: [],
+        isLoading: false,
+        error: ChatError('User not authenticated'),
+        isReceivingAiResponse: false,
+      );
+    }
+
+    final Either<Failure, List<ConversationEntity>> result = await ref
+        .read(getConversationsUseCaseProvider)
+        .call(userId);
 
     return result.fold(
       (Failure failure) {
@@ -56,8 +85,20 @@ class ChatViewModel extends _$ChatViewModel {
       AsyncData(previousState.copyWith(isLoading: true, clearError: true)),
     );
     try {
-      final Either<Failure, List<ConversationEntity>> result =
-          await ref.read(getConversationsUseCaseProvider).call();
+      final userId = _getCurrentUserId();
+      if (userId == null) {
+        state = AsyncData(
+          previousState.copyWith(
+            isLoading: false,
+            error: ChatError('User not authenticated'),
+          ),
+        );
+        return;
+      }
+
+      final Either<Failure, List<ConversationEntity>> result = await ref
+          .read(getConversationsUseCaseProvider)
+          .call(userId);
 
       result.fold(
         (Failure failure) {
@@ -105,9 +146,24 @@ class ChatViewModel extends _$ChatViewModel {
     );
 
     try {
+      final userId = _getCurrentUserId();
+      if (userId == null) {
+        state = AsyncData(
+          previousState.copyWith(
+            isLoading: false,
+            error: ChatError('User not authenticated'),
+          ),
+        );
+        return;
+      }
+
       final Either<Failure, ConversationEntity> result = await ref
           .read(createConversationUseCaseProvider)
-          .call(title: title, firstMessageText: firstMessageText);
+          .call(
+            userId: userId,
+            title: title,
+            firstMessageText: firstMessageText,
+          );
 
       result.fold(
         (Failure failure) {
@@ -150,6 +206,7 @@ class ChatViewModel extends _$ChatViewModel {
   }) async {
     _activeConversationId = conversationId;
     _aiResponseSubscription?.cancel();
+    _messagesSubscription?.cancel();
 
     ChatState initialData;
     if (newConversationsList != null) {
@@ -196,6 +253,10 @@ class ChatViewModel extends _$ChatViewModel {
             error: null,
           ),
         );
+
+        // Start listening to real-time message updates
+        _startMessagesStream(conversationId);
+
         if (messages.isNotEmpty &&
             messages.last.sender == MessageSender.user &&
             !(state.valueOrNull?.isReceivingAiResponse ?? false)) {
@@ -204,6 +265,105 @@ class ChatViewModel extends _$ChatViewModel {
       },
     );
     // Removed try-catch as Either should handle failure cases
+  }
+
+  Future<void> sendMessageOrCreateConversation(String text) async {
+    debugPrint('🚀 sendMessageOrCreateConversation called with: "$text"');
+    debugPrint('🔍 _activeConversationId: $_activeConversationId');
+
+    if (text.trim().isEmpty) {
+      debugPrint('❌ Message is empty, ignoring');
+      return;
+    }
+
+    if (_activeConversationId == null) {
+      debugPrint('💬 No active conversation, creating new one...');
+      // Auto-create conversation and send message - industry standard UX
+      await _createConversationAndSendMessage(text);
+    } else {
+      debugPrint('💬 Sending to existing conversation: $_activeConversationId');
+      // Send message to existing conversation
+      await sendMessage(text);
+    }
+  }
+
+  Future<void> _createConversationAndSendMessage(String text) async {
+    debugPrint('🏗️ Creating conversation and sending message: "$text"');
+
+    final userId = _getCurrentUserId();
+    debugPrint('👤 User ID: $userId');
+
+    if (userId == null) {
+      debugPrint('❌ User not authenticated');
+      state = AsyncData(
+        (state.valueOrNull ?? _initialChatState()).copyWith(
+          error: ChatError('User not authenticated'),
+        ),
+      );
+      return;
+    }
+
+    // Show loading state
+    final previousStateValue = state.valueOrNull ?? _initialChatState();
+    state = AsyncData(
+      previousStateValue.copyWith(isLoading: true, clearError: true),
+    );
+
+    // Create conversation with the first message
+    final result = await ref
+        .read(createConversationUseCaseProvider)
+        .call(
+          userId: userId,
+          title: _generateConversationTitle(text),
+          firstMessageText: text,
+        );
+
+    result.fold(
+      (failure) {
+        debugPrint('❌ Failed to create conversation: ${failure.message}');
+        state = AsyncData(
+          previousStateValue.copyWith(
+            isLoading: false,
+            error: ChatError(
+              'Failed to create conversation: ${failure.message}',
+            ),
+          ),
+        );
+      },
+      (conversation) {
+        debugPrint('✅ Conversation created successfully: ${conversation.id}');
+        // Set as active conversation and load messages
+        _activeConversationId = conversation.id;
+        final updatedConversations = [
+          conversation,
+          ...previousStateValue.conversations,
+        ];
+
+        // Update state with new conversation and clear loading
+        state = AsyncData(
+          previousStateValue.copyWith(
+            conversations: updatedConversations,
+            isLoading: false,
+            clearError: true,
+          ),
+        );
+
+        debugPrint('🔄 Setting active conversation: ${conversation.id}');
+        // Load messages for the new conversation
+        setActiveConversation(
+          conversation.id,
+          newConversationsList: updatedConversations,
+        );
+      },
+    );
+  }
+
+  String _generateConversationTitle(String firstMessage) {
+    if (firstMessage.isEmpty) return 'New Conversation';
+
+    // Extract first few words as title
+    final words = firstMessage.split(' ').take(5).join(' ');
+    return words.length > 30 ? '${words.substring(0, 27)}...' : words;
   }
 
   Future<void> sendMessage(String text) async {
@@ -215,7 +375,8 @@ class ChatViewModel extends _$ChatViewModel {
       );
       return;
     }
-    final tempId = DateTime.now().millisecondsSinceEpoch.toString();
+
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
     final userMessage = ChatMessageEntity(
       id: tempId,
       conversationId: _activeConversationId!,
@@ -224,6 +385,7 @@ class ChatViewModel extends _$ChatViewModel {
       timestamp: DateTime.now(),
     );
 
+    // Immediately show user message for instant feedback
     final previousStateValue = state.valueOrNull ?? _initialChatState();
     state = AsyncData(
       previousStateValue.copyWith(
@@ -232,32 +394,89 @@ class ChatViewModel extends _$ChatViewModel {
       ),
     );
 
-    try {
-      await ref
-          .read(sendMessageUseCaseProvider)
-          .call(conversationId: _activeConversationId!, text: text);
-      // If successful, listen to AI response
-      _listenToAiResponse(_activeConversationId!, text);
-    } catch (e) {
-      final revertedMessages =
-          state.valueOrNull?.currentMessages
-              .where((m) => m.id != tempId)
-              .toList() ??
-          [];
+    final userId = _getCurrentUserId();
+    if (userId == null) {
       state = AsyncData(
         (state.valueOrNull ?? _initialChatState()).copyWith(
-          currentMessages: revertedMessages,
-          error: ChatError('Failed to send message: ${e.toString()}'),
+          error: ChatError('User not authenticated'),
         ),
       );
+      return;
     }
+
+    final result = await ref
+        .read(sendMessageUseCaseProvider)
+        .call(
+          userId: userId,
+          conversationId: _activeConversationId!,
+          text: text,
+        );
+
+    result.fold(
+      (failure) {
+        // Remove temp message on failure
+        final revertedMessages =
+            state.valueOrNull?.currentMessages
+                .where((m) => m.id != tempId)
+                .toList() ??
+            [];
+        state = AsyncData(
+          (state.valueOrNull ?? _initialChatState()).copyWith(
+            currentMessages: revertedMessages,
+            error: ChatError('Failed to send message: ${failure.message}'),
+          ),
+        );
+      },
+      (_) {
+        // Replace temp message with permanent ID and start AI response
+        _listenToAiResponse(_activeConversationId!, text);
+      },
+    );
+  }
+
+  void _startMessagesStream(String conversationId) {
+    _messagesSubscription?.cancel();
+
+    final messagesStream = ref
+        .read(chatRepositoryProvider)
+        .getMessagesStream(conversationId);
+
+    _messagesSubscription = messagesStream.listen(
+      (messages) {
+        final currentChatState = state.valueOrNull;
+        if (currentChatState != null &&
+            !currentChatState.isReceivingAiResponse) {
+          // Only update if not currently receiving AI response to avoid conflicts
+          state = AsyncData(
+            currentChatState.copyWith(currentMessages: messages),
+          );
+        }
+      },
+      onError: (error) {
+        // Log error for debugging
+        debugPrint('Messages stream error: $error');
+        // Don't update state on stream errors to avoid interrupting user experience
+      },
+    );
   }
 
   void _listenToAiResponse(String conversationId, String lastUserMessage) {
     _aiResponseSubscription?.cancel();
     final previousStateValue = state.valueOrNull ?? _initialChatState();
+
+    // Add typing indicator immediately
+    final typingIndicatorId = 'typing_${DateTime.now().millisecondsSinceEpoch}';
+    final typingMessage = ChatMessageEntity(
+      id: typingIndicatorId,
+      conversationId: conversationId,
+      text: '●●●', // Typing indicator
+      sender: MessageSender.ai,
+      timestamp: DateTime.now(),
+    );
+
     state = AsyncData(
       previousStateValue.copyWith(
+        currentMessages: [...previousStateValue.currentMessages, typingMessage],
         isReceivingAiResponse: true,
         clearError: true,
       ),
@@ -269,14 +488,22 @@ class ChatViewModel extends _$ChatViewModel {
 
     String currentAiText = '';
     String? aiMessageId;
+    bool hasStartedStreaming = false;
 
     _aiResponseSubscription = aiStream.listen(
       (Either<Failure, String> eitherChunk) {
         final currentChatState = state.valueOrNull ?? _initialChatState();
         eitherChunk.fold(
           (Failure failure) {
+            // Remove typing indicator and show error
+            final messagesWithoutTyping =
+                currentChatState.currentMessages
+                    .where((m) => m.id != typingIndicatorId)
+                    .toList();
+
             state = AsyncData(
               currentChatState.copyWith(
+                currentMessages: messagesWithoutTyping,
                 isReceivingAiResponse: false,
                 error: ChatError('AI response error: ${failure.message}'),
               ),
@@ -285,10 +512,13 @@ class ChatViewModel extends _$ChatViewModel {
           },
           (String chunk) {
             currentAiText += chunk;
+
             List<ChatMessageEntity> updatedMessages;
-            if (aiMessageId == null) {
-              aiMessageId =
-                  'ai_${DateTime.now().millisecondsSinceEpoch.toString()}';
+            if (!hasStartedStreaming) {
+              // Replace typing indicator with actual AI message
+              hasStartedStreaming = true;
+              aiMessageId = 'ai_${DateTime.now().millisecondsSinceEpoch}';
+
               final aiMessage = ChatMessageEntity(
                 id: aiMessageId!,
                 conversationId: conversationId,
@@ -296,11 +526,14 @@ class ChatViewModel extends _$ChatViewModel {
                 sender: MessageSender.ai,
                 timestamp: DateTime.now(),
               );
-              updatedMessages = [
-                ...currentChatState.currentMessages,
-                aiMessage,
-              ];
+
+              // Replace typing indicator with AI message
+              updatedMessages =
+                  currentChatState.currentMessages
+                      .map((m) => m.id == typingIndicatorId ? aiMessage : m)
+                      .toList();
             } else {
+              // Update existing AI message
               updatedMessages =
                   currentChatState.currentMessages.map((m) {
                     return m.id == aiMessageId
@@ -311,6 +544,7 @@ class ChatViewModel extends _$ChatViewModel {
                         : m;
                   }).toList();
             }
+
             state = AsyncData(
               currentChatState.copyWith(currentMessages: updatedMessages),
             );
@@ -319,8 +553,15 @@ class ChatViewModel extends _$ChatViewModel {
       },
       onError: (error, stackTrace) {
         final currentChatState = state.valueOrNull ?? _initialChatState();
+        // Remove typing indicator on error
+        final messagesWithoutTyping =
+            currentChatState.currentMessages
+                .where((m) => m.id != typingIndicatorId)
+                .toList();
+
         state = AsyncData(
           currentChatState.copyWith(
+            currentMessages: messagesWithoutTyping,
             isReceivingAiResponse: false,
             error: ChatError('AI stream error: ${error.toString()}'),
           ),

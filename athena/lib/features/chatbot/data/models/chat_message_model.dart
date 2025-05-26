@@ -18,7 +18,7 @@ class ChatMessageModel extends ChatMessageEntity {
   factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
     MessageSender sender;
     final senderStr = json['sender'] as String?;
-    
+
     switch (senderStr?.toLowerCase()) {
       case 'user':
         sender = MessageSender.user;
@@ -59,7 +59,7 @@ class ChatMessageModel extends ChatMessageEntity {
         senderStr = 'system';
         break;
     }
-    
+
     return {
       'id': id,
       'conversation_id': conversationId,
@@ -114,6 +114,7 @@ class ChatMessageModel extends ChatMessageEntity {
     );
   }
 
+  @override
   ChatMessageModel copyWith({
     String? id,
     String? conversationId,
@@ -138,24 +139,14 @@ class ChatMessageModel extends ChatMessageEntity {
 
   // Mark message as complete (stop streaming)
   ChatMessageModel markComplete() {
-    return copyWith(
-      isStreaming: false,
-      isComplete: true,
-    );
+    return copyWith(isStreaming: false, isComplete: true);
   }
 
   // Update streaming content
   ChatMessageModel updateStreamingContent(String newText) {
-    return copyWith(
-      text: newText,
-      timestamp: DateTime.now(),
-    );
+    return copyWith(text: newText, timestamp: DateTime.now());
   }
 
   @override
-  List<Object?> get props => [
-        ...super.props,
-        isStreaming,
-        isComplete,
-      ];
+  List<Object?> get props => [...super.props, isStreaming, isComplete];
 }

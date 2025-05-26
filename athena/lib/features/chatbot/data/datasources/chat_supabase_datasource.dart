@@ -22,9 +22,10 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
           .stream(primaryKey: ['id'])
           .eq('conversation_id', conversationId)
           .order('timestamp', ascending: true)
-          .map((data) => data
-              .map((json) => ChatMessageModel.fromJson(json))
-              .toList());
+          .map(
+            (data) =>
+                data.map((json) => ChatMessageModel.fromJson(json)).toList(),
+          );
     } catch (e) {
       throw ServerException('Failed to stream messages: ${e.toString()}');
     }
@@ -38,21 +39,14 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
     Map<String, dynamic>? metadata,
   }) async {
     try {
-      final messageData = ChatMessageModel.temporary(
-        conversationId: conversationId,
-        text: text,
-        metadata: metadata,
-      ).toInsertJson();
+      final messageData =
+          ChatMessageModel.temporary(
+            conversationId: conversationId,
+            text: text,
+            metadata: metadata,
+          ).toInsertJson();
 
-      final response = await _client
-          .from('chat_messages')
-          .insert(messageData)
-          .select()
-          .single();
-
-      if (response == null) {
-        throw const ServerException('Failed to insert message');
-      }
+      await _client.from('chat_messages').insert(messageData).select().single();
     } on PostgrestException catch (e) {
       throw ServerException('Database error: ${e.message}');
     } catch (e) {
@@ -63,9 +57,9 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
   @override
   Stream<String> getAiResponseStream(String conversationId, String prompt) {
     final controller = StreamController<String>();
-    
+
     _streamAiResponse(conversationId, prompt, controller);
-    
+
     return controller.stream;
   }
 
@@ -75,6 +69,13 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
     StreamController<String> controller,
   ) async {
     try {
+      // Get auth headers from the client
+      final authHeaders = <String, String>{
+        'Content-Type': 'application/json',
+        if (_client.auth.currentSession?.accessToken != null)
+          'Authorization': 'Bearer ${_client.auth.currentSession!.accessToken}',
+      };
+
       final response = await _client.functions.invoke(
         'chat-stream',
         body: {
@@ -83,50 +84,61 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
           'includeContext': true,
           'maxContextMessages': 10,
         },
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: authHeaders,
       );
 
       if (response.status != 200) {
         throw ServerException('Edge function error: ${response.status}');
       }
 
-      // Handle Server-Sent Events stream
-      final responseBody = response.data as String;
-      final lines = responseBody.split('\n');
-      
-      for (final line in lines) {
-        if (line.startsWith('data: ')) {
-          final jsonStr = line.substring(6);
-          if (jsonStr.trim().isEmpty) continue;
-          
-          try {
-            final data = json.decode(jsonStr) as Map<String, dynamic>;
-            final type = data['type'] as String;
-            
-            switch (type) {
-              case 'chunk':
-                final content = data['content'] as String;
-                controller.add(content);
-                break;
-              case 'complete':
-                controller.close();
-                return;
-              case 'error':
-                final error = data['error'] as String;
-                controller.addError(ServerException('AI response error: $error'));
-                return;
+      // Handle different response types
+      final responseData = response.data;
+
+      if (responseData is String) {
+        // Parse Server-Sent Events format
+        final lines = responseData.split('\n');
+
+        for (final line in lines) {
+          if (line.startsWith('data: ')) {
+            final jsonStr = line.substring(6).trim();
+            if (jsonStr.isEmpty) continue;
+
+            try {
+              final data = json.decode(jsonStr) as Map<String, dynamic>;
+              final type = data['type'] as String;
+
+              switch (type) {
+                case 'chunk':
+                  final content = data['content'] as String;
+                  controller.add(content);
+                  break;
+                case 'complete':
+                  controller.close();
+                  return;
+                case 'error':
+                  final error = data['error'] as String;
+                  controller.addError(
+                    ServerException('AI response error: $error'),
+                  );
+                  return;
+              }
+            } catch (e) {
+              // Skip malformed JSON lines
+              continue;
             }
-          } catch (e) {
-            // Skip malformed JSON lines
-            continue;
           }
         }
+      } else if (responseData is Map<String, dynamic>) {
+        // Handle single response (fallback for non-streaming)
+        final message = responseData['message'] as String?;
+        if (message != null) {
+          controller.add(message);
+        }
       }
-      
+
       controller.close();
     } catch (e) {
+      // Log error for debugging
       controller.addError(
         ServerException('Failed to stream AI response: ${e.toString()}'),
       );
@@ -136,8 +148,10 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
   @override
   Future<List<ConversationModel>> getConversations(String userId) async {
     try {
-      final response = await _client
-          .rpc('get_conversations_with_stats', params: {'user_uuid': userId});
+      final response = await _client.rpc(
+        'get_conversations_with_stats',
+        params: {'user_uuid': userId},
+      );
 
       if (response == null) {
         return [];
@@ -160,22 +174,22 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
     String? firstMessageText,
   }) async {
     try {
-      final conversationData = ConversationModel(
-        id: '', // Will be generated by database
-        userId: userId,
-        title: title ?? _generateConversationTitle(firstMessageText),
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        metadata: {
-          'created_from_message': firstMessageText != null,
-        },
-      ).toInsertJson();
+      final conversationData =
+          ConversationModel(
+            id: '', // Will be generated by database
+            userId: userId,
+            title: title ?? _generateConversationTitle(firstMessageText),
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+            metadata: {'created_from_message': firstMessageText != null},
+          ).toInsertJson();
 
-      final response = await _client
-          .from('conversations')
-          .insert(conversationData)
-          .select()
-          .single();
+      final response =
+          await _client
+              .from('conversations')
+              .insert(conversationData)
+              .select()
+              .single();
 
       return ConversationModel.fromJson(response);
     } on PostgrestException catch (e) {
@@ -192,22 +206,23 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
     int? limit,
   }) async {
     try {
-      var query = _client
+      var filterQuery = _client
           .from('chat_messages')
           .select()
-          .eq('conversation_id', conversationId)
-          .order('timestamp', ascending: false);
+          .eq('conversation_id', conversationId);
 
       if (before != null) {
-        query = query.filter('timestamp', 'lt', before.toIso8601String());
+        filterQuery = filterQuery.lt('timestamp', before.toIso8601String());
       }
+
+      var transformQuery = filterQuery.order('timestamp', ascending: false);
 
       if (limit != null) {
-        query = query.limit(limit);
+        transformQuery = transformQuery.limit(limit);
       }
 
-      final response = await query;
-      
+      final response = await transformQuery;
+
       return (response as List)
           .map((json) => ChatMessageModel.fromJson(json))
           .toList()
@@ -244,10 +259,7 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
   Future<void> deleteConversation(String conversationId) async {
     try {
       // Messages will be deleted automatically due to CASCADE constraint
-      await _client
-          .from('conversations')
-          .delete()
-          .eq('id', conversationId);
+      await _client.from('conversations').delete().eq('id', conversationId);
     } on PostgrestException catch (e) {
       throw ServerException('Database error: ${e.message}');
     } catch (e) {
@@ -294,15 +306,18 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
   /// Get conversation statistics
   Future<Map<String, dynamic>> getConversationStats(String userId) async {
     try {
-      final response = await _client.rpc('get_user_chat_stats', params: {
-        'user_uuid': userId,
-      });
+      final response = await _client.rpc(
+        'get_user_chat_stats',
+        params: {'user_uuid': userId},
+      );
 
       return response as Map<String, dynamic>;
     } on PostgrestException catch (e) {
       throw ServerException('Database error: ${e.message}');
     } catch (e) {
-      throw ServerException('Failed to get conversation stats: ${e.toString()}');
+      throw ServerException(
+        'Failed to get conversation stats: ${e.toString()}',
+      );
     }
   }
 }

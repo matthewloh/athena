@@ -49,6 +49,7 @@ class ConversationModel extends ConversationEntity {
     return json;
   }
 
+  @override
   ConversationModel copyWith({
     String? id,
     String? userId,
@@ -72,9 +73,5 @@ class ConversationModel extends ConversationEntity {
   }
 
   @override
-  List<Object?> get props => [
-        ...super.props,
-        messageCount,
-        metadata,
-      ];
-} 
+  List<Object?> get props => [...super.props, messageCount, metadata];
+}

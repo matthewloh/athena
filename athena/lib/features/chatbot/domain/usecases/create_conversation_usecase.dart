@@ -9,10 +9,12 @@ class CreateConversationUseCase {
   CreateConversationUseCase(this.repository);
 
   Future<Either<Failure, ConversationEntity>> call({
+    required String userId,
     String? title,
     String? firstMessageText,
   }) {
     return repository.createConversation(
+      userId: userId,
       title: title,
       firstMessageText: firstMessageText,
     );

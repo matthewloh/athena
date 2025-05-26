@@ -9,7 +9,7 @@ import { openai } from "npm:@ai-sdk/openai";
 import { CoreMessage, streamText } from "npm:ai";
 Deno.serve(async (req) => {
   try {
-    const supabase = createClient<Database>(
+    const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
@@ -31,10 +31,13 @@ Deno.serve(async (req) => {
       status: 200,
     });
   } catch (err) {
-    return new Response(JSON.stringify({ message: err?.message ?? err }), {
-      headers: { "Content-Type": "application/json" },
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({ message: (err as Error)?.message ?? String(err) }),
+      {
+        headers: { "Content-Type": "application/json" },
+        status: 500,
+      },
+    );
   }
 });
 

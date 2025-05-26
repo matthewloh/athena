@@ -21,7 +21,7 @@ ChatSupabaseDataSourceImpl chatSupabaseDataSource(Ref ref) {
 // Repositories
 @riverpod
 ChatRepository chatRepository(Ref ref) {
-  return ChatRepositoryImpl(ref.watch(chatSupabaseDataSourceProvider), ref);
+  return ChatRepositoryImpl(ref.watch(chatSupabaseDataSourceProvider));
 }
 
 // Usecases
@@ -48,8 +48,11 @@ CreateConversationUseCase createConversationUseCase(Ref ref) {
 // Additional Use Cases for enhanced functionality
 
 @riverpod
-Future<void> updateConversation(Ref ref, String conversationId, {String? title}) async {
-  final repository = ref.read(chatRepositoryProvider);
+Future<void> updateConversation(
+  Ref ref,
+  String conversationId, {
+  String? title,
+}) async {
   // Implementation would go here - for now just a placeholder
   // This would call repository.updateConversation with the new data
 }
