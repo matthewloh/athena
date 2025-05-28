@@ -1,5 +1,11 @@
 import 'package:equatable/equatable.dart';
 
+enum ContentType {
+  typedText,
+  textFile,
+  imageFile,
+}
+
 class StudyMaterialEntity extends Equatable {
   final String id;
   final String userId;
@@ -8,7 +14,7 @@ class StudyMaterialEntity extends Equatable {
   final String subject;
   final String contentType;
   final String? originalContentText;
-  final String? imageStoragePath;
+  final String? fileStoragePath;
   final String? ocrExtractedText;
   final String? summaryText;
   final bool hasAiSummary;
@@ -23,7 +29,7 @@ class StudyMaterialEntity extends Equatable {
     required this.subject,
     required this.contentType,
     this.originalContentText,
-    this.imageStoragePath,
+    this.fileStoragePath,
     this.ocrExtractedText,
     this.summaryText,
     this.hasAiSummary = false,
@@ -40,7 +46,7 @@ class StudyMaterialEntity extends Equatable {
         subject,
         contentType,
         originalContentText,
-        imageStoragePath,
+        fileStoragePath,
         ocrExtractedText,
         summaryText,
         hasAiSummary,
@@ -56,7 +62,7 @@ class StudyMaterialEntity extends Equatable {
     String? subject,
     String? contentType,
     String? originalContentText,
-    String? imageStoragePath,
+    String? fileStoragePath,
     String? ocrExtractedText,
     String? summaryText,
     bool? hasAiSummary,
@@ -71,7 +77,7 @@ class StudyMaterialEntity extends Equatable {
       subject: subject ?? this.subject,
       contentType: contentType ?? this.contentType,
       originalContentText: originalContentText ?? this.originalContentText,
-      imageStoragePath: imageStoragePath ?? this.imageStoragePath,
+      fileStoragePath: fileStoragePath ?? this.fileStoragePath,
       ocrExtractedText: ocrExtractedText ?? this.ocrExtractedText,
       summaryText: summaryText ?? this.summaryText,
       hasAiSummary: hasAiSummary ?? this.hasAiSummary,
