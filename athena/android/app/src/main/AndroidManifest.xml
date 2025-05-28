@@ -38,6 +38,13 @@
                 <data android:scheme="http" android:host="www.helloathena.app" />
             </intent-filter>
         </activity>
+        
+        <!-- This activity is used by the Image Cropper library for image cropping -->
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Ucrop.CropTheme"/> <!--this line is updated-->
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
