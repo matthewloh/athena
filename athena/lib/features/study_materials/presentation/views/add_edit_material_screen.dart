@@ -15,19 +15,20 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 class AddEditMaterialScreen extends ConsumerStatefulWidget {
-  final StudyMaterialEntity? material; // Null when adding new, non-null when editing
-  final ContentType? initialContentType; // Optional initial content type for new materials
-  final File? capturedImage; // Optional pre-captured image
+  final StudyMaterialEntity?
+  material; // Null when adding new, non-null when editing
+  final ContentType?
+  initialContentType; // Optional initial content type for new materials
 
   const AddEditMaterialScreen({
     Key? key,
     this.material,
     this.initialContentType,
-    this.capturedImage,
   }) : super(key: key);
 
   @override
-  ConsumerState<AddEditMaterialScreen> createState() => _AddEditMaterialScreenState();
+  ConsumerState<AddEditMaterialScreen> createState() =>
+      _AddEditMaterialScreenState();
 }
 
 class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
@@ -36,62 +37,58 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
   final _subjectController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _contentController = TextEditingController();
-  
+
   // Quill editor controller for rich text
   late QuillController _quillController;
   final _quillFocusNode = FocusNode();
   final ScrollController _quillScrollController = ScrollController();
-  
   late ContentType _selectedContentType;
   File? _selectedFile;
   File? _selectedImage;
+  String? _extractedImageText; // Store OCR extracted text for image notes
+  TextEditingController?
+  _imageTextController; // Controller for editing extracted text
   bool _isLoading = false;
   String? _fileErrorText;
+
   @override
   void initState() {
     super.initState();
     // Initialize QuillController with empty document
     _quillController = QuillController.basic();
-    
+
     // Initialize content type
     _selectedContentType = widget.initialContentType ?? ContentType.typedText;
-    
-    // Set captured image if provided
-    if (widget.capturedImage != null) {
-      _selectedImage = widget.capturedImage;
-      // Process the image with OCR after a short delay to let the UI render
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted && _selectedImage != null) {
-          _processImageWithOCR(_selectedImage!);
-        }
-      });
-    }
-    
+
     // Initialize with existing data if editing
     if (widget.material != null) {
-      _titleController.text = widget.material!.title;      // Set the subject if available
+      _titleController.text =
+          widget.material!.title; // Set the subject if available
       final subject = widget.material!.subject;
       if (subject.isNotEmpty) {
         _subjectController.text = subject;
       }
       _selectedContentType = widget.material!.contentType as ContentType;
-      
+
       // If typed text, populate the content
-      if (_selectedContentType == ContentType.typedText && 
+      if (_selectedContentType == ContentType.typedText &&
           widget.material!.originalContentText != null) {
         // For regular text content
         _contentController.text = widget.material!.originalContentText!;
-        
+
         // For rich text content (if it's stored as JSON)
         try {
-          final dynamic jsonData = json.decode(widget.material!.originalContentText!);
+          final dynamic jsonData = json.decode(
+            widget.material!.originalContentText!,
+          );
           _quillController = QuillController(
             document: Document.fromJson(jsonData),
             selection: const TextSelection.collapsed(offset: 0),
           );
         } catch (e) {
           // If not valid JSON, create a document from plain text
-          final document = Document()..insert(0, widget.material!.originalContentText!);
+          final document =
+              Document()..insert(0, widget.material!.originalContentText!);
           _quillController = QuillController(
             document: document,
             selection: const TextSelection.collapsed(offset: 0),
@@ -103,12 +100,21 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
 
   @override
   void dispose() {
+    // Dispose all the controllers to prevent memory leaks
     _titleController.dispose();
     _subjectController.dispose();
     _descriptionController.dispose();
     _contentController.dispose();
     _quillController.dispose();
     _quillFocusNode.dispose();
+    _quillScrollController.dispose();
+
+    // Safely dispose the image text controller if it exists
+    if (_imageTextController != null) {
+      _imageTextController!.dispose();
+      _imageTextController = null;
+    }
+
     super.dispose();
   }
 
@@ -138,6 +144,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
       });
     }
   }
+
   Future<void> _pickImage() async {
     setState(() {
       _fileErrorText = null;
@@ -188,11 +195,11 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
       },
     );
   }
-  
+
   Widget _buildImageSourceOption({
-    required IconData icon, 
-    required String label, 
-    required VoidCallback onTap
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -205,30 +212,26 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               color: AppColors.secondary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(
-              icon,
-              size: 36,
-              color: AppColors.secondary,
-            ),
+            child: Icon(icon, size: 36, color: AppColors.secondary),
           ),
           const SizedBox(height: 8),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
           ),
         ],
       ),
     );
-  }  Future<void> _getImageFromSource(ImageSource source) async {
+  }
+
+  Future<void> _getImageFromSource(ImageSource source) async {
     setState(() {
       _selectedImage = null;
       _fileErrorText = null;
-    });    try {
+    });
+    try {
       final ImagePicker picker = ImagePicker();
-      
+
       // Use more reasonable image quality/size parameters to prevent large files
       final XFile? image = await picker.pickImage(
         source: source,
@@ -236,12 +239,13 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
         maxHeight: 1600,
         // Lower quality for better performance and memory usage
         imageQuality: 80,
-        preferredCameraDevice: CameraDevice.rear, // Use rear camera by default for better quality
+        preferredCameraDevice:
+            CameraDevice.rear, // Use rear camera by default for better quality
       );
-      
+
       if (image != null) {
         File imageFile = File(image.path);
-        
+
         // Verify file exists before proceeding
         if (!await imageFile.exists()) {
           setState(() {
@@ -249,12 +253,13 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
           });
           return;
         }
-        
+
         // First check if the original image size is acceptable
         final fileSize = await imageFile.length();
         if (fileSize > 10 * 1024 * 1024) {
           setState(() {
-            _fileErrorText = 'Image too large (${(fileSize / (1024 * 1024)).toStringAsFixed(1)}MB, max 10MB)';
+            _fileErrorText =
+                'Image too large (${(fileSize / (1024 * 1024)).toStringAsFixed(1)}MB, max 10MB)';
           });
           return;
         }
@@ -265,22 +270,22 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
           // Clear any previous error
           _fileErrorText = null;
         });
-        
+
         // Now try to crop the image if possible, but don't block the UI
         try {
           // Attempt to crop but don't wait for it in the main flow
           final croppedFile = await _cropImage(image.path);
-          
+
           // If cropping was successful, update the image
           if (croppedFile != null) {
             final File croppedImageFile = File(croppedFile.path);
-            
+
             // Update the image if we're still in image mode
             if (mounted && _selectedContentType == ContentType.imageFile) {
               setState(() {
                 _selectedImage = croppedImageFile;
               });
-              
+
               // Try OCR on the cropped image
               await _processImageWithOCR(croppedImageFile);
             }
@@ -295,7 +300,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
           print('Error during image processing: $e');
           // We already set _selectedImage to the original file above,
           // so no need to do anything here
-          
+
           // Still try OCR on the original image
           if (mounted && _selectedContentType == ContentType.imageFile) {
             try {
@@ -312,7 +317,9 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
       });
       print('Error picking image: $e');
     }
-  }  Future<CroppedFile?> _cropImage(String sourcePath) async {
+  }
+
+  Future<CroppedFile?> _cropImage(String sourcePath) async {
     try {
       // Use bare minimum configuration to avoid crashes
       return await ImageCropper().cropImage(
@@ -325,52 +332,52 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
             toolbarColor: AppColors.primary,
             toolbarWidgetColor: Colors.white,
           ),
-          IOSUiSettings(
-            title: 'Crop Image',
-          ),
+          IOSUiSettings(title: 'Crop Image'),
         ],
       );
     } catch (e) {
       print('Error during image cropping: $e');
-      
+
       // Create a more detailed log for debugging
       if (e is Exception) {
         print('Exception type: ${e.runtimeType}');
         print('Exception details: $e');
       }
-      
+
       // Return null to indicate cropping failed, so original image will be used
       return null;
     }
   }
-  
+
   Future<void> _processImageWithOCR(File imageFile) async {
     if (!mounted) return;
-    
+
     // Check if file exists to avoid crashes
     if (!await imageFile.exists()) {
       print('Image file does not exist for OCR');
       return;
     }
-    
+
     try {
       // Show a loading indicator
       setState(() {
         _isLoading = true;
       });
-      
+
       final inputImage = InputImage.fromFile(imageFile);
       final textRecognizer = TextRecognizer();
       String extractedText = '';
-      
+
       try {
-        final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
+        final RecognizedText recognizedText = await textRecognizer.processImage(
+          inputImage,
+        );
         extractedText = recognizedText.text;
       } catch (e) {
         print('Error recognizing text: $e');
       } finally {
         textRecognizer.close();
-        
+
         // Hide loading indicator regardless of success/failure
         if (mounted) {
           setState(() {
@@ -378,44 +385,71 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
           });
         }
       }
-      
-      // If we have text and the widget is still mounted
-      if (extractedText.isNotEmpty && mounted) {
-        // Show a dialogue asking if they want to use the extracted text
-        bool? useExtractedText = await showDialog<bool>(
+      // If the widget is still mounted, show results whether text was extracted or not
+      if (mounted) {
+        // Show a dialogue with the extracted text and options
+        bool? addTextToImage = await showDialog<bool>(
           context: context,
           barrierDismissible: true, // Allow tapping outside to dismiss
           builder: (BuildContext context) {
+            final bool hasText = extractedText.isNotEmpty;
+
+            // Calculate available height for the dialog
+            final mediaQuery = MediaQuery.of(context);
+            final screenHeight = mediaQuery.size.height;
+            final keyboardHeight = mediaQuery.viewInsets.bottom;
+            final keyboardVisible = keyboardHeight > 0;
+
+            // Calculate available height with more space when keyboard is visible
+            final availableHeight =
+                screenHeight - keyboardHeight - (keyboardVisible ? 150 : 200);
+
             return AlertDialog(
-              title: const Text('Text Detected'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('The following text was detected:'),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+              title: Text(hasText ? 'Text Detected' : 'No Text Detected'),
+              content: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight:
+                      availableHeight > 100
+                          ? availableHeight
+                          : 300, // Ensure minimum height
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        hasText
+                            ? 'The following text was detected:'
+                            : 'No text could be detected in the image. You can still add a blank text field to enter notes manually.',
                       ),
-                      child: Text(
-                        extractedText.length > 300 
-                            ? '${extractedText.substring(0, 300)}...' 
-                            : extractedText,
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ),
-                  ],
+                      if (hasText) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: Text(
+                            extractedText.length > 300
+                                ? '${extractedText.substring(0, 300)}...'
+                                : extractedText,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
+              // Ensure the dialog resizes when keyboard appears
+              scrollable: true,
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Keep as Image'),
+                  child: const Text('Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(true),
@@ -423,25 +457,27 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Use Extracted Text'),
+                  child: Text(hasText ? 'Add Text to Image' : 'Add Text Field'),
                 ),
               ],
             );
           },
         );
-        
-        // If user chooses to use the extracted text
-        if (useExtractedText == true && mounted) {
+
+        // If user chooses to add the text to the image
+        if (addTextToImage == true && mounted) {
           setState(() {
-            _selectedContentType = ContentType.typedText;
-            _selectedImage = null;
-            
-            // Convert plain text to Document for QuillController
-            final document = Document()..insert(0, extractedText);
-            _quillController = QuillController(
-              document: document,
-              selection: const TextSelection.collapsed(offset: 0),
-            );
+            // Store the extracted text
+            _extractedImageText = extractedText;
+
+            // Dispose of any existing controller first to prevent memory leaks
+            if (_imageTextController != null) {
+              _imageTextController!.dispose();
+              _imageTextController = null;
+            }
+
+            // Initialize the text controller with the extracted text
+            _imageTextController = TextEditingController(text: extractedText);
           });
         }
       }
@@ -457,7 +493,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
   }
 
   Future<void> _saveStudyMaterial() async {
-    if (!_formKey.currentState!.validate() || 
+    if (!_formKey.currentState!.validate() ||
         (_isContentRequired() && !_isContentProvided())) {
       // Show content error if applicable
       if (_isContentRequired() && !_isContentProvided()) {
@@ -478,7 +514,8 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
       if (widget.material == null) {
         // Adding new material
         switch (_selectedContentType) {
-          case ContentType.typedText:            // await viewModel.addTypedText(
+          case ContentType.typedText:
+            // await viewModel.addTypedText(
             //   title: _titleController.text,
             //   subject: _subjectController.text.isEmpty ? null : _subjectController.text,
             //   content: jsonEncode(_quillController.document.toDelta().toJson()),
@@ -499,6 +536,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               //   title: _titleController.text,
               //   subject: _subjectController.text.isEmpty ? null : _subjectController.text,
               //   image: _selectedImage!,
+              //   extractedText: _extractedImageText, // Include extracted OCR text
               // );
             }
             break;
@@ -543,9 +581,12 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
   }
 
   bool _isContentRequired() {
-    return _selectedContentType == ContentType.typedText && 
-           widget.material == null;
+    return (_selectedContentType == ContentType.typedText ||
+            _selectedContentType == ContentType.textFile ||
+            _selectedContentType == ContentType.imageFile) &&
+        widget.material == null;
   }
+
   bool _isContentProvided() {
     switch (_selectedContentType) {
       case ContentType.typedText:
@@ -561,99 +602,102 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
   Widget build(BuildContext context) {
     final isEditing = widget.material != null;
     final appTheme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: _buildAppBar(),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Form(
-              key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.all(16.0),
-                children: [
-                  // Title Field
-                  AppTextField(
-                    controller: _titleController,
-                    labelText: 'Title',
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter a title';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Subject Field (Optional)
-                  AppTextField(
-                    controller: _subjectController,
-                    labelText: 'Subject (Optional)',
-                  ),
-                  const SizedBox(height: 16),
-
-                  AppTextField(
-                    controller: _descriptionController,
-                    labelText: 'Description (Optional)',
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Content Type Selection
-                  if (!isEditing) ...[
-                    Text(
-                      'Content Type',
-                      style: appTheme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    SegmentedButton<ContentType>(
-                      segments: const [
-                        ButtonSegment<ContentType>(
-                          value: ContentType.typedText,
-                          label: Text('Type Text'),
-                          icon: Icon(Icons.edit),
-                        ),
-                        ButtonSegment<ContentType>(
-                          value: ContentType.textFile,
-                          label: Text('Upload File'),
-                          icon: Icon(Icons.upload_file),
-                        ),
-                        ButtonSegment<ContentType>(
-                          value: ContentType.imageFile,
-                          label: Text('Upload Image'),
-                          icon: Icon(Icons.image),
-                        ),
-                      ],
-                      selected: {_selectedContentType},
-                      onSelectionChanged: (Set<ContentType> selected) {
-                        setState(() {
-                          _selectedContentType = selected.first;
-                          _fileErrorText = null;
-                        });
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.all(16.0),
+                  children: [
+                    // Title Field
+                    AppTextField(
+                      controller: _titleController,
+                      labelText: 'Title',
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter a title';
+                        }
+                        return null;
                       },
                     ),
+                    const SizedBox(height: 16),
+
+                    // Subject Field (Optional)
+                    AppTextField(
+                      controller: _subjectController,
+                      labelText: 'Subject (Optional)',
+                    ),
+                    const SizedBox(height: 16),
+
+                    AppTextField(
+                      controller: _descriptionController,
+                      labelText: 'Description (Optional)',
+                      maxLines: 3,
+                    ),
                     const SizedBox(height: 24),
-                    
-                    // Content Input based on selected type
-                    _buildContentInput(),
+
+                    // Content Type Selection
+                    if (!isEditing) ...[
+                      Text(
+                        'Content Type',
+                        style: appTheme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      SegmentedButton<ContentType>(
+                        segments: const [
+                          ButtonSegment<ContentType>(
+                            value: ContentType.typedText,
+                            label: Text('Type Text'),
+                            icon: Icon(Icons.edit),
+                          ),
+                          ButtonSegment<ContentType>(
+                            value: ContentType.textFile,
+                            label: Text('Upload File'),
+                            icon: Icon(Icons.upload_file),
+                          ),
+                          ButtonSegment<ContentType>(
+                            value: ContentType.imageFile,
+                            label: Text('Upload Image'),
+                            icon: Icon(Icons.image),
+                          ),
+                        ],
+                        selected: {_selectedContentType},
+                        onSelectionChanged: (Set<ContentType> selected) {
+                          setState(() {
+                            _selectedContentType = selected.first;
+                            _fileErrorText = null;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Content Input based on selected type
+                      _buildContentInput(),
+                    ],
+
+                    const SizedBox(height: 32),
+
+                    // Save Button
+                    AppButton(
+                      label: isEditing ? 'Update' : 'Save',
+                      onPressed: _saveStudyMaterial,
+                      isLoading: _isLoading,
+                    ),
                   ],
-                  
-                  const SizedBox(height: 32),
-                  
-                  // Save Button
-                  AppButton(
-                    label: isEditing ? 'Update' : 'Save',
-                    onPressed: _saveStudyMaterial,
-                    isLoading: _isLoading,
-                  ),
-                ],
+                ),
               ),
-            ),
     );
   }
 
   AppBar _buildAppBar() {
     return AppBar(
-      title: Text(widget.material == null ? 'Add Study Material' : 'Edit Study Material'),
+      title: Text(
+        widget.material == null ? 'Add Study Material' : 'Edit Study Material',
+      ),
       actions: [
         if (!_isLoading)
           IconButton(
@@ -664,6 +708,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
       ],
     );
   }
+
   Widget _buildContentInput() {
     switch (_selectedContentType) {
       case ContentType.typedText:
@@ -688,14 +733,11 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
             ),
             if (_fileErrorText != null) ...[
               const SizedBox(height: 8),
-              Text(
-                _fileErrorText!,
-                style: const TextStyle(color: Colors.red),
-              ),
+              Text(_fileErrorText!, style: const TextStyle(color: Colors.red)),
             ],
           ],
         );
-        
+
       case ContentType.textFile:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -738,14 +780,11 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
             ],
             if (_fileErrorText != null) ...[
               const SizedBox(height: 8),
-              Text(
-                _fileErrorText!,
-                style: const TextStyle(color: Colors.red),
-              ),
+              Text(_fileErrorText!, style: const TextStyle(color: Colors.red)),
             ],
           ],
         );
-          case ContentType.imageFile:
+      case ContentType.imageFile:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -754,21 +793,21 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                 : _buildSelectedImagePreview(),
             if (_fileErrorText != null) ...[
               const SizedBox(height: 8),
-              Text(
-                _fileErrorText!,
-                style: const TextStyle(color: Colors.red),
-              ),            ],
+              Text(_fileErrorText!, style: const TextStyle(color: Colors.red)),
+            ],
           ],
         );
     }
-  }  Widget _buildQuillEditor() {
+  }
+
+  Widget _buildQuillEditor() {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         QuillSimpleToolbar(
           controller: _quillController,
           config: QuillSimpleToolbarConfig(
-            // Only show essential buttons for mobile 
+            // Only show essential buttons for mobile
             multiRowsDisplay: false,
             showFontFamily: false,
             showFontSize: false,
@@ -803,7 +842,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                   final isDesktop = {
                     TargetPlatform.linux,
                     TargetPlatform.windows,
-                    TargetPlatform.macOS
+                    TargetPlatform.macOS,
                   }.contains(defaultTargetPlatform);
                   if (isDesktop) {
                     _quillFocusNode.requestFocus();
@@ -864,18 +903,12 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
             const SizedBox(height: 16),
             const Text(
               'Add Image',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 4),
             Text(
               'Tap to select an image from camera or gallery',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
           ],
         ),
@@ -904,33 +937,33 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  _selectedImage!,
-                  fit: BoxFit.cover,
-                ),
+                child: Image.file(_selectedImage!, fit: BoxFit.cover),
               ),
             ),
             Positioned(
               top: 8,
               right: 8,
               child: GestureDetector(
-                onTap: () => setState(() => _selectedImage = null),
+                onTap:
+                    () => setState(() {
+                      _selectedImage = null;
+                      _extractedImageText = null;
+                      _imageTextController?.dispose();
+                      _imageTextController = null;
+                    }),
                 child: Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.6),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.close,
-                    color: Colors.white,
-                    size: 20,
-                  ),
+                  child: const Icon(Icons.close, color: Colors.white, size: 20),
                 ),
               ),
             ),
           ],
-        ),        const SizedBox(height: 16),
+        ),
+        const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
@@ -941,7 +974,10 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: AppColors.secondary),
                   foregroundColor: AppColors.secondary,
-                  minimumSize: const Size(0, 44), // Fixed height for both buttons
+                  minimumSize: const Size(
+                    0,
+                    44,
+                  ), // Fixed height for both buttons
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                 ),
               ),
@@ -959,14 +995,211 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.athenaPurple,
                   foregroundColor: Colors.white,
-                  minimumSize: const Size(0, 44), // Fixed height for both buttons
+                  minimumSize: const Size(
+                    0,
+                    44,
+                  ), // Fixed height for both buttons
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                 ),
               ),
             ),
           ],
         ),
+
+        // Display extracted text section if available
+        if (_extractedImageText != null) ...[
+          const SizedBox(height: 24),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.text_fields,
+                    size: 16,
+                    color: AppColors.athenaPurple,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Extracted Text',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.athenaDarkGrey,
+                    ),
+                  ),
+                  const Spacer(),
+                  // Remove button
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _extractedImageText = null;
+                        _imageTextController?.dispose();
+                        _imageTextController = null;
+                      });
+                    },
+                    icon: const Icon(Icons.delete_outline, size: 16),
+                    label: const Text('Remove'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red.shade600,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      minimumSize: const Size(0, 32),
+                    ),
+                  ), // Edit button for text
+                  TextButton.icon(
+                    onPressed:
+                        _extractedImageText != null ? _editExtractedText : null,
+                    icon: const Icon(Icons.edit, size: 16),
+                    label: const Text('Edit'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.secondary,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      minimumSize: const Size(0, 32),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Text(
+                  _extractedImageText!,
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
+  }
+
+  Future<void> _editExtractedText() async {
+    if (_extractedImageText == null) return;
+
+    // Store the original text - we'll use this directly without a controller
+    final originalText = _extractedImageText;
+
+    // Show dialog to edit text
+    final String? editedText = await showDialog<String>(
+      context: context,
+      barrierDismissible: false, // Prevent dismissal by tapping outside
+      builder: (dialogContext) {
+        // Create a new text editing controller just for this dialog
+        // This controller will be automatically disposed when the dialog is closed
+        final dialogController = TextEditingController(text: originalText);
+
+        // Local state for validation error - will be managed by the StatefulBuilder
+        String? errorText;
+
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setDialogState) {
+            // Calculate available height for the dialog
+            final mediaQuery = MediaQuery.of(context);
+            final screenHeight = mediaQuery.size.height;
+            final keyboardHeight = mediaQuery.viewInsets.bottom;
+            final keyboardVisible = keyboardHeight > 0;
+
+            // Calculate available height with more space when keyboard is visible
+            // We subtract more padding when keyboard is visible to ensure content fits
+            final availableHeight =
+                screenHeight - keyboardHeight - (keyboardVisible ? 150 : 250);
+
+            return WillPopScope(
+              // Prevent Android back button from dismissing without explicit action
+              onWillPop: () async => false,
+              child: AlertDialog(
+                title: const Text('Edit Extracted Text'),
+                content: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: availableHeight > 100 ? availableHeight : 200,
+                    // Add minimum width to ensure text field has enough space
+                    minWidth: 280,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: dialogController,
+                          maxLines: 8,
+                          autofocus: true,
+                          decoration: InputDecoration(
+                            border: const OutlineInputBorder(),
+                            hintText: 'Edit the extracted text...',
+                            errorText: errorText,
+                          ),
+                        ),
+                        if (errorText == null)
+                          const SizedBox(height: 0)
+                        else
+                          const SizedBox(height: 8),
+                        const Text(
+                          'Tip: You can add your own notes or correct any OCR mistakes',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(null),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      final text = dialogController.text.trim();
+                      if (text.isEmpty) {
+                        setDialogState(() {
+                          errorText = 'Text cannot be empty';
+                        });
+                      } else {
+                        Navigator.of(context).pop(text);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Save'),
+                  ),
+                ],
+                scrollable: true,
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    // Update main state if user saved changes
+    // We need to make sure we're still mounted before updating the state
+    if (editedText != null && mounted) {
+      setState(() {
+        _extractedImageText = editedText;
+
+        // Always dispose the old controller first to prevent memory leaks
+        if (_imageTextController != null) {
+          _imageTextController!.dispose();
+          _imageTextController = null; // Set to null after disposing
+        }
+
+        // Only then create a new controller with the edited text
+        if (mounted) {
+          _imageTextController = TextEditingController(text: editedText);
+        }
+      });
+    }
   }
 }

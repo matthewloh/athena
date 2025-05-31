@@ -1,9 +1,7 @@
-import 'dart:io';
 import 'package:athena/core/theme/app_colors.dart';
 import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
-import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:athena/features/study_materials/presentation/views/add_edit_material_screen.dart';
+import 'package:flutter/material.dart';
 
 class AddMaterialBottomSheet extends StatelessWidget {
   const AddMaterialBottomSheet({super.key});
@@ -61,7 +59,7 @@ class AddMaterialBottomSheet extends StatelessWidget {
                   color: AppColors.athenaPurple,
                   onTap: () {
                     Navigator.pop(context);
-                    Navigator.push(
+                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const AddEditMaterialScreen(initialContentType: ContentType.textFile),
@@ -77,62 +75,19 @@ class AddMaterialBottomSheet extends StatelessWidget {
             children: [
               Expanded(
                 child: _buildAddOption(
-                  context: context,                  icon: Icons.camera_alt_outlined,
+                  context: context,
+                  icon: Icons.camera_alt_outlined,
                   title: 'Take Photo',
                   description: 'Capture text with camera',
                   color: Colors.green,
-                  onTap: () async {
+                  onTap: () {
                     Navigator.pop(context);
-                    
-                    // Try to capture image directly with camera
-                    try {
-                      final ImagePicker picker = ImagePicker();
-                      final XFile? image = await picker.pickImage(
-                        source: ImageSource.camera, 
-                        maxWidth: 1800,
-                        maxHeight: 1800,
-                        imageQuality: 85,
-                      );
-                      
-                      if (image != null) {
-                        if (context.mounted) {
-                          // Navigate to edit screen with the captured image
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => AddEditMaterialScreen(
-                                initialContentType: ContentType.imageFile,
-                                capturedImage: File(image.path),
-                              ),
-                            ),
-                          );
-                        }
-                      } else {
-                        // If camera capture was cancelled, just open the regular screen
-                        if (context.mounted) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AddEditMaterialScreen(
-                                initialContentType: ContentType.imageFile,
-                              ),
-                            ),
-                          );
-                        }
-                      }
-                    } catch (e) {
-                      // Fallback to regular image screen if camera fails
-                      if (context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AddEditMaterialScreen(
-                              initialContentType: ContentType.imageFile,
-                            ),
-                          ),
-                        );
-                      }
-                    }
+                      Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AddEditMaterialScreen(initialContentType: ContentType.imageFile),
+                      ),
+                    );
                   },
                 ),
               ),
@@ -143,54 +98,15 @@ class AddMaterialBottomSheet extends StatelessWidget {
                   icon: Icons.photo_library_outlined,
                   title: 'From Gallery',
                   description: 'Select from your photos',
-                  color: Colors.orange,                  onTap: () async {
+                  color: Colors.orange,
+                  onTap: () {
                     Navigator.pop(context);
-                    
-                    // Try to pick an image from gallery directly
-                    try {
-                      final ImagePicker picker = ImagePicker();
-                      final XFile? image = await picker.pickImage(
-                        source: ImageSource.gallery, 
-                        maxWidth: 1800,
-                        maxHeight: 1800,
-                        imageQuality: 85,
-                      );
-                      
-                      if (image != null && context.mounted) {
-                        // Navigate to edit screen with the selected image
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AddEditMaterialScreen(
-                              initialContentType: ContentType.imageFile,
-                              capturedImage: File(image.path),
-                            ),
-                          ),
-                        );
-                      } else if (context.mounted) {
-                        // If no image was selected, just open the regular screen
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AddEditMaterialScreen(
-                              initialContentType: ContentType.imageFile,
-                            ),
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      // Fallback to regular image screen if gallery fails
-                      if (context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AddEditMaterialScreen(
-                              initialContentType: ContentType.imageFile,
-                            ),
-                          ),
-                        );
-                      }
-                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AddEditMaterialScreen(initialContentType: ContentType.imageFile),
+                      ),
+                    );
                   },
                 ),
               ),
