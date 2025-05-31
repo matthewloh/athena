@@ -1,5 +1,6 @@
 import 'package:athena/core/theme/app_colors.dart';
 import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
+import 'package:athena/features/study_materials/presentation/views/material_detail_screen.dart';
 import 'package:athena/features/study_materials/presentation/widgets/add_material_bottom_sheet.dart';
 import 'package:athena/features/study_materials/presentation/widgets/material_list_item_card.dart';
 import 'package:flutter/material.dart';
@@ -165,9 +166,10 @@ class MaterialsScreen extends ConsumerWidget {
         return MaterialListItemCard(
           material: material,
           onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Material detail view coming soon!'),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MaterialDetailScreen(materialId: 'foo'),
               ),
             );
           },
