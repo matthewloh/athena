@@ -21,7 +21,7 @@ class ChatRepositoryImpl implements ChatRepository {
   String _getCurrentUserId() {
     final user = _ref.read(appAuthProvider).valueOrNull;
     if (user == null) {
-      throw const AuthException('User not authenticated.', statusCode: '401');
+      throw AuthException('User not authenticated.', statusCode: '401');
     }
     return user.id;
   }
@@ -99,6 +99,9 @@ class ChatRepositoryImpl implements ChatRepository {
   Future<Either<Failure, List<ConversationEntity>>> getConversations() async {
     try {
       final userId = _getCurrentUserId();
+      print(
+        'ChatRepositoryImpl: Attempting to get conversations for userId: $userId',
+      );
       final conversations = await _remoteDataSource.getConversations(userId);
       return Right(conversations);
     } on AuthException catch (e) {
@@ -172,14 +175,14 @@ class ChatRepositoryImpl implements ChatRepository {
   ) async {
     try {
       if (conversation is! ConversationModel) {
-         //This is a simplistic conversion, real one might need more logic or a factory in model
+        //This is a simplistic conversion, real one might need more logic or a factory in model
         final model = ConversationModel(
           id: conversation.id,
           userId: conversation.userId,
           title: conversation.title,
           createdAt: conversation.createdAt,
           updatedAt: conversation.updatedAt,
-          lastMessageSnippet: conversation.lastMessageSnippet
+          lastMessageSnippet: conversation.lastMessageSnippet,
         );
         await _remoteDataSource.updateConversation(model);
       } else {

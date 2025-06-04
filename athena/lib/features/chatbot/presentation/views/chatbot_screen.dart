@@ -1,8 +1,9 @@
 import 'package:athena/core/theme/app_colors.dart';
-import 'package:athena/features/chatbot/domain/entities/chat_message_entity.dart';
+// import 'package:athena/features/chatbot/domain/entities/conversation_entity.dart'; // Not directly used here
 import 'package:athena/features/chatbot/presentation/viewmodel/chat_viewmodel.dart'
     as vm;
 import 'package:athena/features/chatbot/presentation/widgets/chat_bubble.dart';
+import 'package:athena/features/chatbot/presentation/widgets/conversation_list_drawer.dart';
 import 'package:athena/features/chatbot/presentation/widgets/message_input_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,15 +17,32 @@ class ChatbotScreen extends ConsumerStatefulWidget {
 
 class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
   final ScrollController _scrollController = ScrollController();
+  bool _isInitialized = false;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
-    // Optional: Load initial data or set active conversation if needed
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   ref.read(chatViewModelProvider.notifier).loadConversations();
-    //   // or ref.read(chatViewModelProvider.notifier).setActiveConversation('some_default_id');
-    // });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeChatbot();
+    });
+  }
+
+  Future<void> _initializeChatbot() async {
+    if (_isInitialized) return;
+    _isInitialized = true;
+
+    final chatViewModel = ref.read(vm.chatViewModelProvider.notifier);
+    
+    await chatViewModel.loadConversations();
+    
+    final currentState = ref.read(vm.chatViewModelProvider).valueOrNull;
+    if (currentState != null && currentState.conversations.isNotEmpty) {
+      // If there's no active conversation ID in the state yet, set one.
+      if (currentState.activeConversationId == null) {
+         await chatViewModel.setActiveConversation(currentState.conversations.first.id);
+      }
+    }
   }
 
   @override
@@ -49,7 +67,6 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
   Widget build(BuildContext context) {
     final chatStateAsync = ref.watch(vm.chatViewModelProvider);
 
-    // Listen to state changes for scrolling
     ref.listen<AsyncValue<vm.ChatState>>(vm.chatViewModelProvider, (_, next) {
       if (next.hasValue &&
           next.value != null &&
@@ -60,105 +77,216 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
     });
 
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         backgroundColor: AppColors.athenaBlue,
-        title: const Text(
-          'AI Chatbot',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        leading: IconButton(
+          icon: const Icon(Icons.history_rounded, color: Colors.white),
+          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          tooltip: 'View Conversations',
+        ),
+        title: Text(
+          chatStateAsync.maybeWhen(
+            data: (data) {
+              if (data.activeConversationId == null || 
+                  data.conversations.where((c) => c.id == data.activeConversationId).isEmpty) {
+                return 'AI Chatbot'; // Default title if no active or not found
+              }
+              final activeConversation = data.conversations
+                  .firstWhere((c) => c.id == data.activeConversationId);
+              return activeConversation.title ?? 'AI Chatbot';
+            },
+            orElse: () => 'AI Chatbot',
+          ),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.info_outline_rounded),
-            onPressed: () => _showChatInfoDialog(context),
+            icon: const Icon(Icons.add_comment_rounded, color: Colors.white),
+            onPressed: () {
+              ref
+                  .read(vm.chatViewModelProvider.notifier)
+                  .createNewConversation(title: 'New Chat');
+            },
+            tooltip: 'New Conversation',
           ),
-          // Placeholder for conversation list/management
-          // IconButton(
-          //   icon: const Icon(Icons.list_alt_rounded),
-          //   onPressed: () { /* TODO: Show conversation list */ },
-          // ),
+          IconButton(
+            icon: const Icon(Icons.info_outline_rounded, color: Colors.white),
+            onPressed: () => _showChatInfoDialog(context),
+            tooltip: 'About Chatbot',
+          ),
         ],
       ),
+      drawer: const ConversationListDrawer(),
       body: Column(
         children: [
           Expanded(
             child: chatStateAsync.when(
               data: (chatState) {
+                // Show loading for initial state
                 if (chatState.isLoading && chatState.currentMessages.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Initializing chat...'),
+                      ],
+                    ),
+                  );
                 }
-                if (chatState.currentMessages.isEmpty) {
-                  return _buildEmptyChatView(context);
+
+                // Always show chat area - either with messages or empty and ready
+                if (chatState.currentMessages.isEmpty && !chatState.isReceivingAiResponse) {
+                  return _buildReadyToChatView(context);
                 }
+
+                // Build message list with proper bounds checking
                 return ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.all(16.0),
-                  itemCount:
-                      chatState.currentMessages.length +
-                      (chatState.isReceivingAiResponse ? 1 : 0),
+                  itemCount: chatState.currentMessages.length,
                   itemBuilder: (context, index) {
-                    if (chatState.isReceivingAiResponse &&
-                        index == chatState.currentMessages.length - 1 &&
-                        chatState.currentMessages.last.sender ==
-                            MessageSender.ai) {
-                      // Already handled by the last message if it's AI and being streamed
-                    } else if (chatState.isReceivingAiResponse &&
-                        index == chatState.currentMessages.length) {
-                      // This case indicates that a new AI message is being received but not yet in currentMessages
-                      // We can show a generic typing indicator if the partial message isn't in currentMessages yet.
-                      // However, the current ViewModel logic adds partial AI message to currentMessages immediately.
-                      // So this explicit typing indicator might not be needed if the last message is already the streaming AI one.
+                    if (index >= chatState.currentMessages.length) {
+                      return const SizedBox.shrink(); // Safety check
                     }
+                    
                     final message = chatState.currentMessages[index];
-                    return ChatBubble(message: message);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: ChatBubble(message: message),
+                    );
                   },
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error:
-                  (err, stack) => Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        'Error: ${err is vm.ChatError ? err.message : err.toString()}',
+              loading: () => const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Loading conversations...'),
+                  ],
+                ),
+              ),
+              error: (err, stack) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Something went wrong',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        err is vm.ChatError ? err.message : err.toString(),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.error,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => _initializeChatbot(),
+                        child: const Text('Try Again'),
+                      ),
+                    ],
                   ),
+                ),
+              ),
             ),
           ),
+          
+          // Show typing indicator when AI is responding
           chatStateAsync.maybeWhen(
-            data:
-                (chatState) => MessageInputBar(
-                  onSendMessage: (text) {
-                    ref
-                        .read(vm.chatViewModelProvider.notifier)
-                        .sendMessage(text);
-                  },
-                  isSending:
-                      chatState.isLoading || chatState.isReceivingAiResponse,
-                  // onMicPressed: () { /* TODO: Implement voice input */ },
-                ),
-            orElse:
-                () =>
-                    const SizedBox.shrink(), // Don't show input bar during initial load/error screen
+            data: (chatState) {
+              if (chatState.isReceivingAiResponse) {
+                return Container(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Athena is typing...',
+                        style: TextStyle(
+                          color: AppColors.athenaMediumGrey,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+            orElse: () => const SizedBox.shrink(),
+          ),
+          
+          // ALWAYS show message input bar - this is the key fix!
+          chatStateAsync.maybeWhen(
+            data: (chatState) => MessageInputBar(
+              onSendMessage: (text) {
+                if (text.trim().isNotEmpty) {
+                  ref
+                      .read(vm.chatViewModelProvider.notifier)
+                      .sendMessage(text.trim());
+                }
+              },
+              isSending: chatState.isLoading || chatState.isReceivingAiResponse,
+            ),
+            loading: () => MessageInputBar(
+              onSendMessage: (text) {
+                // Even during loading, allow message input
+                if (text.trim().isNotEmpty) {
+                  ref
+                      .read(vm.chatViewModelProvider.notifier)
+                      .sendMessage(text.trim());
+                }
+              },
+              isSending: true,
+            ),
+            error: (_, __) => MessageInputBar(
+              onSendMessage: (text) {
+                // Allow retry by sending message even in error state
+                if (text.trim().isNotEmpty) {
+                  ref
+                      .read(vm.chatViewModelProvider.notifier)
+                      .sendMessage(text.trim());
+                }
+              },
+              isSending: false,
+            ),
+            orElse: () => MessageInputBar(
+              onSendMessage: (text) {
+                if (text.trim().isNotEmpty) {
+                  ref
+                      .read(vm.chatViewModelProvider.notifier)
+                      .sendMessage(text.trim());
+                }
+              },
+              isSending: false,
+            ),
           ),
         ],
       ),
-      // Example: Floating action button to start a new conversation
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: () {
-      //     ref.read(chatViewModelProvider.notifier).createNewConversation(title: 'New Chat');
-      //   },
-      //   backgroundColor: AppColors.athenaPurple,
-      //   child: const Icon(Icons.add_comment_rounded, color: Colors.white),
-      // ),
     );
   }
 
-  Widget _buildEmptyChatView(BuildContext context) {
+  Widget _buildReadyToChatView(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -170,35 +298,38 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            'Ask me anything!',
+            'Hi! I\'m Athena',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               color: AppColors.athenaDarkGrey,
+              fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'I can help you with your studies, explain concepts, or just chat.',
+            'Ask me anything to get started!',
             textAlign: TextAlign.center,
             style: Theme.of(
               context,
             ).textTheme.bodyLarge?.copyWith(color: AppColors.athenaMediumGrey),
           ),
           const SizedBox(height: 20),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.add_circle_outline_rounded),
-            label: const Text('Start New Conversation'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.athenaPurple,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.symmetric(horizontal: 32),
+            decoration: BoxDecoration(
+              color: AppColors.athenaPurple.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.athenaPurple.withValues(alpha: 0.3),
+              ),
             ),
-            onPressed: () {
-              // TODO: Implement a proper way to start/select conversations
-              // For now, this might just clear messages or point to a default one
-              ref
-                  .read(vm.chatViewModelProvider.notifier)
-                  .createNewConversation(title: 'New Chat from Empty');
-            },
+            child: Text(
+              'I can help you with your studies, explain concepts, solve problems, or just have a conversation. Just type your message below!',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.athenaDarkGrey,
+              ),
+            ),
           ),
         ],
       ),

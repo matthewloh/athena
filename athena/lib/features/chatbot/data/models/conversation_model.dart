@@ -49,6 +49,7 @@ class ConversationModel extends ConversationEntity {
     return json;
   }
 
+  @override
   ConversationModel copyWith({
     String? id,
     String? userId,

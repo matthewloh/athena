@@ -8,6 +8,7 @@ import 'package:athena/features/chatbot/data/datasources/chat_remote_datasource.
 import 'package:athena/features/chatbot/data/models/chat_message_model.dart';
 import 'package:athena/features/chatbot/data/models/conversation_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:http/http.dart' as http;
 
 class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
   final SupabaseClient _client;
@@ -22,9 +23,10 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
           .stream(primaryKey: ['id'])
           .eq('conversation_id', conversationId)
           .order('timestamp', ascending: true)
-          .map((data) => data
-              .map((json) => ChatMessageModel.fromJson(json))
-              .toList());
+          .map(
+            (data) =>
+                data.map((json) => ChatMessageModel.fromJson(json)).toList(),
+          );
     } catch (e) {
       throw ServerException('Failed to stream messages: ${e.toString()}');
     }
@@ -38,21 +40,14 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
     Map<String, dynamic>? metadata,
   }) async {
     try {
-      final messageData = ChatMessageModel.temporary(
-        conversationId: conversationId,
-        text: text,
-        metadata: metadata,
-      ).toInsertJson();
+      final messageData =
+          ChatMessageModel.temporary(
+            conversationId: conversationId,
+            text: text,
+            metadata: metadata,
+          ).toInsertJson();
 
-      final response = await _client
-          .from('chat_messages')
-          .insert(messageData)
-          .select()
-          .single();
-
-      if (response == null) {
-        throw const ServerException('Failed to insert message');
-      }
+      await _client.from('chat_messages').insert(messageData).select().single();
     } on PostgrestException catch (e) {
       throw ServerException('Database error: ${e.message}');
     } catch (e) {
@@ -63,9 +58,9 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
   @override
   Stream<String> getAiResponseStream(String conversationId, String prompt) {
     final controller = StreamController<String>();
-    
+
     _streamAiResponse(conversationId, prompt, controller);
-    
+
     return controller.stream;
   }
 
@@ -75,80 +70,163 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
     StreamController<String> controller,
   ) async {
     try {
-      final response = await _client.functions.invoke(
-        'chat-stream',
-        body: {
-          'conversationId': conversationId,
-          'message': prompt,
-          'includeContext': true,
-          'maxContextMessages': 10,
-        },
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      print('Starting AI response stream for conversation: $conversationId');
+
+      // Get the auth token
+      final authToken = _client.auth.currentSession?.accessToken;
+      if (authToken == null) {
+        throw ServerException('No authentication token available');
+      }
+
+      final request = http.Request(
+        'POST',
+        Uri.parse('https://rbxlzltxpymgioxnhivo.supabase.co/functions/v1/chat-stream'),
       );
+      
+      request.headers.addAll({
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $authToken',
+      });
+      
+      request.body = json.encode({
+        'conversationId': conversationId,
+        'message': prompt,
+        'includeContext': true,
+        'maxContextMessages': 10,
+      });
 
-      if (response.status != 200) {
-        throw ServerException('Edge function error: ${response.status}');
+      final streamedResponse = await http.Client().send(request);
+
+      print('Edge function response status: ${streamedResponse.statusCode}');
+
+      if (streamedResponse.statusCode != 200) {
+        throw ServerException('Edge function error: ${streamedResponse.statusCode}');
       }
 
-      // Handle Server-Sent Events stream
-      final responseBody = response.data as String;
-      final lines = responseBody.split('\n');
+      // Handle the streaming response
+      String accumulatedData = '';
       
-      for (final line in lines) {
-        if (line.startsWith('data: ')) {
-          final jsonStr = line.substring(6);
-          if (jsonStr.trim().isEmpty) continue;
+      await streamedResponse.stream.listen(
+        (List<int> bytes) {
+          final chunk = utf8.decode(bytes);
+          accumulatedData += chunk;
           
-          try {
-            final data = json.decode(jsonStr) as Map<String, dynamic>;
-            final type = data['type'] as String;
-            
-            switch (type) {
-              case 'chunk':
-                final content = data['content'] as String;
-                controller.add(content);
-                break;
-              case 'complete':
-                controller.close();
-                return;
-              case 'error':
-                final error = data['error'] as String;
-                controller.addError(ServerException('AI response error: $error'));
-                return;
-            }
-          } catch (e) {
-            // Skip malformed JSON lines
-            continue;
+          // Process complete lines
+          final lines = accumulatedData.split('\n');
+          accumulatedData = lines.removeLast(); // Keep incomplete line
+          
+          for (final line in lines) {
+            _processServerSentEventLine(line, controller);
           }
-        }
-      }
-      
-      controller.close();
+        },
+        onError: (error) {
+          print('Stream error: $error');
+          controller.addError(ServerException('Stream processing error: $error'));
+        },
+        onDone: () {
+          // Process any remaining data
+          if (accumulatedData.isNotEmpty) {
+            _processServerSentEventLine(accumulatedData, controller);
+          }
+          if (!controller.isClosed) {
+            controller.close();
+          }
+        },
+      ).asFuture();
     } catch (e) {
+      print('Error in AI response stream: $e');
       controller.addError(
         ServerException('Failed to stream AI response: ${e.toString()}'),
       );
     }
   }
 
+  void _processServerSentEventLine(String line, StreamController<String> controller) {
+    if (line.startsWith('data: ')) {
+      final jsonStr = line.substring(6).trim();
+      if (jsonStr.isEmpty) return;
+      
+      try {
+        final data = json.decode(jsonStr) as Map<String, dynamic>;
+        final type = data['type'] as String;
+        
+        switch (type) {
+          case 'chunk':
+            final content = data['content'] as String;
+            print('Received chunk: $content');
+            controller.add(content);
+            break;
+          case 'complete':
+            print('Stream completed');
+            if (!controller.isClosed) {
+              controller.close();
+            }
+            break;
+          case 'error':
+            final error = data['error'] as String;
+            print('Stream error: $error');
+            controller.addError(ServerException('AI response error: $error'));
+            break;
+        }
+      } catch (e) {
+        print('Failed to parse SSE line: $line, error: $e');
+        // Skip malformed JSON lines
+      }
+    }
+  }
+
   @override
   Future<List<ConversationModel>> getConversations(String userId) async {
     try {
-      final response = await _client
-          .rpc('get_conversations_with_stats', params: {'user_uuid': userId});
+      print('ChatSupabaseDataSourceImpl: Calling RPC get_conversations_with_stats for userId: $userId');
+      final response = await _client.rpc(
+        'get_conversations_with_stats',
+        params: {'user_uuid': userId},
+      );
+
+      print('ChatSupabaseDataSourceImpl: RPC response raw: $response');
 
       if (response == null) {
+        print('ChatSupabaseDataSourceImpl: RPC response is null.');
         return [];
       }
 
-      return (response as List)
-          .map((json) => ConversationModel.fromJson(json))
-          .toList();
+      if (response is! List) {
+        print('ChatSupabaseDataSourceImpl: RPC response is not a List. Type: ${response.runtimeType}');
+        throw ServerException('Unexpected response type from RPC: ${response.runtimeType}');
+      }
+
+      if (response.isEmpty) {
+        print('ChatSupabaseDataSourceImpl: RPC response is an empty list.');
+        return [];
+      }
+
+      final List<ConversationModel> conversations = [];
+      for (var jsonItem in response) {
+        try {
+          if (jsonItem is Map<String, dynamic>) {
+            // Crucial check: Ensure user_id is present before parsing, or handle its absence
+            // For now, we'll let fromJson handle it and catch, but this is where you'd know it's missing
+            if (jsonItem['user_id'] == null) {
+              print('ChatSupabaseDataSourceImpl: item JSON is missing user_id: $jsonItem');
+            }
+            conversations.add(ConversationModel.fromJson(jsonItem));
+          } else {
+            print('ChatSupabaseDataSourceImpl: Skipping non-map item in RPC response: $jsonItem');
+          }
+        } catch (e, s) {
+          print('ChatSupabaseDataSourceImpl: Error parsing conversation JSON item: $jsonItem. Error: $e. Stacktrace: $s');
+          // Decide if you want to skip this item or rethrow
+        }
+      }
+      print('ChatSupabaseDataSourceImpl: Successfully parsed ${conversations.length} conversations.');
+      return conversations;
+
     } on PostgrestException catch (e) {
+      print('ChatSupabaseDataSourceImpl: PostgrestException: ${e.message}, details: ${e.details}, code: ${e.code}');
       throw ServerException('Database error: ${e.message}');
-    } catch (e) {
+    } catch (e, s) {
+      print('ChatSupabaseDataSourceImpl: Generic error in getConversations: $e. Stacktrace: $s');
       throw ServerException('Failed to get conversations: ${e.toString()}');
     }
   }
@@ -160,22 +238,22 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
     String? firstMessageText,
   }) async {
     try {
-      final conversationData = ConversationModel(
-        id: '', // Will be generated by database
-        userId: userId,
-        title: title ?? _generateConversationTitle(firstMessageText),
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        metadata: {
-          'created_from_message': firstMessageText != null,
-        },
-      ).toInsertJson();
+      final conversationData =
+          ConversationModel(
+            id: '', // Will be generated by database
+            userId: userId,
+            title: title ?? _generateConversationTitle(firstMessageText),
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+            metadata: {'created_from_message': firstMessageText != null},
+          ).toInsertJson();
 
-      final response = await _client
-          .from('conversations')
-          .insert(conversationData)
-          .select()
-          .single();
+      final response =
+          await _client
+              .from('conversations')
+              .insert(conversationData)
+              .select()
+              .single();
 
       return ConversationModel.fromJson(response);
     } on PostgrestException catch (e) {
@@ -198,16 +276,12 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
           .eq('conversation_id', conversationId)
           .order('timestamp', ascending: false);
 
-      if (before != null) {
-        query = query.filter('timestamp', 'lt', before.toIso8601String());
-      }
-
       if (limit != null) {
         query = query.limit(limit);
       }
 
       final response = await query;
-      
+
       return (response as List)
           .map((json) => ChatMessageModel.fromJson(json))
           .toList()
@@ -244,10 +318,7 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
   Future<void> deleteConversation(String conversationId) async {
     try {
       // Messages will be deleted automatically due to CASCADE constraint
-      await _client
-          .from('conversations')
-          .delete()
-          .eq('id', conversationId);
+      await _client.from('conversations').delete().eq('id', conversationId);
     } on PostgrestException catch (e) {
       throw ServerException('Database error: ${e.message}');
     } catch (e) {
@@ -294,15 +365,18 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
   /// Get conversation statistics
   Future<Map<String, dynamic>> getConversationStats(String userId) async {
     try {
-      final response = await _client.rpc('get_user_chat_stats', params: {
-        'user_uuid': userId,
-      });
+      final response = await _client.rpc(
+        'get_user_chat_stats',
+        params: {'user_uuid': userId},
+      );
 
       return response as Map<String, dynamic>;
     } on PostgrestException catch (e) {
       throw ServerException('Database error: ${e.message}');
     } catch (e) {
-      throw ServerException('Failed to get conversation stats: ${e.toString()}');
+      throw ServerException(
+        'Failed to get conversation stats: ${e.toString()}',
+      );
     }
   }
 }

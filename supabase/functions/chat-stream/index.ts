@@ -1,27 +1,15 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { openai } from "npm:@ai-sdk/openai";
-import { streamText, CoreMessage } from "npm:ai";
+import { streamText } from "npm:ai";
 import { z } from "npm:zod";
-
 // Zod schemas for request validation
 const ChatRequestSchema = z.object({
   conversationId: z.string().uuid(),
   message: z.string().min(1).max(4000),
   includeContext: z.boolean().default(true),
-  maxContextMessages: z.number().min(1).max(20).default(10),
+  maxContextMessages: z.number().min(1).max(20).default(10)
 });
-
-const MessageSchema = z.object({
-  id: z.string(),
-  sender: z.enum(['user', 'ai', 'system']),
-  content: z.string(),
-  timestamp: z.string(),
-});
-
-type ChatRequest = z.infer<typeof ChatRequestSchema>;
-type Message = z.infer<typeof MessageSchema>;
-
 // System prompt with academic focus
 const SYSTEM_PROMPT = `You are Athena, an AI-powered study companion designed to help students learn effectively. Your core principles:
 
@@ -42,77 +30,19 @@ When explaining concepts:
 - Connect new information to previously learned concepts
 
 Always maintain a helpful, encouraging, and educational tone.`;
-
-// Helper function to get conversation context
-async function getConversationContext(
-  supabase: any,
-  conversationId: string,
-  maxMessages: number = 10
-): Promise<CoreMessage[]> {
-  const { data: messages, error } = await supabase
-    .from('chat_messages')
-    .select('sender, content, timestamp')
-    .eq('conversation_id', conversationId)
-    .order('timestamp', { ascending: false })
-    .limit(maxMessages);
-
-  if (error) {
-    console.error('Error fetching conversation context:', error);
-    return [];
-  }
-
-  // Convert to CoreMessage format and reverse to get chronological order
-  return messages
-    .reverse()
-    .map((msg: any): CoreMessage => ({
-      role: msg.sender === 'user' ? 'user' : 'assistant',
-      content: msg.content,
-    }));
-}
-
 // Helper function to save message to database
-async function saveMessage(
-  supabase: any,
-  conversationId: string,
-  sender: 'user' | 'ai',
-  content: string
-): Promise<void> {
-  const { error } = await supabase
-    .from('chat_messages')
-    .insert({
-      conversation_id: conversationId,
-      sender,
-      content,
-    });
-
+async function saveMessage(supabase, conversationId, sender, content) {
+  const { error } = await supabase.from('chat_messages').insert({
+    conversation_id: conversationId,
+    sender,
+    content
+  });
   if (error) {
     console.error('Error saving message:', error);
     throw new Error('Failed to save message');
   }
 }
-
-// Helper function to ensure conversation exists
-async function ensureConversationExists(
-  supabase: any,
-  conversationId: string,
-  userId: string
-): Promise<boolean> {
-  const { data, error } = await supabase
-    .from('conversations')
-    .select('id')
-    .eq('id', conversationId)
-    .eq('user_id', userId)
-    .single();
-
-  if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-    console.error('Error checking conversation:', error);
-    return false;
-  }
-
-  return !!data;
-}
-
-Deno.serve(async (req) => {
+Deno.serve(async (req)=>{
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -120,143 +50,80 @@ Deno.serve(async (req) => {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      },
+        'Access-Control-Allow-Headers': 'authorization, content-type'
+      }
     });
   }
-
   try {
-    // Initialize Supabase client with user context
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
-        },
-      }
-    );
-
-    // Get user from auth
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { 
-          status: 401,
-          headers: { 'Content-Type': 'application/json' }
+    // Initialize Supabase client
+    const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
+      global: {
+        headers: {
+          Authorization: req.headers.get("Authorization")
         }
-      );
-    }
-
+      }
+    });
     // Parse and validate request body
     const body = await req.json();
     const validatedRequest = ChatRequestSchema.parse(body);
-
-    // Ensure conversation exists and belongs to user
-    const conversationExists = await ensureConversationExists(
-      supabase,
-      validatedRequest.conversationId,
-      user.id
-    );
-
-    if (!conversationExists) {
-      return new Response(
-        JSON.stringify({ error: 'Conversation not found or access denied' }),
-        { 
-          status: 404,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
     // Save user message first
-    await saveMessage(
-      supabase,
-      validatedRequest.conversationId,
-      'user',
-      validatedRequest.message
-    );
-
-    // Get conversation context if requested
-    let messages: CoreMessage[] = [
-      { role: 'system', content: SYSTEM_PROMPT }
+    await saveMessage(supabase, validatedRequest.conversationId, 'user', validatedRequest.message);
+    // Prepare messages for AI
+    const messages = [
+      {
+        role: 'system',
+        content: SYSTEM_PROMPT
+      },
+      {
+        role: 'user',
+        content: validatedRequest.message
+      }
     ];
-
-    if (validatedRequest.includeContext) {
-      const contextMessages = await getConversationContext(
-        supabase,
-        validatedRequest.conversationId,
-        validatedRequest.maxContextMessages
-      );
-      messages.push(...contextMessages);
-    }
-
-    // Add the current user message
-    messages.push({
-      role: 'user',
-      content: validatedRequest.message,
-    });
-
-    // Initialize OpenAI client correctly
+    // Initialize OpenAI client
     const model = openai('gpt-4o-mini', {
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
+      apiKey: Deno.env.get('OPENAI_API_KEY')
     });
-
     // Stream the AI response
     const result = await streamText({
       model,
       messages,
       temperature: 0.7,
-      maxTokens: 1000,
+      maxTokens: 1000
     });
-
     // Create a readable stream for the response
-    let fullResponse = '';
     const stream = new ReadableStream({
-      async start(controller) {
+      async start (controller) {
         try {
-          for await (const delta of result.textStream) {
+          let fullResponse = '';
+          for await (const delta of result.textStream){
             fullResponse += delta;
-            
-            // Send each chunk as Server-Sent Events format
-            const chunk = `data: ${JSON.stringify({ 
-              type: 'chunk', 
-              content: delta 
+            const chunk = `data: ${JSON.stringify({
+              type: 'chunk',
+              content: delta
             })}\n\n`;
-            
             controller.enqueue(new TextEncoder().encode(chunk));
           }
-
           // Save the complete AI response to database
-          await saveMessage(
-            supabase,
-            validatedRequest.conversationId,
-            'ai',
-            fullResponse
-          );
-
+          await saveMessage(supabase, validatedRequest.conversationId, 'ai', fullResponse);
           // Send completion signal
-          const completionChunk = `data: ${JSON.stringify({ 
+          const completionChunk = `data: ${JSON.stringify({
             type: 'complete',
-            fullResponse 
+            fullResponse
           })}\n\n`;
           controller.enqueue(new TextEncoder().encode(completionChunk));
-          
           controller.close();
         } catch (error) {
           console.error('Streaming error:', error);
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          const errorChunk = `data: ${JSON.stringify({ 
-            type: 'error', 
-            error: errorMessage 
+          const errorChunk = `data: ${JSON.stringify({
+            type: 'error',
+            error: errorMessage
           })}\n\n`;
           controller.enqueue(new TextEncoder().encode(errorChunk));
           controller.close();
         }
-      },
+      }
     });
-
     return new Response(stream, {
       headers: {
         'Content-Type': 'text/event-stream',
@@ -264,55 +131,20 @@ Deno.serve(async (req) => {
         'Connection': 'keep-alive',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      },
+        'Access-Control-Allow-Headers': 'authorization, content-type'
+      }
     });
-
   } catch (error) {
     console.error('Chat stream error:', error);
-    
-    if (error instanceof z.ZodError) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Invalid request format',
-          details: error.errors 
-        }),
-        { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ 
-        error: 'Internal server error',
-        message: errorMessage 
-      }),
-      { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
+    return new Response(JSON.stringify({
+      error: 'Internal server error',
+      message: errorMessage
+    }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json'
       }
-    );
+    });
   }
 });
-
-/* To invoke locally:
-
-  1. Run `supabase start`
-  2. Set environment variables:
-     - OPENAI_API_KEY=your_openai_api_key
-  3. Make an HTTP request:
-
-  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/chat-stream' \
-    --header 'Authorization: Bearer [YOUR_SUPABASE_JWT_TOKEN]' \
-    --header 'Content-Type: application/json' \
-    --data '{
-      "conversationId": "uuid-here",
-      "message": "Explain photosynthesis",
-      "includeContext": true,
-      "maxContextMessages": 5
-    }'
-
-*/ 

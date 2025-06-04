@@ -20,19 +20,38 @@ class MessageInputBar extends StatefulWidget {
 class _MessageInputBarState extends State<MessageInputBar> {
   final TextEditingController _textController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  bool _hasText = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    final hasText = _textController.text.trim().isNotEmpty;
+    if (hasText != _hasText) {
+      setState(() {
+        _hasText = hasText;
+      });
+    }
+  }
 
   @override
   void dispose() {
+    _textController.removeListener(_onTextChanged);
     _textController.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
   void _handleSend() {
-    if (_textController.text.trim().isNotEmpty) {
+    if (_textController.text.trim().isNotEmpty && !widget.isSending) {
       widget.onSendMessage(_textController.text.trim());
       _textController.clear();
-      // _focusNode.requestFocus(); // Optionally keep focus
+      setState(() {
+        _hasText = false;
+      });
     }
   }
 
@@ -86,7 +105,7 @@ class _MessageInputBarState extends State<MessageInputBar> {
               const SizedBox(width: 8.0),
               Container(
                  decoration: BoxDecoration(
-                    color: widget.isSending || _textController.text.trim().isEmpty 
+                    color: widget.isSending || !_hasText
                            ? AppColors.athenaMediumGrey.withValues(alpha: 0.5)
                            : AppColors.athenaBlue,
                     shape: BoxShape.circle,
@@ -95,7 +114,7 @@ class _MessageInputBarState extends State<MessageInputBar> {
                   icon: widget.isSending
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.send_rounded, color: Colors.white),
-                  onPressed: widget.isSending || _textController.text.trim().isEmpty ? null : _handleSend,
+                  onPressed: widget.isSending || !_hasText ? null : _handleSend,
                 ),
               ),
             ],

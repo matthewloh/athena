@@ -129,7 +129,7 @@ final createConversationUseCaseProvider =
 typedef CreateConversationUseCaseRef =
     AutoDisposeProviderRef<CreateConversationUseCase>;
 String _$updateConversationHash() =>
-    r'd6dff3ed925fa07ffaa3bbdd06b7c6a072779a69';
+    r'4b571a09db3568258cafa9e73a84faa5bdfac9f4';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -289,7 +289,7 @@ class _UpdateConversationProviderElement
 }
 
 String _$deleteConversationHash() =>
-    r'8b2f48d7936e7894ec3875efb910d6db483c32af';
+    r'098b5da969592f0b46f072fe6633f1b563e3daab';
 
 /// See also [deleteConversation].
 @ProviderFor(deleteConversation)

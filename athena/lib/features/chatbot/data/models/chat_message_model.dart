@@ -114,6 +114,7 @@ class ChatMessageModel extends ChatMessageEntity {
     );
   }
 
+  @override
   ChatMessageModel copyWith({
     String? id,
     String? conversationId,

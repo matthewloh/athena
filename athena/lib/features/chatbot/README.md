@@ -13,7 +13,7 @@ The AI Chatbot feature is a core component of the Athena application, designed t
   - Allow users to view past conversations.
   - Enable users to start new conversations.
 - **Streaming Responses:** Display AI responses token by token as they are generated for a more interactive experience.
-- **User Interface:** Provide a clean, intuitive, and responsive chat interface.
+- **User Interface:** Provide a clean, intuitive, and responsive chat interface, including display of user profile pictures.
 
 ## 3. Architecture & Key Components
 
@@ -62,12 +62,13 @@ This feature follows the Clean Architecture principles adopted by the Athena pro
     - Interacts with domain layer use cases.
     - Provides methods like `loadConversations`, `createNewConversation`, `setActiveConversation`, `sendMessage`.
   - `chat_providers.dart`: Contains Riverpod providers for the `ChatViewModel`, use cases, repository, and data source.
+  - `profile_providers.dart` (from `features/auth`): Used to fetch current user profile data (e.g., `avatarUrl`) for display in chat bubbles.
   - `ChatState`: Helper class to hold the UI state (list of conversations, current messages, loading status, error status, AI response streaming status).
   - `ChatError`: Helper class for specific error messages.
 - **Views (Screens):**
   - `chatbot_screen.dart`: The main screen for the chat interface. Displays messages and the input bar.
 - **Widgets:**
-  - `ChatBubble.dart`: Renders individual chat messages (differentiating user vs. AI).
+  - `ChatBubble.dart`: Renders individual chat messages, differentiating user vs. AI, and displays user avatars.
   - `MessageInputBar.dart`: Provides the text input field and send button.
 
 ### 3.4. Backend Integration (Supabase)
@@ -90,8 +91,9 @@ This feature follows the Clean Architecture principles adopted by the Athena pro
 ## 5. Current Status
 
 - **Core Layers Scaffolded:** Domain, Data (with placeholder Supabase implementation), and Presentation layers have been established.
-- **ViewModel Implemented:** `ChatViewModel` manages loading conversations, messages, sending messages, and has stubs for AI response streaming. Error handling and state updates via `AsyncValue` and `ChatState` are in place. Logic for handling `Either` from use cases (using `fold`) is implemented.
-- **Basic UI Created:** `ChatbotScreen` displays messages using `ChatBubble` and includes a `MessageInputBar`.
+- **ViewModel Implemented:** `ChatViewModel` manages loading conversations, messages, sending messages, and has stubs for AI response streaming. Error handling (including specific error codes via `ServerFailure` and `ServerException`) and state updates via `AsyncValue` and `ChatState` are in place. Logic for handling `Either` from use cases (using `fold`) is implemented.
+- **Basic UI Created:** `ChatbotScreen` displays messages using `ChatBubble` (which now includes user avatars) and includes a `MessageInputBar`.
+- **Profile Integration:** User avatars are fetched via `currentUserProfileProvider` and displayed in `ChatBubble`.
 - **Routing:** Navigation to `ChatbotScreen` is set up.
 
 ## 6. Next Steps & To-Do

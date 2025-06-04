@@ -118,6 +118,7 @@ CREATE TRIGGER update_conversation_on_message_insert
 CREATE OR REPLACE FUNCTION get_conversations_with_stats(user_uuid UUID)
 RETURNS TABLE (
   id UUID,
+  user_id UUID,
   title TEXT,
   created_at TIMESTAMP WITH TIME ZONE,
   updated_at TIMESTAMP WITH TIME ZONE,
@@ -129,6 +130,7 @@ BEGIN
   RETURN QUERY
   SELECT 
     c.id,
+    c.user_id,
     c.title,
     c.created_at,
     c.updated_at,
