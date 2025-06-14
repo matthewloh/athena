@@ -7,12 +7,13 @@ import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:athena/core/theme/app_colors.dart';
+import 'package:athena/core/constants/app_route_names.dart';
 import 'package:athena/features/shared/widgets/app_button.dart';
 import 'package:athena/features/shared/widgets/app_text_field.dart';
 import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
-import 'package:athena/features/study_materials/presentation/providers/study_material_providers.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:go_router/go_router.dart';
 
 class AddEditMaterialScreen extends ConsumerStatefulWidget {
   final StudyMaterialEntity?
@@ -174,7 +175,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                     icon: Icons.camera_alt_rounded,
                     label: 'Camera',
                     onTap: () async {
-                      Navigator.pop(context);
+                      context.pop();
                       await _getImageFromSource(ImageSource.camera);
                     },
                   ),
@@ -182,7 +183,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                     icon: Icons.photo_library_rounded,
                     label: 'Gallery',
                     onTap: () async {
-                      Navigator.pop(context);
+                      context.pop();
                       await _getImageFromSource(ImageSource.gallery);
                     },
                   ),
@@ -448,11 +449,11 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               scrollable: true,
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
+                  onPressed: () => context.pop(false),
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
+                  onPressed: () => context.pop(true),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -550,7 +551,6 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
         //   subject: _subjectController.text.isEmpty ? null : _subjectController.text,
         // );
       }
-
       if (mounted) {
         // Show success message and navigate back
         ScaffoldMessenger.of(context).showSnackBar(
@@ -559,7 +559,12 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-        Navigator.of(context).pop();
+        // Safe navigation back
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.goNamed(AppRouteNames.materials);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -687,6 +692,8 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                       onPressed: _saveStudyMaterial,
                       isLoading: _isLoading,
                     ),
+
+                    const SizedBox(height: 32),
                   ],
                 ),
               ),
@@ -697,6 +704,18 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
     return AppBar(
       title: Text(
         widget.material == null ? 'Add Study Material' : 'Edit Study Material',
+      ),
+      backgroundColor: AppColors.athenaPurple,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () {
+          // Safe navigation back - check if we can pop, otherwise go to materials
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.goNamed(AppRouteNames.materials);
+          }
+        },
       ),
       actions: [
         if (!_isLoading)
@@ -1154,7 +1173,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                 ),
                 actions: [
                   TextButton(
-                    onPressed: () => Navigator.of(context).pop(null),
+                    onPressed: () => context.pop(null),
                     child: const Text('Cancel'),
                   ),
                   ElevatedButton(
@@ -1165,7 +1184,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                           errorText = 'Text cannot be empty';
                         });
                       } else {
-                        Navigator.of(context).pop(text);
+                        context.pop(text);
                       }
                     },
                     style: ElevatedButton.styleFrom(

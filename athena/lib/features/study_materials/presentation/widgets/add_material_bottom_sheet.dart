@@ -1,7 +1,7 @@
 import 'package:athena/core/theme/app_colors.dart';
-import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
-import 'package:athena/features/study_materials/presentation/views/add_edit_material_screen.dart';
+import 'package:athena/core/constants/app_route_names.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class AddMaterialBottomSheet extends StatelessWidget {
   const AddMaterialBottomSheet({super.key});
@@ -39,12 +39,10 @@ class AddMaterialBottomSheet extends StatelessWidget {
                   description: 'Enter text directly',
                   color: AppColors.athenaBlue,
                   onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AddEditMaterialScreen(initialContentType: ContentType.typedText),
-                      ),
+                    context.pop();
+                    context.pushNamed(
+                      AppRouteNames.addEditMaterial,
+                      queryParameters: {'contentType': 'typedText'},
                     );
                   },
                 ),
@@ -58,12 +56,10 @@ class AddMaterialBottomSheet extends StatelessWidget {
                   description: 'PDF, Word, Text...',
                   color: AppColors.athenaPurple,
                   onTap: () {
-                    Navigator.pop(context);
-                     Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AddEditMaterialScreen(initialContentType: ContentType.textFile),
-                      ),
+                    context.pop();
+                    context.pushNamed(
+                      AppRouteNames.addEditMaterial,
+                      queryParameters: {'contentType': 'textFile'},
                     );
                   },
                 ),
@@ -81,12 +77,10 @@ class AddMaterialBottomSheet extends StatelessWidget {
                   description: 'Capture text with camera',
                   color: Colors.green,
                   onTap: () {
-                    Navigator.pop(context);
-                      Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AddEditMaterialScreen(initialContentType: ContentType.imageFile),
-                      ),
+                    context.pop();
+                    context.pushNamed(
+                      AppRouteNames.addEditMaterial,
+                      queryParameters: {'contentType': 'imageFile'},
                     );
                   },
                 ),
@@ -100,12 +94,10 @@ class AddMaterialBottomSheet extends StatelessWidget {
                   description: 'Select from your photos',
                   color: Colors.orange,
                   onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AddEditMaterialScreen(initialContentType: ContentType.imageFile),
-                      ),
+                    context.pop();
+                    context.pushNamed(
+                      AppRouteNames.addEditMaterial,
+                      queryParameters: {'contentType': 'imageFile'},
                     );
                   },
                 ),

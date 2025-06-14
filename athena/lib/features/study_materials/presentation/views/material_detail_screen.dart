@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:athena/core/theme/app_colors.dart';
+import 'package:athena/core/constants/app_route_names.dart';
 import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
+import 'package:go_router/go_router.dart';
 
 class MaterialDetailScreen extends StatefulWidget {
   final String materialId;
@@ -107,11 +109,10 @@ Main challenges include overfitting (poor generalization), underfitting (oversim
   }
 
   void _handleEditMaterial() {
-    // In a real app, this would navigate to EditMaterialScreen with the current material
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Edit functionality would be implemented here'),
-      ),
+    // Navigate to edit screen with the current material's ID
+    context.pushNamed(
+      AppRouteNames.addEditMaterial,
+      queryParameters: {'materialId': _dummyMaterial.id},
     );
   }
 
@@ -126,14 +127,14 @@ Main challenges include overfitting (poor generalization), underfitting (oversim
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => context.pop(),
                 child: const Text('CANCEL'),
               ),
               TextButton(
                 onPressed: () {
                   // In a real app, this would call the DeleteStudyMaterialUseCase
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pop(); // Return to the materials list
+                  context.pop(); // Close the dialog
+                  context.pop(); // Return to the materials list
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Material deleted successfully'),
@@ -164,6 +165,11 @@ Main challenges include overfitting (poor generalization), underfitting (oversim
     return Scaffold(
       appBar: AppBar(
         title: const Text('Details'),
+        backgroundColor: AppColors.athenaPurple,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.chat_bubble_outline),
