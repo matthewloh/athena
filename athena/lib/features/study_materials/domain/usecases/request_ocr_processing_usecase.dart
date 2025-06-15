@@ -2,13 +2,13 @@ import 'package:athena/core/errors/failures.dart';
 import 'package:athena/features/study_materials/domain/repositories/study_material_repository.dart';
 import 'package:dartz/dartz.dart';
 
-class DeleteStudyMaterialUseCase {
+class RequestOcrProcessingUsecase {
   final StudyMaterialRepository repository;
 
-  DeleteStudyMaterialUseCase(this.repository);
+  RequestOcrProcessingUsecase(this.repository);
 
-  /// Deletes a study material by its ID.
+  /// Requests OCR processing for a study material.
   Future<Either<Failure, void>> call(String studyMaterialId) {
-    return repository.deleteStudyMaterial(studyMaterialId);
+    return repository.requestOcrProcessing(studyMaterialId);
   }
 }

@@ -6,13 +6,95 @@ enum ContentType {
   imageFile,
 }
 
+enum Subject {
+  none,
+
+  // STEM Subjects
+  mathematics,
+  physics,
+  chemistry,
+  biology,
+  computerScience,
+  engineering,
+  statistics,
+  dataScience,
+  informationTechnology,
+  cybersecurity,
+
+  // Languages & Literature
+  englishLiterature,
+  englishLanguage,
+  spanish,
+  french,
+  german,
+  chinese,
+  japanese,
+  linguistics,
+  creativeWriting,
+
+  // Social Sciences
+  history,
+  geography,
+  psychology,
+  sociology,
+  politicalScience,
+  economics,
+  anthropology,
+  internationalRelations,
+  philosophy,
+  ethics,
+
+  // Business & Management
+  businessStudies,
+  marketing,
+  finance,
+  accounting,
+  management,
+  humanResources,
+  operationsManagement,
+  entrepreneurship,
+
+  // Arts & Creative
+  art,
+  music,
+  drama,
+  filmStudies,
+  photography,
+  graphicDesign,
+  architecture,
+
+  // Health & Medical
+  medicine,
+  nursing,
+  publicHealth,
+  nutrition,
+  physicalEducation,
+  sportsScience,
+
+  // Law & Legal Studies
+  law,
+  criminalJustice,
+  legalStudies,
+
+  // Environmental & Earth Sciences
+  environmentalScience,
+  geology,
+  climateScience,
+  marineBiology,
+
+  // Education & Teaching
+  education,
+  pedagogy,
+  educationalPsychology,
+}
+
 class StudyMaterialEntity extends Equatable {
   final String id;
   final String userId;
   final String title;
-  final String description;
-  final String subject;
-  final String contentType;
+  final String? description;
+  final Subject? subject;
+  final ContentType contentType;
   final String? originalContentText;
   final String? fileStoragePath;
   final String? ocrExtractedText;
@@ -25,8 +107,8 @@ class StudyMaterialEntity extends Equatable {
     required this.id,
     required this.userId,
     required this.title,
-    required this.description,
-    required this.subject,
+    this.description,
+    this.subject,
     required this.contentType,
     this.originalContentText,
     this.fileStoragePath,
@@ -59,8 +141,8 @@ class StudyMaterialEntity extends Equatable {
     String? userId,
     String? title,
     String? description,
-    String? subject,
-    String? contentType,
+    Subject? subject,
+    ContentType? contentType,
     String? originalContentText,
     String? fileStoragePath,
     String? ocrExtractedText,
