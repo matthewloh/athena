@@ -8,7 +8,7 @@ class RequestOcrProcessingUseCase {
   RequestOcrProcessingUseCase(this.repository);
 
   /// Requests OCR processing for a study material.
-  Future<Either<Failure, void>> call(String studyMaterialId) {
+  Future<Either<Failure, String>> call(String studyMaterialId) {
     return repository.requestOcrProcessing(studyMaterialId);
   }
 }

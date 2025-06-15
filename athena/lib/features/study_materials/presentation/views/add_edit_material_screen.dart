@@ -12,6 +12,7 @@ import 'package:athena/features/shared/widgets/app_button.dart';
 import 'package:athena/features/shared/widgets/app_text_field.dart';
 import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
 import 'package:athena/features/study_materials/presentation/widgets/subject_searchable_dropdown.dart';
+import 'package:athena/features/study_materials/presentation/viewmodel/study_material_viewmodel.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:go_router/go_router.dart';
@@ -33,11 +34,12 @@ class AddEditMaterialScreen extends ConsumerStatefulWidget {
       _AddEditMaterialScreenState();
 }
 
-class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {  final _formKey = GlobalKey<FormState>();
+class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _contentController = TextEditingController();
-  
+
   // Subject selection (replacing TextEditingController)
   Subject? _selectedSubject;
 
@@ -61,13 +63,15 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
     _quillController = QuillController.basic();
 
     // Initialize content type
-    _selectedContentType = widget.initialContentType ?? ContentType.typedText;    // Initialize with existing data if editing
+    _selectedContentType =
+        widget.initialContentType ??
+        ContentType.typedText; // Initialize with existing data if editing
     if (widget.material != null) {
       _titleController.text = widget.material!.title;
-      
+
       // Set the subject if available
       _selectedSubject = widget.material!.subject;
-      
+
       _selectedContentType = widget.material!.contentType;
 
       // If typed text, populate the content
@@ -97,6 +101,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
       }
     }
   }
+
   @override
   void dispose() {
     // Dispose all the controllers to prevent memory leaks
@@ -285,24 +290,22 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               });
 
               // Try OCR on the cropped image
-              await _processImageWithOCR(croppedImageFile);
+              await _processImageWithOcr(croppedImageFile);
             }
           } else {
             // If cropping returned null but we still have the original image
             if (mounted && _selectedContentType == ContentType.imageFile) {
               // Try OCR on the original image
-              await _processImageWithOCR(imageFile);
+              await _processImageWithOcr(imageFile);
             }
           }
         } catch (e) {
           print('Error during image processing: $e');
           // We already set _selectedImage to the original file above,
-          // so no need to do anything here
-
-          // Still try OCR on the original image
+          // so no need to do anything here          // Still try OCR on the original image
           if (mounted && _selectedContentType == ContentType.imageFile) {
             try {
-              await _processImageWithOCR(imageFile);
+              await _processImageWithOcr(imageFile);
             } catch (ocrError) {
               print('Error during OCR processing: $ocrError');
             }
@@ -347,145 +350,45 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
     }
   }
 
-  Future<void> _processImageWithOCR(File imageFile) async {
-    if (!mounted) return;
-
-    // Check if file exists to avoid crashes
-    if (!await imageFile.exists()) {
-      print('Image file does not exist for OCR');
-      return;
-    }
-
+  Future<void> _processImageWithOcr(File imageFile) async {
     try {
-      // Show a loading indicator
       setState(() {
         _isLoading = true;
       });
 
-      final inputImage = InputImage.fromFile(imageFile);
+      // Use Google ML Kit for OCR processing
       final textRecognizer = TextRecognizer();
-      String extractedText = '';
+      final inputImage = InputImage.fromFile(imageFile);
+      final recognizedText = await textRecognizer.processImage(inputImage);
 
-      try {
-        final RecognizedText recognizedText = await textRecognizer.processImage(
-          inputImage,
+      // Clean up the recognizer
+      textRecognizer.close();
+
+      if (mounted && recognizedText.text.isNotEmpty) {
+        setState(() {
+          _extractedImageText = recognizedText.text;
+          _imageTextController?.dispose();
+          _imageTextController = TextEditingController(
+            text: recognizedText.text,
+          );
+          _isLoading = false;
+        });
+      } else if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No text found in the image')),
         );
-        extractedText = recognizedText.text;
-      } catch (e) {
-        print('Error recognizing text: $e');
-      } finally {
-        textRecognizer.close();
-
-        // Hide loading indicator regardless of success/failure
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-      }
-      // If the widget is still mounted, show results whether text was extracted or not
-      if (mounted) {
-        // Show a dialogue with the extracted text and options
-        bool? addTextToImage = await showDialog<bool>(
-          context: context,
-          barrierDismissible: true, // Allow tapping outside to dismiss
-          builder: (BuildContext context) {
-            final bool hasText = extractedText.isNotEmpty;
-
-            // Calculate available height for the dialog
-            final mediaQuery = MediaQuery.of(context);
-            final screenHeight = mediaQuery.size.height;
-            final keyboardHeight = mediaQuery.viewInsets.bottom;
-            final keyboardVisible = keyboardHeight > 0;
-
-            // Calculate available height with more space when keyboard is visible
-            final availableHeight =
-                screenHeight - keyboardHeight - (keyboardVisible ? 150 : 200);
-
-            return AlertDialog(
-              title: Text(hasText ? 'Text Detected' : 'No Text Detected'),
-              content: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight:
-                      availableHeight > 100
-                          ? availableHeight
-                          : 300, // Ensure minimum height
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        hasText
-                            ? 'The following text was detected:'
-                            : 'No text could be detected in the image. You can still add a blank text field to enter notes manually.',
-                      ),
-                      if (hasText) ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: Text(
-                            extractedText.length > 300
-                                ? '${extractedText.substring(0, 300)}...'
-                                : extractedText,
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              // Ensure the dialog resizes when keyboard appears
-              scrollable: true,
-              actions: [
-                TextButton(
-                  onPressed: () => context.pop(false),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () => context.pop(true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: Text(hasText ? 'Add Text to Image' : 'Add Text Field'),
-                ),
-              ],
-            );
-          },
-        );
-
-        // If user chooses to add the text to the image
-        if (addTextToImage == true && mounted) {
-          setState(() {
-            // Store the extracted text
-            _extractedImageText = extractedText;
-
-            // Dispose of any existing controller first to prevent memory leaks
-            if (_imageTextController != null) {
-              _imageTextController!.dispose();
-              _imageTextController = null;
-            }
-
-            // Initialize the text controller with the extracted text
-            _imageTextController = TextEditingController(text: extractedText);
-          });
-        }
       }
     } catch (e) {
-      print('Error in OCR processing: $e');
-      // Ensure loading indicator is hidden
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('OCR processing failed: ${e.toString()}')),
+        );
       }
     }
   }
@@ -505,48 +408,68 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
     setState(() {
       _isLoading = true;
     });
-
     try {
-      //final viewModel = ref.read(studyMaterialViewModelProvider.notifier);
+      final viewModel = ref.read(studyMaterialViewModelProvider.notifier);
 
       if (widget.material == null) {
         // Adding new material
+        String? contentText;
+        String? ocrText;
+
         switch (_selectedContentType) {
           case ContentType.typedText:
-            // await viewModel.addTypedText(
-            //   title: _titleController.text,
-            //   subject: _subjectController.text.isEmpty ? null : _subjectController.text,
-            //   content: jsonEncode(_quillController.document.toDelta().toJson()),
-            // );
+            contentText = jsonEncode(
+              _quillController.document.toDelta().toJson(),
+            );
             break;
           case ContentType.textFile:
-            if (_selectedFile != null) {
-              // await viewModel.addTextFile(
-              //   title: _titleController.text,
-              //   subject: _subjectController.text.isEmpty ? null : _subjectController.text,
-              //   file: _selectedFile!,
-              // );
-            }
+            // For file uploads, we'll store the file path for now
+            contentText = _selectedFile?.path;
             break;
           case ContentType.imageFile:
-            if (_selectedImage != null) {
-              // await viewModel.addImageNote(
-              //   title: _titleController.text,
-              //   subject: _subjectController.text.isEmpty ? null : _subjectController.text,
-              //   image: _selectedImage!,
-              //   extractedText: _extractedImageText, // Include extracted OCR text
-              // );
-            }
+            // For images, store the extracted OCR text
+            ocrText = _extractedImageText;
+            contentText = _selectedImage?.path;
             break;
         }
+
+        final material = StudyMaterialEntity(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          userId: 'user1', // TODO: Get from auth
+          title: _titleController.text.trim(),
+          description:
+              _descriptionController.text.trim().isEmpty
+                  ? null
+                  : _descriptionController.text.trim(),
+          subject: _selectedSubject,
+          contentType: _selectedContentType,
+          originalContentText: contentText,
+          fileStoragePath:
+              _selectedContentType == ContentType.textFile ||
+                      _selectedContentType == ContentType.imageFile
+                  ? contentText
+                  : null,
+          ocrExtractedText: ocrText,
+          summaryText: null,
+          hasAiSummary: false,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        await viewModel.createMaterial(material);
       } else {
-        // Editing existing material
-        // For CW2, we'll just update metadata (title and subject)
-        // await viewModel.updateStudyMaterial(
-        //   id: widget.material!.id,
-        //   title: _titleController.text,
-        //   subject: _subjectController.text.isEmpty ? null : _subjectController.text,
-        // );
+        // Editing existing material - update metadata only
+        final updatedMaterial = widget.material!.copyWith(
+          title: _titleController.text.trim(),
+          description:
+              _descriptionController.text.trim().isEmpty
+                  ? null
+                  : _descriptionController.text.trim(),
+          subject: _selectedSubject,
+          updatedAt: DateTime.now(),
+        );
+
+        await viewModel.updateMaterial(updatedMaterial);
       }
       if (mounted) {
         // Show success message and navigate back
@@ -626,7 +549,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),                    // Subject Field (Optional)
+                    const SizedBox(height: 16), // Subject Field (Optional)
                     SubjectSearchableDropdown(
                       selectedSubject: _selectedSubject,
                       onChanged: (Subject? subject) {
@@ -1005,7 +928,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               child: ElevatedButton.icon(
                 onPressed: () {
                   if (_selectedImage != null) {
-                    _processImageWithOCR(_selectedImage!);
+                    _processImageWithOcr(_selectedImage!);
                   }
                 },
                 icon: const Icon(Icons.text_fields, size: 18),

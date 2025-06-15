@@ -1,68 +1,57 @@
 import 'package:athena/core/theme/app_colors.dart';
+import 'package:athena/core/constants/app_route_names.dart';
 import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
-import 'package:athena/features/study_materials/presentation/views/material_detail_screen.dart';
 import 'package:athena/features/study_materials/presentation/widgets/add_material_bottom_sheet.dart';
 import 'package:athena/features/study_materials/presentation/widgets/material_list_item_card.dart';
+import 'package:athena/features/study_materials/presentation/viewmodel/study_material_viewmodel.dart';
+import 'package:athena/features/study_materials/presentation/viewmodel/study_material_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class MaterialsScreen extends ConsumerWidget {
   const MaterialsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Dummy data for UI scaffolding
-    final materials = [
-      StudyMaterialEntity(
-        id: '1',
-        userId: 'user1',
-        title: 'Biology Notes - Chapter 4',
-        description: 'Cell structure and function',
-        subject: Subject.biology,
-        contentType: ContentType.typedText,
-        originalContentText: 'Content about cells',
-        hasAiSummary: true,
-        createdAt: DateTime.now().subtract(const Duration(days: 2)),
-        updatedAt: DateTime.now().subtract(const Duration(days: 2)),
-      ),
-      StudyMaterialEntity(
-        id: '2',
-        userId: 'user1',
-        title: 'Math Formulas',
-        description: 'Calculus reference sheet',
-        subject: Subject.mathematics,
-        contentType: ContentType.typedText,
-        originalContentText: 'Calculus formulas',
-        hasAiSummary: false,
-        createdAt: DateTime.now().subtract(const Duration(days: 5)),
-        updatedAt: DateTime.now().subtract(const Duration(days: 5)),
-      ),
-      StudyMaterialEntity(
-        id: '3',
-        userId: 'user1',
-        title: 'History Timeline',
-        description: 'Important dates and events',
-        subject: Subject.history,
-        contentType: ContentType.typedText,
-        originalContentText: 'History timeline content',
-        hasAiSummary: true,
-        createdAt: DateTime.now().subtract(const Duration(days: 8)),
-        updatedAt: DateTime.now().subtract(const Duration(days: 8)),
-      ),
+    final state = ref.watch(studyMaterialViewModelProvider);
+    final viewModel = ref.read(studyMaterialViewModelProvider.notifier);
+    final materials = state.filteredMaterials;
+    final availableSubjects = [
+      'All',
+      ...state.availableSubjects.map((s) => s.name),
     ];
 
-    final subjects = ['All', 'Biology', 'Mathematics', 'History', 'Literature'];
+    // Show error if any
+    if (state.hasError) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(state.error!),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Dismiss',
+              textColor: Colors.white,
+              onPressed: () => viewModel.clearError(),
+            ),
+          ),
+        );
+      });
+    }
 
     return Scaffold(
       backgroundColor: AppColors.athenaOffWhite,
-      appBar: _buildAppBar(context),
+      appBar: _buildAppBar(context, viewModel, state),
       body: Column(
         children: [
-          _buildSubjectFilter(context, subjects),
+          _buildSubjectFilter(context, availableSubjects, viewModel, state),
           Expanded(
-            child: materials.isEmpty
-                ? _buildEmptyState(context)
-                : _buildMaterialsList(context, materials),
+            child:
+                state.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : materials.isEmpty
+                    ? _buildEmptyState(context)
+                    : _buildMaterialsList(context, materials, viewModel),
           ),
         ],
       ),
@@ -76,7 +65,7 @@ class MaterialsScreen extends ConsumerWidget {
     );
   }
 
-  AppBar _buildAppBar(BuildContext context) {
+  AppBar _buildAppBar(BuildContext context, dynamic viewModel, dynamic state) {
     return AppBar(
       backgroundColor: AppColors.athenaPurple,
       title: const Text(
@@ -87,6 +76,7 @@ class MaterialsScreen extends ConsumerWidget {
         IconButton(
           icon: const Icon(Icons.search),
           onPressed: () {
+            // TODO: Add search functionality with viewModel
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Search functionality coming soon!'),
@@ -108,7 +98,12 @@ class MaterialsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSubjectFilter(BuildContext context, List<String> subjects) {
+  Widget _buildSubjectFilter(
+    BuildContext context,
+    List<String> subjects,
+    dynamic viewModel,
+    dynamic state,
+  ) {
     return Container(
       height: 50,
       color: Colors.white,
@@ -118,29 +113,22 @@ class MaterialsScreen extends ConsumerWidget {
         itemCount: subjects.length,
         itemBuilder: (context, index) {
           final subject = subjects[index];
-          final isSelected = index == 0; // First tab (All) is selected by default
+          final isSelected =
+              index == 0; // TODO: Implement proper selection logic
 
           return Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 4,
-              vertical: 8,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
             child: FilterChip(
               label: Text(subject),
               selected: isSelected,
               showCheckmark: false,
               backgroundColor: Colors.grey[200],
-              selectedColor: AppColors.athenaPurple.withValues(
-                alpha: 0.2,
-              ),
+              selectedColor: AppColors.athenaPurple.withValues(alpha: 0.2),
               labelStyle: TextStyle(
                 color: isSelected ? AppColors.athenaPurple : Colors.black87,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               onSelected: (selected) {
                 // In real implementation, would filter by subject
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -157,7 +145,11 @@ class MaterialsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMaterialsList(BuildContext context, List<StudyMaterialEntity> materials) {
+  Widget _buildMaterialsList(
+    BuildContext context,
+    List<StudyMaterialEntity> materials,
+    dynamic viewModel,
+  ) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: materials.length,
@@ -166,25 +158,18 @@ class MaterialsScreen extends ConsumerWidget {
         return MaterialListItemCard(
           material: material,
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => MaterialDetailScreen(materialId: 'foo'),
-              ),
+            viewModel.selectMaterial(material.id);
+            context.pushNamed(
+              AppRouteNames.materialDetail,
+              pathParameters: {'materialId': material.id},
             );
           },
           onSummarize: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('AI summarization coming soon!'),
-              ),
-            );
+            viewModel.generateAiSummary(material.id);
           },
           onQuiz: () {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Quiz generation coming soon!'),
-              ),
+              const SnackBar(content: Text('Quiz generation coming soon!')),
             );
           },
         );
