@@ -3,10 +3,10 @@ import 'package:athena/features/study_materials/domain/entities/study_material_e
 import 'package:athena/features/study_materials/domain/repositories/study_material_repository.dart';
 import 'package:dartz/dartz.dart';
 
-class UpdateStudyMaterialUsecase {
+class UpdateStudyMaterialUseCase {
   final StudyMaterialRepository _repository;
 
-  UpdateStudyMaterialUsecase(this._repository);
+  UpdateStudyMaterialUseCase(this._repository);
 
   Future<Either<Failure, StudyMaterialEntity>> call(StudyMaterialEntity studyMaterial) async {
     return await _repository.updateStudyMaterial(studyMaterial);

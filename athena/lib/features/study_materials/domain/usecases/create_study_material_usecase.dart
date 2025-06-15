@@ -4,10 +4,10 @@ import 'package:athena/features/study_materials/domain/repositories/study_materi
 import 'package:athena/features/study_materials/domain/usecases/params/create_study_material_params.dart';
 import 'package:dartz/dartz.dart';
 
-class CreateStudyMaterialUsecase {
+class CreateStudyMaterialUseCase {
   final StudyMaterialRepository _repository;
 
-  CreateStudyMaterialUsecase(this._repository);
+  CreateStudyMaterialUseCase(this._repository);
 
   Future<Either<Failure, StudyMaterialEntity>> call(
     CreateStudyMaterialParams params,
