@@ -25,8 +25,8 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen>
     userId: 'user123',
     title: 'Introduction to Machine Learning',
     description: 'Course notes from CS4021',
-    subject: 'Computer Science',
-    contentType: 'typedText',
+    subject: Subject.computerScience,
+    contentType: ContentType.typedText,
     originalContentText: '''
 Machine Learning is a field of study that gives computers the ability to learn without being explicitly programmed.
 
@@ -225,7 +225,7 @@ Main challenges include overfitting (poor generalization), underfitting (oversim
 
           // Material metadata
           Text(
-            _dummyMaterial.subject,
+            _dummyMaterial.subject.toString(),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: AppColors.athenaBlue,
               fontWeight: FontWeight.bold,
@@ -233,7 +233,7 @@ Main challenges include overfitting (poor generalization), underfitting (oversim
           ),
           const SizedBox(height: 4),
           Text(
-            _dummyMaterial.description,
+            _dummyMaterial.description ?? 'No description available',
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(color: AppColors.athenaMediumGrey),

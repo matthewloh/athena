@@ -1,3 +1,4 @@
+import 'package:athena/features/study_materials/domain/utils/subject_utils.dart';
 import 'package:athena/features/study_materials/presentation/widgets/material_action_button.dart';
 import 'package:flutter/material.dart';
 import 'package:athena/core/theme/app_colors.dart';
@@ -19,7 +20,7 @@ class MaterialListItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (subjectColor, subjectIcon) = _getSubjectAttributes(material.subject);
+    final (subjectColor, subjectIcon) = _getSubjectAttributes(material.subject.toString());
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -101,7 +102,7 @@ class MaterialListItemCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                material.description,
+                material.description ?? "No Description",
                 style: TextStyle(color: Colors.grey[600]),
               ),
               const SizedBox(height: 8),
@@ -117,7 +118,7 @@ class MaterialListItemCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      material.subject,
+                      SubjectUtils.getDisplayName(material.subject ?? Subject.none),
                       style: TextStyle(
                         color: subjectColor,
                         fontSize: 12,

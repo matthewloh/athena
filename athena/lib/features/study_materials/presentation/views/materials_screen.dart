@@ -1,11 +1,10 @@
 import 'package:athena/core/theme/app_colors.dart';
-import 'package:athena/core/constants/app_route_names.dart';
 import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
+import 'package:athena/features/study_materials/presentation/views/material_detail_screen.dart';
 import 'package:athena/features/study_materials/presentation/widgets/add_material_bottom_sheet.dart';
 import 'package:athena/features/study_materials/presentation/widgets/material_list_item_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 class MaterialsScreen extends ConsumerWidget {
   const MaterialsScreen({super.key});
@@ -19,8 +18,8 @@ class MaterialsScreen extends ConsumerWidget {
         userId: 'user1',
         title: 'Biology Notes - Chapter 4',
         description: 'Cell structure and function',
-        subject: 'Biology',
-        contentType: 'text',
+        subject: Subject.biology,
+        contentType: ContentType.typedText,
         originalContentText: 'Content about cells',
         hasAiSummary: true,
         createdAt: DateTime.now().subtract(const Duration(days: 2)),
@@ -31,8 +30,8 @@ class MaterialsScreen extends ConsumerWidget {
         userId: 'user1',
         title: 'Math Formulas',
         description: 'Calculus reference sheet',
-        subject: 'Mathematics',
-        contentType: 'text',
+        subject: Subject.mathematics,
+        contentType: ContentType.typedText,
         originalContentText: 'Calculus formulas',
         hasAiSummary: false,
         createdAt: DateTime.now().subtract(const Duration(days: 5)),
@@ -43,8 +42,8 @@ class MaterialsScreen extends ConsumerWidget {
         userId: 'user1',
         title: 'History Timeline',
         description: 'Important dates and events',
-        subject: 'History',
-        contentType: 'text',
+        subject: Subject.history,
+        contentType: ContentType.typedText,
         originalContentText: 'History timeline content',
         hasAiSummary: true,
         createdAt: DateTime.now().subtract(const Duration(days: 8)),
@@ -61,10 +60,9 @@ class MaterialsScreen extends ConsumerWidget {
         children: [
           _buildSubjectFilter(context, subjects),
           Expanded(
-            child:
-                materials.isEmpty
-                    ? _buildEmptyState(context)
-                    : _buildMaterialsList(context, materials),
+            child: materials.isEmpty
+                ? _buildEmptyState(context)
+                : _buildMaterialsList(context, materials),
           ),
         ],
       ),
@@ -120,22 +118,29 @@ class MaterialsScreen extends ConsumerWidget {
         itemCount: subjects.length,
         itemBuilder: (context, index) {
           final subject = subjects[index];
-          final isSelected =
-              index == 0; // First tab (All) is selected by default
+          final isSelected = index == 0; // First tab (All) is selected by default
 
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 4,
+              vertical: 8,
+            ),
             child: FilterChip(
               label: Text(subject),
               selected: isSelected,
               showCheckmark: false,
               backgroundColor: Colors.grey[200],
-              selectedColor: AppColors.athenaPurple.withValues(alpha: 0.2),
+              selectedColor: AppColors.athenaPurple.withValues(
+                alpha: 0.2,
+              ),
               labelStyle: TextStyle(
                 color: isSelected ? AppColors.athenaPurple : Colors.black87,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 4,
+              ),
               onSelected: (selected) {
                 // In real implementation, would filter by subject
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -152,10 +157,7 @@ class MaterialsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMaterialsList(
-    BuildContext context,
-    List<StudyMaterialEntity> materials,
-  ) {
+  Widget _buildMaterialsList(BuildContext context, List<StudyMaterialEntity> materials) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: materials.length,
@@ -164,19 +166,25 @@ class MaterialsScreen extends ConsumerWidget {
         return MaterialListItemCard(
           material: material,
           onTap: () {
-            context.pushNamed(
-              AppRouteNames.materialDetail,
-              pathParameters: {'materialId': material.id},
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MaterialDetailScreen(materialId: 'foo'),
+              ),
             );
           },
           onSummarize: () {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('AI summarization coming soon!')),
+              const SnackBar(
+                content: Text('AI summarization coming soon!'),
+              ),
             );
           },
           onQuiz: () {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Quiz generation coming soon!')),
+              const SnackBar(
+                content: Text('Quiz generation coming soon!'),
+              ),
             );
           },
         );

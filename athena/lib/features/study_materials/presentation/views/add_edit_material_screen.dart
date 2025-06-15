@@ -11,6 +11,7 @@ import 'package:athena/core/constants/app_route_names.dart';
 import 'package:athena/features/shared/widgets/app_button.dart';
 import 'package:athena/features/shared/widgets/app_text_field.dart';
 import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
+import 'package:athena/features/study_materials/presentation/widgets/subject_searchable_dropdown.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:go_router/go_router.dart';
@@ -32,12 +33,13 @@ class AddEditMaterialScreen extends ConsumerStatefulWidget {
       _AddEditMaterialScreenState();
 }
 
-class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
-  final _formKey = GlobalKey<FormState>();
+class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {  final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
-  final _subjectController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _contentController = TextEditingController();
+  
+  // Subject selection (replacing TextEditingController)
+  Subject? _selectedSubject;
 
   // Quill editor controller for rich text
   late QuillController _quillController;
@@ -59,17 +61,14 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
     _quillController = QuillController.basic();
 
     // Initialize content type
-    _selectedContentType = widget.initialContentType ?? ContentType.typedText;
-
-    // Initialize with existing data if editing
+    _selectedContentType = widget.initialContentType ?? ContentType.typedText;    // Initialize with existing data if editing
     if (widget.material != null) {
-      _titleController.text =
-          widget.material!.title; // Set the subject if available
-      final subject = widget.material!.subject;
-      if (subject.isNotEmpty) {
-        _subjectController.text = subject;
-      }
-      _selectedContentType = widget.material!.contentType as ContentType;
+      _titleController.text = widget.material!.title;
+      
+      // Set the subject if available
+      _selectedSubject = widget.material!.subject;
+      
+      _selectedContentType = widget.material!.contentType;
 
       // If typed text, populate the content
       if (_selectedContentType == ContentType.typedText &&
@@ -98,12 +97,10 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
       }
     }
   }
-
   @override
   void dispose() {
     // Dispose all the controllers to prevent memory leaks
     _titleController.dispose();
-    _subjectController.dispose();
     _descriptionController.dispose();
     _contentController.dispose();
     _quillController.dispose();
@@ -629,12 +626,14 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
-
-                    // Subject Field (Optional)
-                    AppTextField(
-                      controller: _subjectController,
-                      labelText: 'Subject (Optional)',
+                    const SizedBox(height: 16),                    // Subject Field (Optional)
+                    SubjectSearchableDropdown(
+                      selectedSubject: _selectedSubject,
+                      onChanged: (Subject? subject) {
+                        setState(() {
+                          _selectedSubject = subject;
+                        });
+                      },
                     ),
                     const SizedBox(height: 16),
 
