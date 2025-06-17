@@ -11,8 +11,11 @@ import 'package:athena/core/constants/app_route_names.dart';
 import 'package:athena/features/shared/widgets/app_button.dart';
 import 'package:athena/features/shared/widgets/app_text_field.dart';
 import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
-import 'package:athena/features/study_materials/presentation/widgets/subject_searchable_dropdown.dart';
+import 'package:athena/features/study_materials/domain/usecases/params/create_study_material_params.dart';
+import 'package:athena/features/study_materials/domain/usecases/params/update_study_material_params.dart';
 import 'package:athena/features/study_materials/presentation/viewmodel/study_material_viewmodel.dart';
+import 'package:athena/features/study_materials/presentation/viewmodel/study_material_state.dart';
+import 'package:athena/features/study_materials/presentation/widgets/subject_searchable_dropdown.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:go_router/go_router.dart';
@@ -290,22 +293,24 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               });
 
               // Try OCR on the cropped image
-              await _processImageWithOcr(croppedImageFile);
+              await _processImageWithOCR(croppedImageFile);
             }
           } else {
             // If cropping returned null but we still have the original image
             if (mounted && _selectedContentType == ContentType.imageFile) {
               // Try OCR on the original image
-              await _processImageWithOcr(imageFile);
+              await _processImageWithOCR(imageFile);
             }
           }
         } catch (e) {
           print('Error during image processing: $e');
           // We already set _selectedImage to the original file above,
-          // so no need to do anything here          // Still try OCR on the original image
+          // so no need to do anything here
+
+          // Still try OCR on the original image
           if (mounted && _selectedContentType == ContentType.imageFile) {
             try {
-              await _processImageWithOcr(imageFile);
+              await _processImageWithOCR(imageFile);
             } catch (ocrError) {
               print('Error during OCR processing: $ocrError');
             }
@@ -350,45 +355,145 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
     }
   }
 
-  Future<void> _processImageWithOcr(File imageFile) async {
+  Future<void> _processImageWithOCR(File imageFile) async {
+    if (!mounted) return;
+
+    // Check if file exists to avoid crashes
+    if (!await imageFile.exists()) {
+      print('Image file does not exist for OCR');
+      return;
+    }
+
     try {
+      // Show a loading indicator
       setState(() {
         _isLoading = true;
       });
 
-      // Use Google ML Kit for OCR processing
-      final textRecognizer = TextRecognizer();
       final inputImage = InputImage.fromFile(imageFile);
-      final recognizedText = await textRecognizer.processImage(inputImage);
+      final textRecognizer = TextRecognizer();
+      String extractedText = '';
 
-      // Clean up the recognizer
-      textRecognizer.close();
-
-      if (mounted && recognizedText.text.isNotEmpty) {
-        setState(() {
-          _extractedImageText = recognizedText.text;
-          _imageTextController?.dispose();
-          _imageTextController = TextEditingController(
-            text: recognizedText.text,
-          );
-          _isLoading = false;
-        });
-      } else if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No text found in the image')),
+      try {
+        final RecognizedText recognizedText = await textRecognizer.processImage(
+          inputImage,
         );
+        extractedText = recognizedText.text;
+      } catch (e) {
+        print('Error recognizing text: $e');
+      } finally {
+        textRecognizer.close();
+
+        // Hide loading indicator regardless of success/failure
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+      // If the widget is still mounted, show results whether text was extracted or not
+      if (mounted) {
+        // Show a dialogue with the extracted text and options
+        bool? addTextToImage = await showDialog<bool>(
+          context: context,
+          barrierDismissible: true, // Allow tapping outside to dismiss
+          builder: (BuildContext context) {
+            final bool hasText = extractedText.isNotEmpty;
+
+            // Calculate available height for the dialog
+            final mediaQuery = MediaQuery.of(context);
+            final screenHeight = mediaQuery.size.height;
+            final keyboardHeight = mediaQuery.viewInsets.bottom;
+            final keyboardVisible = keyboardHeight > 0;
+
+            // Calculate available height with more space when keyboard is visible
+            final availableHeight =
+                screenHeight - keyboardHeight - (keyboardVisible ? 150 : 200);
+
+            return AlertDialog(
+              title: Text(hasText ? 'Text Detected' : 'No Text Detected'),
+              content: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight:
+                      availableHeight > 100
+                          ? availableHeight
+                          : 300, // Ensure minimum height
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        hasText
+                            ? 'The following text was detected:'
+                            : 'No text could be detected in the image. You can still add a blank text field to enter notes manually.',
+                      ),
+                      if (hasText) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: Text(
+                            extractedText.length > 300
+                                ? '${extractedText.substring(0, 300)}...'
+                                : extractedText,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              // Ensure the dialog resizes when keyboard appears
+              scrollable: true,
+              actions: [
+                TextButton(
+                  onPressed: () => context.pop(false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () => context.pop(true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(hasText ? 'Add Text to Image' : 'Add Text Field'),
+                ),
+              ],
+            );
+          },
+        );
+
+        // If user chooses to add the text to the image
+        if (addTextToImage == true && mounted) {
+          setState(() {
+            // Store the extracted text
+            _extractedImageText = extractedText;
+
+            // Dispose of any existing controller first to prevent memory leaks
+            if (_imageTextController != null) {
+              _imageTextController!.dispose();
+              _imageTextController = null;
+            }
+
+            // Initialize the text controller with the extracted text
+            _imageTextController = TextEditingController(text: extractedText);
+          });
+        }
       }
     } catch (e) {
+      print('Error in OCR processing: $e');
+      // Ensure loading indicator is hidden
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('OCR processing failed: ${e.toString()}')),
-        );
       }
     }
   }
@@ -407,76 +512,31 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
 
     setState(() {
       _isLoading = true;
+      _fileErrorText = null; // Clear any previous errors
     });
+
     try {
       final viewModel = ref.read(studyMaterialViewModelProvider.notifier);
 
       if (widget.material == null) {
         // Adding new material
-        String? contentText;
-        String? ocrText;
-
-        switch (_selectedContentType) {
-          case ContentType.typedText:
-            contentText = jsonEncode(
-              _quillController.document.toDelta().toJson(),
-            );
-            break;
-          case ContentType.textFile:
-            // For file uploads, we'll store the file path for now
-            contentText = _selectedFile?.path;
-            break;
-          case ContentType.imageFile:
-            // For images, store the extracted OCR text
-            ocrText = _extractedImageText;
-            contentText = _selectedImage?.path;
-            break;
-        }
-
-        final material = StudyMaterialEntity(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          userId: 'user1', // TODO: Get from auth
-          title: _titleController.text.trim(),
-          description:
-              _descriptionController.text.trim().isEmpty
-                  ? null
-                  : _descriptionController.text.trim(),
-          subject: _selectedSubject,
-          contentType: _selectedContentType,
-          originalContentText: contentText,
-          fileStoragePath:
-              _selectedContentType == ContentType.textFile ||
-                      _selectedContentType == ContentType.imageFile
-                  ? contentText
-                  : null,
-          ocrExtractedText: ocrText,
-          summaryText: null,
-          hasAiSummary: false,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
-
-        await viewModel.createMaterial(material);
+        await _createNewMaterial(viewModel);
       } else {
-        // Editing existing material - update metadata only
-        final updatedMaterial = widget.material!.copyWith(
-          title: _titleController.text.trim(),
-          description:
-              _descriptionController.text.trim().isEmpty
-                  ? null
-                  : _descriptionController.text.trim(),
-          subject: _selectedSubject,
-          updatedAt: DateTime.now(),
-        );
-
-        await viewModel.updateMaterial(updatedMaterial);
+        // Editing existing material
+        await _updateExistingMaterial(viewModel);
       }
+
       if (mounted) {
         // Show success message and navigate back
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Study material saved successfully!'),
+          SnackBar(
+            content: Text(
+              widget.material == null
+                  ? 'Study material created successfully!'
+                  : 'Study material updated successfully!',
+            ),
             behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.green,
           ),
         );
         // Safe navigation back
@@ -488,9 +548,16 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
       }
     } catch (e) {
       if (mounted) {
+        setState(() {
+          _fileErrorText =
+              e.toString().contains('Exception: ')
+                  ? e.toString().replaceFirst('Exception: ', '')
+                  : e.toString();
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text('Error: ${_fileErrorText}'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Colors.red,
           ),
@@ -505,17 +572,125 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
     }
   }
 
+  Future<void> _createNewMaterial(StudyMaterialViewModel viewModel) async {
+    CreateStudyMaterialParams params;
+
+    switch (_selectedContentType) {
+      case ContentType.typedText:
+        // Convert Quill document to JSON string for storage
+        final documentJson = _quillController.document.toDelta().toJson();
+        final contentText = json.encode(documentJson);
+
+        params = CreateStudyMaterialParams.fromUserInput(
+          title: _titleController.text.trim(),
+          description:
+              _descriptionController.text.trim().isEmpty
+                  ? null
+                  : _descriptionController.text.trim(),
+          subject: _selectedSubject,
+          contentType: ContentType.typedText,
+          originalContentText: contentText,
+        );
+        break;
+      case ContentType.textFile:
+        if (_selectedFile == null) {
+          throw Exception('No file selected');
+        }
+
+        // Read file content based on file type
+        String? fileContent;
+        String? filePath = _selectedFile!.path;
+
+        try {
+          final extension = filePath.split('.').last.toLowerCase();
+
+          if (extension == 'txt' || extension == 'md') {
+            // For text files, read the content directly
+            fileContent = await _selectedFile!.readAsString();
+          } else {
+            // For other files (PDF, DOCX), store the path for backend processing
+            // The backend will handle file parsing and text extraction
+            fileContent =
+                'File uploaded: ${_selectedFile!.path.split('/').last}';
+          }
+        } catch (e) {
+          // If reading fails, just store file information
+          fileContent = 'File uploaded: ${_selectedFile!.path.split('/').last}';
+        }
+
+        params = CreateStudyMaterialParams.fromUserInput(
+          title: _titleController.text.trim(),
+          description:
+              _descriptionController.text.trim().isEmpty
+                  ? null
+                  : _descriptionController.text.trim(),
+          subject: _selectedSubject,
+          contentType: ContentType.textFile,
+          originalContentText: fileContent,
+          fileStoragePath: filePath, // Store the local path for upload
+        );
+        break;
+
+      case ContentType.imageFile:
+        if (_selectedImage == null) {
+          throw Exception('No image selected');
+        }
+
+        params = CreateStudyMaterialParams.fromUserInput(
+          title: _titleController.text.trim(),
+          description:
+              _descriptionController.text.trim().isEmpty
+                  ? null
+                  : _descriptionController.text.trim(),
+          subject: _selectedSubject,
+          contentType: ContentType.imageFile,
+          fileStoragePath:
+              _selectedImage!.path, // This will be processed by the backend
+          ocrExtractedText: _extractedImageText, // Include any extracted text
+        );
+        break;
+    }
+
+    await viewModel.createMaterial(params);
+  }
+
+  Future<void> _updateExistingMaterial(StudyMaterialViewModel viewModel) async {
+    if (widget.material == null) return;
+
+    // For editing, we'll update metadata and content if it's typed text
+    String? updatedContent;
+
+    if (_selectedContentType == ContentType.typedText) {
+      // Convert Quill document to JSON string for storage
+      final documentJson = _quillController.document.toDelta().toJson();
+      updatedContent = json.encode(documentJson);
+    }
+
+    final params = UpdateStudyMaterialParams(
+      id: widget.material!.id,
+      title: _titleController.text.trim(),
+      description:
+          _descriptionController.text.trim().isEmpty
+              ? null
+              : _descriptionController.text.trim(),
+      subject: _selectedSubject,
+      originalContentText: updatedContent,
+    );
+
+    await viewModel.updateMaterial(params);
+  }
+
   bool _isContentRequired() {
-    return (_selectedContentType == ContentType.typedText ||
-            _selectedContentType == ContentType.textFile ||
-            _selectedContentType == ContentType.imageFile) &&
-        widget.material == null;
+    // Content is required when creating new materials (not when editing)
+    return widget.material == null;
   }
 
   bool _isContentProvided() {
     switch (_selectedContentType) {
       case ContentType.typedText:
-        return !_quillController.document.isEmpty();
+        // Check if Quill document has actual content
+        final text = _quillController.document.toPlainText().trim();
+        return text.isNotEmpty;
       case ContentType.textFile:
         return _selectedFile != null;
       case ContentType.imageFile:
@@ -528,10 +703,31 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
     final isEditing = widget.material != null;
     final appTheme = Theme.of(context);
 
+    // Watch for errors from the viewmodel
+    ref.listen<StudyMaterialState>(studyMaterialViewModelProvider, (
+      previous,
+      current,
+    ) {
+      if (current.error != null && current.error!.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(current.error!),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+          ),
+        );
+        // Clear the error after showing it
+        ref.read(studyMaterialViewModelProvider.notifier).clearError();
+      }
+    });
+
+    final state = ref.watch(studyMaterialViewModelProvider);
+    final isCreatingMaterial = state.isCreating;
+
     return Scaffold(
       appBar: _buildAppBar(),
       body:
-          _isLoading
+          (_isLoading || isCreatingMaterial)
               ? const Center(child: CircularProgressIndicator())
               : Form(
                 key: _formKey,
@@ -606,13 +802,11 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                       _buildContentInput(),
                     ],
 
-                    const SizedBox(height: 32),
-
-                    // Save Button
+                    const SizedBox(height: 32), // Save Button
                     AppButton(
                       label: isEditing ? 'Update' : 'Save',
                       onPressed: _saveStudyMaterial,
-                      isLoading: _isLoading,
+                      isLoading: _isLoading || isCreatingMaterial,
                     ),
 
                     const SizedBox(height: 32),
@@ -623,6 +817,9 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
   }
 
   AppBar _buildAppBar() {
+    final state = ref.watch(studyMaterialViewModelProvider);
+    final isCreatingMaterial = state.isCreating;
+
     return AppBar(
       title: Text(
         widget.material == null ? 'Add Study Material' : 'Edit Study Material',
@@ -640,7 +837,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
         },
       ),
       actions: [
-        if (!_isLoading)
+        if (!_isLoading && !isCreatingMaterial)
           IconButton(
             icon: const Icon(Icons.check),
             onPressed: _saveStudyMaterial,
@@ -928,7 +1125,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               child: ElevatedButton.icon(
                 onPressed: () {
                   if (_selectedImage != null) {
-                    _processImageWithOcr(_selectedImage!);
+                    _processImageWithOCR(_selectedImage!);
                   }
                 },
                 icon: const Icon(Icons.text_fields, size: 18),

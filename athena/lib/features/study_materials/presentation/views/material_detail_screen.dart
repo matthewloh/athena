@@ -1,3 +1,4 @@
+import 'package:athena/features/study_materials/presentation/utils/subject_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:athena/core/theme/app_colors.dart';
@@ -80,7 +81,6 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
       appBar: _buildAppBar(context, material, viewModel),
       body: Column(
         children: [
-          _buildTabBar(),
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -154,17 +154,11 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
           onPressed: () => _handleDeleteMaterial(material, viewModel),
         ),
       ],
-    );
-  }
-
-  Widget _buildTabBar() {
-    return Container(
-      color: Colors.white,
-      child: TabBar(
+      bottom: TabBar(
         controller: _tabController,
-        labelColor: AppColors.athenaPurple,
-        unselectedLabelColor: Colors.grey,
-        indicatorColor: AppColors.athenaPurple,
+        labelColor: AppColors.white,
+        unselectedLabelColor: Colors.white70,
+        indicatorColor: Colors.white,
         tabs: const [Tab(text: 'Original Content'), Tab(text: 'AI Summary')],
       ),
     );
@@ -187,7 +181,7 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
 
           // Material metadata
           Text(
-            material.subject?.name ?? 'No subject',
+            material.subject == null ? 'No subject' : SubjectUtils.getDisplayName(material.subject),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: AppColors.athenaPurple,
               fontWeight: FontWeight.bold,

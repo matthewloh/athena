@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
-import 'package:athena/features/study_materials/domain/utils/subject_utils.dart';
+import 'package:athena/features/study_materials/presentation/utils/subject_utils.dart';
 import 'package:athena/core/theme/app_colors.dart';
 
 class SubjectSearchableDropdown extends StatefulWidget {

@@ -5,6 +5,7 @@ part 'study_material_state.freezed.dart';
 
 @freezed
 abstract class StudyMaterialState with _$StudyMaterialState {
+  const StudyMaterialState._();
   const factory StudyMaterialState({
     @Default([]) List<StudyMaterialEntity> materials,
     @Default(false) bool isLoading,
@@ -19,33 +20,50 @@ abstract class StudyMaterialState with _$StudyMaterialState {
     StudyMaterialEntity? selectedMaterial,
     @Default('') String searchQuery,
     Subject? selectedSubject,
-    ContentType? selectedContentType,  }) = _StudyMaterialState;
-}
+    ContentType? selectedContentType,
+  }) = _StudyMaterialState;
 
-extension StudyMaterialStateX on StudyMaterialState {
   // Computed properties
   List<StudyMaterialEntity> get filteredMaterials {
     var filtered = materials;
 
     // Apply search filter
     if (searchQuery.isNotEmpty) {
-      filtered = filtered.where((material) {
-        return material.title.toLowerCase().contains(searchQuery.toLowerCase()) ||
-            (material.description?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
-            (material.originalContentText?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
-            (material.ocrExtractedText?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false);
-      }).toList();
+      filtered =
+          filtered.where((material) {
+            return material.title.toLowerCase().contains(
+                  searchQuery.toLowerCase(),
+                ) ||
+                (material.description?.toLowerCase().contains(
+                      searchQuery.toLowerCase(),
+                    ) ??
+                    false) ||
+                (material.originalContentText?.toLowerCase().contains(
+                      searchQuery.toLowerCase(),
+                    ) ??
+                    false) ||
+                (material.ocrExtractedText?.toLowerCase().contains(
+                      searchQuery.toLowerCase(),
+                    ) ??
+                    false);
+          }).toList();
     }
 
     // Apply subject filter
     if (selectedSubject != null) {
-      filtered = filtered.where((material) => material.subject == selectedSubject).toList();
+      filtered =
+          filtered
+              .where((material) => material.subject == selectedSubject)
+              .toList();
     }
 
     // Apply content type filter
     if (selectedContentType != null) {
-      filtered = filtered.where((material) => material.contentType == selectedContentType).toList();
-    }    // Sort by updated date (most recent first) - create a new list to avoid modifying unmodifiable list
+      filtered =
+          filtered
+              .where((material) => material.contentType == selectedContentType)
+              .toList();
+    } // Sort by updated date (most recent first) - create a new list to avoid modifying unmodifiable list
     final sortedFiltered = List<StudyMaterialEntity>.from(filtered);
     sortedFiltered.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
@@ -64,28 +82,28 @@ extension StudyMaterialStateX on StudyMaterialState {
       isProcessingOcr;
 
   bool get hasFilters =>
-      searchQuery.isNotEmpty || 
-      selectedSubject != null || 
+      searchQuery.isNotEmpty ||
+      selectedSubject != null ||
       selectedContentType != null;
 
   int get materialsCount => materials.length;
 
   int get filteredMaterialsCount => filteredMaterials.length;
   List<Subject> get availableSubjects {
-    final subjects = materials
-        .map((material) => material.subject)
-        .where((subject) => subject != null)
-        .cast<Subject>()
-        .toSet()
-        .toList();
+    final subjects =
+        materials
+            .map((material) => material.subject)
+            .where((subject) => subject != null)
+            .cast<Subject>()
+            .toSet()
+            .toList();
     subjects.sort((a, b) => a.name.compareTo(b.name));
     return subjects;
   }
+
   List<ContentType> get availableContentTypes {
-    final contentTypes = materials
-        .map((material) => material.contentType)
-        .toSet()
-        .toList();
+    final contentTypes =
+        materials.map((material) => material.contentType).toSet().toList();
     contentTypes.sort((a, b) => a.name.compareTo(b.name));
     return contentTypes;
   }
@@ -99,8 +117,9 @@ extension StudyMaterialStateX on StudyMaterialState {
   }
 
   bool hasMaterialWithTitle(String title) {
-    return materials.any((material) => 
-        material.title.toLowerCase() == title.toLowerCase());
+    return materials.any(
+      (material) => material.title.toLowerCase() == title.toLowerCase(),
+    );
   }
 
   List<StudyMaterialEntity> getMaterialsBySubject(Subject subject) {
@@ -112,6 +131,8 @@ extension StudyMaterialStateX on StudyMaterialState {
   }
 
   List<StudyMaterialEntity> getMaterialsByContentType(ContentType contentType) {
-    return materials.where((material) => material.contentType == contentType).toList();
+    return materials
+        .where((material) => material.contentType == contentType)
+        .toList();
   }
 }

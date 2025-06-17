@@ -89,8 +89,8 @@ as ContentType?,
 /// @nodoc
 
 
-class _StudyMaterialState implements StudyMaterialState {
-  const _StudyMaterialState({final  List<StudyMaterialEntity> materials = const [], this.isLoading = false, this.isLoadingMaterial = false, this.isCreating = false, this.isUpdating = false, this.isDeleting = false, this.isGeneratingSummary = false, this.isProcessingOcr = false, this.error, this.selectedMaterialId, this.selectedMaterial, this.searchQuery = '', this.selectedSubject, this.selectedContentType}): _materials = materials;
+class _StudyMaterialState extends StudyMaterialState {
+  const _StudyMaterialState({final  List<StudyMaterialEntity> materials = const [], this.isLoading = false, this.isLoadingMaterial = false, this.isCreating = false, this.isUpdating = false, this.isDeleting = false, this.isGeneratingSummary = false, this.isProcessingOcr = false, this.error, this.selectedMaterialId, this.selectedMaterial, this.searchQuery = '', this.selectedSubject, this.selectedContentType}): _materials = materials,super._();
   
 
  final  List<StudyMaterialEntity> _materials;

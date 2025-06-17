@@ -10,19 +10,39 @@ class StudyMaterialSupabaseDataSourceImpl
   final SupabaseClient _supabaseClient;
 
   StudyMaterialSupabaseDataSourceImpl(this._supabaseClient);
-
   @override
   Future<List<StudyMaterialModel>> getAllStudyMaterials(String userId) async {
-    // TODO: implement getAllStudyMaterials
-    throw UnimplementedError();
+    try {
+      final response = await _supabaseClient
+          .from('study_materials')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+
+      return (response as List)
+          .map((json) => StudyMaterialModel.fromJson(json))
+          .toList();
+    } catch (e) {
+      throw ServerException('Failed to fetch study materials: ${e.toString()}');
+    }
   }
 
   @override
   Future<StudyMaterialModel> getStudyMaterialById(
     String studyMaterialId,
   ) async {
-    // TODO: implement getStudyMaterialById
-    throw UnimplementedError();
+    try {
+      final response =
+          await _supabaseClient
+              .from('study_materials')
+              .select()
+              .eq('id', studyMaterialId)
+              .single();
+
+      return StudyMaterialModel.fromJson(response);
+    } catch (e) {
+      throw ServerException('Failed to fetch study material: ${e.toString()}');
+    }
   }
 
   @override
@@ -51,25 +71,69 @@ class StudyMaterialSupabaseDataSourceImpl
   Future<StudyMaterialModel> updateStudyMaterial(
     StudyMaterialModel studyMaterial,
   ) async {
-    // TODO: implement updateStudyMaterial
-    throw UnimplementedError();
+    try {
+      // Prepare data for update (conversion to JSON)
+      final studyMaterialData = studyMaterial.toUpdateJson();
+
+      // Update the study material in the database
+      final response =
+          await _supabaseClient
+              .from('study_materials')
+              .update(studyMaterialData)
+              .eq('id', studyMaterial.id)
+              .select()
+              .single();
+
+      return StudyMaterialModel.fromJson(response);
+    } catch (e) {
+      throw ServerException('Failed to update study material: ${e.toString()}');
+    }
   }
 
   @override
   Future<void> deleteStudyMaterial(String studyMaterialId) async {
-    // TODO: implement deleteStudyMaterial
-    throw UnimplementedError();
+    try {
+      // Delete the study material record from the database
+      await _supabaseClient
+          .from('study_materials')
+          .delete()
+          .eq('id', studyMaterialId);
+    } catch (e) {
+      throw ServerException('Failed to delete study material: ${e.toString()}');
+    }
   }
 
   @override
   Future<String> requestAiSummary(String studyMaterialId) async {
-    // TODO: implement requestAiSummary
-    throw UnimplementedError();
+    try {
+      // TODO: Implement AI summary generation using Supabase Edge Functions
+      // Example implementation:
+      // final response = await _supabaseClient.functions.invoke(
+      //   'generate-summary',
+      //   body: {'material_id': studyMaterialId},
+      // );
+      // return response.data['summary'] as String;
+
+      throw ServerException('AI summary generation not yet implemented');
+    } catch (e) {
+      throw ServerException('Failed to generate AI summary: ${e.toString()}');
+    }
   }
 
   @override
   Future<String> requestOcrProcessing(String imagePath) async {
-    // TODO: implement requestOcrProcessing
-    throw UnimplementedError();
+    try {
+      // TODO: Implement OCR processing using Supabase Edge Functions
+      // Example implementation:
+      // final response = await _supabaseClient.functions.invoke(
+      //   'process-ocr',
+      //   body: {'image_path': imagePath},
+      // );
+      // return response.data['extracted_text'] as String;
+
+      throw ServerException('OCR processing not yet implemented');
+    } catch (e) {
+      throw ServerException('Failed to process OCR: ${e.toString()}');
+    }
   }
 }

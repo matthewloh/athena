@@ -62,9 +62,18 @@ class StudyMaterialModel extends StudyMaterialEntity {
       id: json['id'] as String,
       userId: json['user_id'] as String,
       title: json['title'] as String,
-      description: json['description'] as String,
-      subject: json['subject'] as Subject,
-      contentType: json['content_type'] as ContentType,
+      description: json['description'] as String?,
+      subject:
+          json['subject'] != null
+              ? Subject.values.firstWhere(
+                (e) => e.name == json['subject'],
+                orElse: () => Subject.none,
+              )
+              : null,
+      contentType: ContentType.values.firstWhere(
+        (e) => e.name == json['content_type'],
+        orElse: () => ContentType.typedText,
+      ),
       originalContentText: json['original_content_text'] as String?,
       fileStoragePath: json['file_storage_path'] as String?,
       ocrExtractedText: json['ocr_extracted_text'] as String?,
@@ -82,8 +91,8 @@ class StudyMaterialModel extends StudyMaterialEntity {
       'user_id': userId,
       'title': title,
       'description': description,
-      'subject': subject,
-      'content_type': contentType,
+      'subject': subject?.name,
+      'content_type': contentType.name,
       'original_content_text': originalContentText,
       'file_storage_path': fileStoragePath,
       'ocr_extracted_text': ocrExtractedText,
@@ -93,12 +102,19 @@ class StudyMaterialModel extends StudyMaterialEntity {
       'updated_at': updatedAt.toIso8601String(),
     };
   }
-
   Map<String, dynamic> toInsertJson() {
     final json = toJson();
     json.remove('id');
     json.remove('created_at');
     json.remove('updated_at');
+    return json;
+  }
+
+  Map<String, dynamic> toUpdateJson() {
+    final json = toJson();
+    json.remove('id');
+    json.remove('created_at');
+    json['updated_at'] = DateTime.now().toIso8601String();
     return json;
   }
 

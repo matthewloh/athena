@@ -3,7 +3,9 @@ import 'package:athena/features/study_materials/domain/entities/study_material_e
 /// Utility class for Subject enum operations
 class SubjectUtils {
   /// Convert Subject enum to user-friendly display name
-  static String getDisplayName(Subject subject) {
+  static String getDisplayName(Subject? subject) {
+    if (subject == null) return 'None';
+
     switch (subject) {
       case Subject.computerScience:
         return 'Computer Science';
