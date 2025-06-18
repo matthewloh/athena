@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,10 +8,13 @@ import 'package:athena/core/constants/app_route_names.dart';
 import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
 import 'package:athena/features/study_materials/presentation/viewmodel/study_material_viewmodel.dart';
 import 'package:athena/features/study_materials/presentation/utils/subject_utils.dart';
+import 'package:athena/features/study_materials/presentation/utils/ocr_utils.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
 
 class MaterialDetailScreen extends ConsumerStatefulWidget {
   final String materialId;
@@ -698,8 +702,7 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
                       final Uri url = Uri.parse(snapshot.data!);
                       launchUrl(url, mode: LaunchMode.externalApplication);
                     }
-                  },
-                ),
+                  },                ),
                 // Show OCR button if there's no OCR text yet and we're not already processing
                 if ((material.ocrExtractedText == null ||
                         material.ocrExtractedText!.isEmpty) &&
@@ -707,7 +710,7 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
                   TextButton.icon(
                     icon: const Icon(Icons.document_scanner),
                     label: const Text('Extract Text (OCR)'),
-                    onPressed: () => viewModel.processOcr(material.id),
+                    onPressed: () => _processRemoteImageWithOCR(snapshot.data!, material.id),
                   ),
               ],
             ),
@@ -799,7 +802,7 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
                   border: Border.all(color: Colors.grey.shade200),
                 ),
                 child: const Text(
-                  'No text could be extracted from this image.',
+                  'No text extracted from this image.',
                   style: TextStyle(color: Colors.grey),
                 ),
               ),
@@ -847,22 +850,8 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
         }
 
         // File URL retrieved successfully
-        final fileName = material.fileStoragePath!.split('/').last;
+        final fileName = material.fileStoragePath!.split('/').last.split('_').sublist(1).join('_');
         final fileExtension = fileName.split('.').last.toLowerCase();
-        final isPreviewableText = [
-          'txt',
-          'md',
-          'json',
-          'csv',
-          'xml',
-          'html',
-          'css',
-          'js',
-          'dart',
-        ].contains(fileExtension);
-        final hasSavedContent =
-            material.originalContentText != null &&
-            material.originalContentText!.isNotEmpty;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -924,119 +913,92 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
                   },
                 ),
 
-                // Preview button if it's a web-viewable file
-                if (!isPreviewableText)
-                  TextButton.icon(
-                    icon: const Icon(Icons.open_in_browser),
-                    label: const Text('Open in Browser'),
-                    onPressed: () {
-                      final Uri url = Uri.parse(snapshot.data!);
-                      launchUrl(url, mode: LaunchMode.platformDefault);
-                    },
-                  ),
+                // Open in browser button
+                TextButton.icon(
+                  icon: const Icon(Icons.open_in_browser),
+                  label: const Text('Open in Browser'),
+                  onPressed: () {
+                    final Uri url = Uri.parse(snapshot.data!);
+                    launchUrl(url, mode: LaunchMode.platformDefault);
+                  },
+                ),
+                
+                // Open locally button - if the user already has downloaded the file
+                TextButton.icon(
+                  icon: const Icon(Icons.folder_open),
+                  label: const Text('Open Local File'),
+                  onPressed: () => _openLocalFile(fileName),
+                ),
               ],
             ),
-
-            const SizedBox(height: 24),
-
-            // File content preview section
-            if (isPreviewableText && hasSavedContent) ...[
-              const Text(
-                'File Preview:',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                constraints: const BoxConstraints(maxHeight: 400),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: SingleChildScrollView(
-                  child: Text(
-                    material.originalContentText!,
-                    style: const TextStyle(
-                      fontFamily: 'monospace',
-                      height: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  icon: const Icon(Icons.copy, size: 18),
-                  label: const Text('Copy Text'),
-                  onPressed:
-                      () => _copyToClipboard(material.originalContentText!),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-              ),
-            ] else if (!isPreviewableText &&
-                hasSavedContent &&
-                fileExtension == 'pdf') ...[
-              // For PDFs, we might have extracted content
-              const Text(
-                'File Content:',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      material.originalContentText!,
-                      style: const TextStyle(height: 1.5),
-                    ),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton.icon(
-                        icon: const Icon(Icons.copy, size: 18),
-                        label: const Text('Copy Text'),
-                        onPressed:
-                            () =>
-                                _copyToClipboard(material.originalContentText!),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ] else if (isPreviewableText) ...[
-              // Text file that we don't have content for yet
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: const Text(
-                  'Preview not available. Download the file to view its contents.',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ),
-            ],
           ],
         );
       },
+    );
+  }
+
+  // Helper to attempt opening a local file
+  void _openLocalFile(String fileName) {
+    // Show a dialog explaining how to use this feature
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Open Local File'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This feature attempts to open a file with the same name from your downloads folder.',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            const Text('Requirements:'),
+            const SizedBox(height: 8),
+            ...const [
+              '• You must have downloaded this file previously',
+              '• The file must be in your default downloads location',
+              '• The filename must match exactly',
+            ].map((text) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(text, style: TextStyle(fontSize: 14)),
+            )),
+            const SizedBox(height: 12),
+            Text(
+              'Attempting to open: $fileName',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              context.pop();
+              // Try to launch the file using the downloads:// URI scheme
+              // This is a simple approach and may not work on all platforms
+              final encodedFileName = Uri.encodeComponent(fileName);
+              launchUrl(
+                Uri.parse('file:///Downloads/$encodedFileName'),
+                mode: LaunchMode.platformDefault,
+              ).then((success) {
+                if (!success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Failed to open local file. Make sure you have downloaded it first.'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              });
+            },
+            child: const Text('OPEN'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1076,6 +1038,78 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
         return Icons.folder_zip;
       default:
         return Icons.insert_drive_file;
+    }
+  }
+
+  // Download image from URL and process with OCR
+  Future<void> _processRemoteImageWithOCR(String imageUrl, String materialId) async {
+    try {
+      // Show processing dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text("Downloading image for OCR processing...")
+            ],
+          ),
+        ),
+      );
+      
+      // Download image
+      final response = await http.get(Uri.parse(imageUrl));
+      if (response.statusCode != 200) {
+        context.pop(); // Close dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to download image')),
+        );
+        return;
+      }
+      
+      // Save image to a temporary file
+      final tempDir = await getTemporaryDirectory();
+      final tempImageFile = File('${tempDir.path}/temp_ocr_image_$materialId.jpg');
+      await tempImageFile.writeAsBytes(response.bodyBytes);
+      
+      // Close the download dialog
+      context.pop();
+      
+      // Process image with OCR
+      setState(() {
+        ref.read(studyMaterialViewModelProvider.notifier).setProcessingOcr(true);
+      });
+      
+      final extractedText = await OcrUtils.processImageWithOCR(tempImageFile);
+      
+      // Display result dialog
+      if (mounted) {
+        final result = await OcrUtils.showOcrResultDialog(context, extractedText);
+        
+        if (result == true && extractedText != null) {
+          // Save the OCR text to the material
+          await ref.read(studyMaterialViewModelProvider.notifier).saveExtractedOcrText(
+            materialId, 
+            extractedText
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error in remote OCR processing: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('OCR processing failed: ${e.toString()}')),
+        );
+      }
+    } finally {
+      // Reset OCR processing state
+      if (mounted) {
+        setState(() {
+          ref.read(studyMaterialViewModelProvider.notifier).setProcessingOcr(false);
+        });
+      }
     }
   }
 }

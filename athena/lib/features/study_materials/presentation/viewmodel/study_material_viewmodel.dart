@@ -302,6 +302,49 @@ class StudyMaterialViewModel extends _$StudyMaterialViewModel {
     }
   }
 
+  // Set OCR processing state
+  void setProcessingOcr(bool isProcessing) {
+    state = state.copyWith(isProcessingOcr: isProcessing, error: null);
+  }
+
+  // Save extracted OCR text for a material
+  Future<void> saveExtractedOcrText(String materialId, String extractedText) async {
+    try {
+      final materials = [...state.materials];
+      final index = materials.indexWhere((item) => item.id == materialId);
+      
+      if (index != -1) {
+        // Create updated material with OCR text
+        final material = materials[index];
+        final updatedMaterial = material.copyWith(ocrExtractedText: extractedText);
+        
+        // Update local state first
+        materials[index] = updatedMaterial;
+        state = state.copyWith(materials: materials, error: null);
+        
+        // Update in database
+        final useCase = ref.read(updateStudyMaterialUseCaseProvider);
+        final params = UpdateStudyMaterialParams(
+          id: materialId,
+          ocrExtractedText: extractedText,
+        );
+        
+        final result = await useCase.call(params);
+        
+        result.fold(
+          (failure) => state = state.copyWith(
+            error: 'Failed to save OCR text: ${failure.toString()}',
+          ),
+          (_) => null, // Already updated state above
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(
+        error: 'Failed to save OCR text: ${e.toString()}',
+      );
+    }
+  }
+
   // Search and filter methods
   void setSearchQuery(String query) {
     state = state.copyWith(searchQuery: query);

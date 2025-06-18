@@ -16,8 +16,8 @@ import 'package:athena/features/study_materials/domain/usecases/params/update_st
 import 'package:athena/features/study_materials/presentation/viewmodel/study_material_viewmodel.dart';
 import 'package:athena/features/study_materials/presentation/viewmodel/study_material_state.dart';
 import 'package:athena/features/study_materials/presentation/widgets/subject_searchable_dropdown.dart';
+import 'package:athena/features/study_materials/presentation/utils/ocr_utils.dart';
 import 'package:image_cropper/image_cropper.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:go_router/go_router.dart';
 
 class AddEditMaterialScreen extends ConsumerStatefulWidget {
@@ -354,15 +354,8 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
       return null;
     }
   }
-
   Future<void> _processImageWithOCR(File imageFile) async {
     if (!mounted) return;
-
-    // Check if file exists to avoid crashes
-    if (!await imageFile.exists()) {
-      print('Image file does not exist for OCR');
-      return;
-    }
 
     try {
       // Show a loading indicator
@@ -370,104 +363,22 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
         _isLoading = true;
       });
 
-      final inputImage = InputImage.fromFile(imageFile);
-      final textRecognizer = TextRecognizer();
-      String extractedText = '';
+      // Use the OCR utility to process the image
+      final extractedText = await OcrUtils.processImageWithOCR(imageFile);
 
-      try {
-        final RecognizedText recognizedText = await textRecognizer.processImage(
-          inputImage,
-        );
-        extractedText = recognizedText.text;
-      } catch (e) {
-        print('Error recognizing text: $e');
-      } finally {
-        textRecognizer.close();
-
-        // Hide loading indicator regardless of success/failure
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+      // Hide loading indicator regardless of success/failure
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
+
       // If the widget is still mounted, show results whether text was extracted or not
       if (mounted) {
-        // Show a dialogue with the extracted text and options
-        bool? addTextToImage = await showDialog<bool>(
-          context: context,
-          barrierDismissible: true, // Allow tapping outside to dismiss
-          builder: (BuildContext context) {
-            final bool hasText = extractedText.isNotEmpty;
-
-            // Calculate available height for the dialog
-            final mediaQuery = MediaQuery.of(context);
-            final screenHeight = mediaQuery.size.height;
-            final keyboardHeight = mediaQuery.viewInsets.bottom;
-            final keyboardVisible = keyboardHeight > 0;
-
-            // Calculate available height with more space when keyboard is visible
-            final availableHeight =
-                screenHeight - keyboardHeight - (keyboardVisible ? 150 : 200);
-
-            return AlertDialog(
-              title: Text(hasText ? 'Text Detected' : 'No Text Detected'),
-              content: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight:
-                      availableHeight > 100
-                          ? availableHeight
-                          : 300, // Ensure minimum height
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        hasText
-                            ? 'The following text was detected:'
-                            : 'No text could be detected in the image. You can still add a blank text field to enter notes manually.',
-                      ),
-                      if (hasText) ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: Text(
-                            extractedText.length > 300
-                                ? '${extractedText.substring(0, 300)}...'
-                                : extractedText,
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              // Ensure the dialog resizes when keyboard appears
-              scrollable: true,
-              actions: [
-                TextButton(
-                  onPressed: () => context.pop(false),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () => context.pop(true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: Text(hasText ? 'Add Text to Image' : 'Add Text Field'),
-                ),
-              ],
-            );
-          },
+        // Show a dialog with the extracted text and options
+        bool? addTextToImage = await OcrUtils.showOcrResultDialog(
+          context, 
+          extractedText
         );
 
         // If user chooses to add the text to the image
@@ -483,12 +394,12 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
             }
 
             // Initialize the text controller with the extracted text
-            _imageTextController = TextEditingController(text: extractedText);
+            _imageTextController = TextEditingController(text: extractedText ?? '');
           });
         }
       }
     } catch (e) {
-      print('Error in OCR processing: $e');
+      debugPrint('Error in OCR processing: $e');
       // Ensure loading indicator is hidden
       if (mounted) {
         setState(() {
@@ -1217,108 +1128,13 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
       ],
     );
   }
-
   Future<void> _editExtractedText() async {
     if (_extractedImageText == null) return;
 
-    // Store the original text - we'll use this directly without a controller
-    final originalText = _extractedImageText;
-
-    // Show dialog to edit text
-    final String? editedText = await showDialog<String>(
-      context: context,
-      barrierDismissible: false, // Prevent dismissal by tapping outside
-      builder: (dialogContext) {
-        // Create a new text editing controller just for this dialog
-        // This controller will be automatically disposed when the dialog is closed
-        final dialogController = TextEditingController(text: originalText);
-
-        // Local state for validation error - will be managed by the StatefulBuilder
-        String? errorText;
-
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setDialogState) {
-            // Calculate available height for the dialog
-            final mediaQuery = MediaQuery.of(context);
-            final screenHeight = mediaQuery.size.height;
-            final keyboardHeight = mediaQuery.viewInsets.bottom;
-            final keyboardVisible = keyboardHeight > 0;
-
-            // Calculate available height with more space when keyboard is visible
-            // We subtract more padding when keyboard is visible to ensure content fits
-            final availableHeight =
-                screenHeight - keyboardHeight - (keyboardVisible ? 150 : 250);
-
-            return WillPopScope(
-              // Prevent Android back button from dismissing without explicit action
-              onWillPop: () async => false,
-              child: AlertDialog(
-                title: const Text('Edit Extracted Text'),
-                content: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: availableHeight > 100 ? availableHeight : 200,
-                    // Add minimum width to ensure text field has enough space
-                    minWidth: 280,
-                  ),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextField(
-                          controller: dialogController,
-                          maxLines: 8,
-                          autofocus: true,
-                          decoration: InputDecoration(
-                            border: const OutlineInputBorder(),
-                            hintText: 'Edit the extracted text...',
-                            errorText: errorText,
-                          ),
-                        ),
-                        if (errorText == null)
-                          const SizedBox(height: 0)
-                        else
-                          const SizedBox(height: 8),
-                        const Text(
-                          'Tip: You can add your own notes or correct any OCR mistakes',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => context.pop(null),
-                    child: const Text('Cancel'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      final text = dialogController.text.trim();
-                      if (text.isEmpty) {
-                        setDialogState(() {
-                          errorText = 'Text cannot be empty';
-                        });
-                      } else {
-                        context.pop(text);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Save'),
-                  ),
-                ],
-                scrollable: true,
-              ),
-            );
-          },
-        );
-      },
+    // Use the OCR utility to show the edit dialog
+    final editedText = await OcrUtils.showEditTextDialog(
+      context, 
+      _extractedImageText!
     );
 
     // Update main state if user saved changes
