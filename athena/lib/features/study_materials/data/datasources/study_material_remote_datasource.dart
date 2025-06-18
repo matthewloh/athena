@@ -9,4 +9,5 @@ abstract class StudyMaterialRemoteDataSource {
   Future<void> deleteStudyMaterial(String studyMaterialId);
   Future<String> requestAiSummary(String studyMaterialId);
   Future<String> requestOcrProcessing(String imagePath);
+  Future<String> getSignedDownloadUrl(String fileStoragePath);
 }

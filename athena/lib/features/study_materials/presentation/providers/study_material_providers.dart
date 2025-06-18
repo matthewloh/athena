@@ -3,6 +3,7 @@ import 'package:athena/features/study_materials/data/datasources/study_material_
 import 'package:athena/features/study_materials/data/repositories/study_material_repository_impl.dart';
 import 'package:athena/features/study_materials/domain/repositories/study_material_repository.dart';
 import 'package:athena/features/study_materials/domain/usecases/get_all_study_materials_usecase.dart';
+import 'package:athena/features/study_materials/domain/usecases/get_signed_download_url.dart';
 import 'package:athena/features/study_materials/domain/usecases/get_study_material_usecase.dart';
 import 'package:athena/features/study_materials/domain/usecases/create_study_material_usecase.dart';
 import 'package:athena/features/study_materials/domain/usecases/update_study_material_usecase.dart';
@@ -69,4 +70,10 @@ RequestAiSummaryUseCase requestAiSummaryUseCase(Ref ref) {
 RequestOcrProcessingUseCase requestOcrProcessingUseCase(Ref ref) {
   final repository = ref.watch(studyMaterialRepositoryProvider);
   return RequestOcrProcessingUseCase(repository);
+}
+
+@riverpod
+GetSignedDownloadUrlUseCase getSignedDownloadUrlUseCase(Ref ref) {
+  final repository = ref.watch(studyMaterialRepositoryProvider);
+  return GetSignedDownloadUrlUseCase(repository);
 }

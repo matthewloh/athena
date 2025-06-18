@@ -136,4 +136,19 @@ class StudyMaterialSupabaseDataSourceImpl
       throw ServerException('Failed to process OCR: ${e.toString()}');
     }
   }
+
+  @override
+  Future<String> getSignedDownloadUrl(String fileStoragePath) async {
+    try {
+      // Generate a public download URL for the file
+      final url = _supabaseClient.storage
+          .from('study-materials')
+          .createSignedUrl(fileStoragePath, 60 * 60);
+      return url;
+    } catch (e) {
+      throw ServerException(
+        'Failed to get public download URL: ${e.toString()}',
+      );
+    }
+  }
 }

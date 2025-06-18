@@ -7,7 +7,7 @@ part of 'study_material_viewmodel.dart';
 // **************************************************************************
 
 String _$studyMaterialViewModelHash() =>
-    r'98450bf9f62d15a27213e895c95e5eea851f334a';
+    r'ff5d3779cf07e46c426f22eeaca57da9e65c7b73';
 
 /// See also [StudyMaterialViewModel].
 @ProviderFor(StudyMaterialViewModel)

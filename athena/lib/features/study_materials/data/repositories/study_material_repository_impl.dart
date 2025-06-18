@@ -159,4 +159,25 @@ class StudyMaterialRepositoryImpl implements StudyMaterialRepository {
       );
     }
   }
+
+  @override
+  Future<Either<Failure, String>> getSignedDownloadUrl(
+    String fileStoragePath,
+  ) async {
+    try {
+      // Call the remote data source to get the public download URL
+      final downloadUrl = await _remoteDataSource.getSignedDownloadUrl(
+        fileStoragePath,
+      );
+      return Right(downloadUrl);
+    } on ServerException catch (e) {
+      return Left(
+        ServerFailure('Failed to get public download URL: ${e.message}'),
+      );
+    } catch (e) {
+      return Left(
+        ServerFailure('An unexpected error occurred: ${e.toString()}'),
+      );
+    }
+  }
 }

@@ -279,6 +279,26 @@ class StudyMaterialViewModel extends _$StudyMaterialViewModel {
         isProcessingOcr: false,
         error: 'Failed to process OCR: ${e.toString()}',
       );
+    }  }
+
+  // Get signed download URL for a material file or image
+  Future<String?> getSignedDownloadUrl(String fileStoragePath) async {
+    try {
+      final useCase = ref.read(getSignedDownloadUrlUseCaseProvider);
+      final result = await useCase.call(fileStoragePath);
+
+      return result.fold(
+        (failure) {
+          state = state.copyWith(error: failure.message);
+          return null;
+        },
+        (url) => url,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        error: 'Failed to get download URL: ${e.toString()}',
+      );
+      return null;
     }
   }
 

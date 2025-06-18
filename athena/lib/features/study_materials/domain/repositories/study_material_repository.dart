@@ -24,4 +24,7 @@ abstract class StudyMaterialRepository {
 
   /// Requests OCR processing for a study material by passing an image file path.
   Future<Either<Failure, String>> requestOcrProcessing(String imagePath);
+
+  /// Gets a signed download URL for a study material file.
+  Future<Either<Failure, String>> getSignedDownloadUrl(String fileStoragePath);
 }
