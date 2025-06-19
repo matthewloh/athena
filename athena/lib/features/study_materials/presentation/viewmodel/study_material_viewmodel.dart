@@ -253,47 +253,16 @@ class StudyMaterialViewModel extends _$StudyMaterialViewModel {
     }
   }
 
-  // Process OCR for an image-based material
-  Future<void> processOcr(String materialId) async {
-    state = state.copyWith(isProcessingOcr: true, error: null);
-
-    try {
-      final useCase = ref.read(requestOcrProcessingUseCaseProvider);
-      final result = await useCase.call(materialId);
-
-      result.fold(
-        (failure) =>
-            state = state.copyWith(
-              isProcessingOcr: false,
-              error: 'Failed to process OCR: ${failure.toString()}',
-            ),
-        (_) {
-          // OCR processing initiated successfully
-          // The actual text extraction will be handled by the backend
-          // and updated through other means (like real-time updates)
-          state = state.copyWith(isProcessingOcr: false, error: null);
-        },
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isProcessingOcr: false,
-        error: 'Failed to process OCR: ${e.toString()}',
-      );
-    }  }
-
   // Get signed download URL for a material file or image
   Future<String?> getSignedDownloadUrl(String fileStoragePath) async {
     try {
       final useCase = ref.read(getSignedDownloadUrlUseCaseProvider);
       final result = await useCase.call(fileStoragePath);
 
-      return result.fold(
-        (failure) {
-          state = state.copyWith(error: failure.message);
-          return null;
-        },
-        (url) => url,
-      );
+      return result.fold((failure) {
+        state = state.copyWith(error: failure.message);
+        return null;
+      }, (url) => url);
     } catch (e) {
       state = state.copyWith(
         error: 'Failed to get download URL: ${e.toString()}',
@@ -308,40 +277,44 @@ class StudyMaterialViewModel extends _$StudyMaterialViewModel {
   }
 
   // Save extracted OCR text for a material
-  Future<void> saveExtractedOcrText(String materialId, String extractedText) async {
+  Future<void> saveExtractedOcrText(
+    String materialId,
+    String extractedText,
+  ) async {
     try {
       final materials = [...state.materials];
       final index = materials.indexWhere((item) => item.id == materialId);
-      
+
       if (index != -1) {
         // Create updated material with OCR text
         final material = materials[index];
-        final updatedMaterial = material.copyWith(ocrExtractedText: extractedText);
-        
+        final updatedMaterial = material.copyWith(
+          ocrExtractedText: extractedText,
+        );
+
         // Update local state first
         materials[index] = updatedMaterial;
         state = state.copyWith(materials: materials, error: null);
-        
+
         // Update in database
         final useCase = ref.read(updateStudyMaterialUseCaseProvider);
         final params = UpdateStudyMaterialParams(
           id: materialId,
           ocrExtractedText: extractedText,
         );
-        
+
         final result = await useCase.call(params);
-        
+
         result.fold(
-          (failure) => state = state.copyWith(
-            error: 'Failed to save OCR text: ${failure.toString()}',
-          ),
+          (failure) =>
+              state = state.copyWith(
+                error: 'Failed to save OCR text: ${failure.toString()}',
+              ),
           (_) => null, // Already updated state above
         );
       }
     } catch (e) {
-      state = state.copyWith(
-        error: 'Failed to save OCR text: ${e.toString()}',
-      );
+      state = state.copyWith(error: 'Failed to save OCR text: ${e.toString()}');
     }
   }
 

@@ -9,7 +9,6 @@ import 'package:athena/features/study_materials/domain/usecases/create_study_mat
 import 'package:athena/features/study_materials/domain/usecases/update_study_material_usecase.dart';
 import 'package:athena/features/study_materials/domain/usecases/delete_study_material_usecase.dart';
 import 'package:athena/features/study_materials/domain/usecases/request_ai_summary_usecase.dart';
-import 'package:athena/features/study_materials/domain/usecases/request_ocr_processing_usecase.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -64,12 +63,6 @@ DeleteStudyMaterialUseCase deleteStudyMaterialUseCase(Ref ref) {
 RequestAiSummaryUseCase requestAiSummaryUseCase(Ref ref) {
   final repository = ref.watch(studyMaterialRepositoryProvider);
   return RequestAiSummaryUseCase(repository);
-}
-
-@riverpod
-RequestOcrProcessingUseCase requestOcrProcessingUseCase(Ref ref) {
-  final repository = ref.watch(studyMaterialRepositoryProvider);
-  return RequestOcrProcessingUseCase(repository);
 }
 
 @riverpod

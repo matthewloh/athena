@@ -144,23 +144,6 @@ class StudyMaterialRepositoryImpl implements StudyMaterialRepository {
   }
 
   @override
-  Future<Either<Failure, String>> requestOcrProcessing(String imagePath) async {
-    try {
-      // Call the remote data source to request OCR processing
-      final extractedText = await _remoteDataSource.requestOcrProcessing(
-        imagePath,
-      );
-      return Right(extractedText);
-    } on ServerException catch (e) {
-      return Left(ServerFailure('Failed to process OCR: ${e.message}'));
-    } catch (e) {
-      return Left(
-        ServerFailure('An unexpected error occurred: ${e.toString()}'),
-      );
-    }
-  }
-
-  @override
   Future<Either<Failure, String>> getSignedDownloadUrl(
     String fileStoragePath,
   ) async {

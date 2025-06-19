@@ -22,9 +22,6 @@ abstract class StudyMaterialRepository {
   /// Requests an AI-generated summary for a study material.
   Future<Either<Failure, String>> requestAiSummary(String studyMaterialId);
 
-  /// Requests OCR processing for a study material by passing an image file path.
-  Future<Either<Failure, String>> requestOcrProcessing(String imagePath);
-
   /// Gets a signed download URL for a study material file.
   Future<Either<Failure, String>> getSignedDownloadUrl(String fileStoragePath);
 }

@@ -174,27 +174,6 @@ final requestAiSummaryUseCaseProvider =
 // ignore: unused_element
 typedef RequestAiSummaryUseCaseRef =
     AutoDisposeProviderRef<RequestAiSummaryUseCase>;
-String _$requestOcrProcessingUseCaseHash() =>
-    r'e727fe6636e86040f2354d6d2d0a4d8302d893ee';
-
-/// See also [requestOcrProcessingUseCase].
-@ProviderFor(requestOcrProcessingUseCase)
-final requestOcrProcessingUseCaseProvider =
-    AutoDisposeProvider<RequestOcrProcessingUseCase>.internal(
-      requestOcrProcessingUseCase,
-      name: r'requestOcrProcessingUseCaseProvider',
-      debugGetCreateSourceHash:
-          const bool.fromEnvironment('dart.vm.product')
-              ? null
-              : _$requestOcrProcessingUseCaseHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef RequestOcrProcessingUseCaseRef =
-    AutoDisposeProviderRef<RequestOcrProcessingUseCase>;
 String _$getSignedDownloadUrlUseCaseHash() =>
     r'903316c3c12926f0eb18b1990419b83209d51e99';
 

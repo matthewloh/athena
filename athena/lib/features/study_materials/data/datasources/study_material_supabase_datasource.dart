@@ -221,23 +221,6 @@ class StudyMaterialSupabaseDataSourceImpl
   }
 
   @override
-  Future<String> requestOcrProcessing(String imagePath) async {
-    try {
-      // TODO: Implement OCR processing using Supabase Edge Functions
-      // Example implementation:
-      // final response = await _supabaseClient.functions.invoke(
-      //   'process-ocr',
-      //   body: {'image_path': imagePath},
-      // );
-      // return response.data['extracted_text'] as String;
-
-      throw ServerException('OCR processing not yet implemented');
-    } catch (e) {
-      throw ServerException('Failed to process OCR: ${e.toString()}');
-    }
-  }
-
-  @override
   Future<String> getSignedDownloadUrl(String fileStoragePath) async {
     try {
       // Generate a public download URL for the file
