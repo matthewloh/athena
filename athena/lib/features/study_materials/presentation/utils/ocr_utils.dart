@@ -64,7 +64,10 @@ class OcrUtils {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(hasText ? 'Text Detected' : 'No Text Detected'),
-          titleTextStyle: const TextStyle(fontWeight: FontWeight.bold),
+          titleTextStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
           content: ConstrainedBox(
             constraints: BoxConstraints(
               maxHeight:
@@ -100,27 +103,29 @@ class OcrUtils {
             ),
           ),
           // Ensure the dialog resizes when keyboard appears
-          scrollable: true,
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-              ),
-              child: Text(hasText ? 'Add Text to Image' : 'Add Text Field'),
-            ),
-          ],
+          scrollable: true,                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.grey[700],
+                    ),
+                    child: const Text('CANCEL'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      textStyle: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    child: Text(hasText ? 'ADD' : 'ADD TEXT FIELD'),
+                  ),
+                ],
         );
       },
     );
   }
 
-  /// Show a dialog to edit extracted text
+  /// Show an enhanced dialog to edit extracted text
   ///
   /// Returns the edited text if saved, null if cancelled
   static Future<String?> showEditTextDialog(
@@ -129,14 +134,25 @@ class OcrUtils {
   ) async {
     // Create a new text editing controller for this dialog
     final dialogController = TextEditingController(text: originalText);
+    final FocusNode focusNode = FocusNode();
 
-    // Show dialog to edit text
+    // After dialog appears, focus the text field and select all text
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      focusNode.requestFocus();
+      dialogController.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: dialogController.text.length,
+      );
+    });
+
+    // Show dialog to edit text with improved UX
     return showDialog<String>(
       context: context,
       barrierDismissible: false, // Prevent dismissal by tapping outside
       builder: (dialogContext) {
         // Local state for validation error - will be managed by the StatefulBuilder
         String? errorText;
+        bool hasEdited = false;
 
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setDialogState) {
@@ -152,10 +168,57 @@ class OcrUtils {
 
             return WillPopScope(
               // Prevent Android back button from dismissing without explicit action
-              onWillPop: () async => false,
-              child: AlertDialog(
-                title: const Text('Edit Extracted Text'),
-                titleTextStyle: const TextStyle(fontWeight: FontWeight.bold),
+              onWillPop: () async {
+                // If user made changes, ask for confirmation
+                if (hasEdited) {
+                  final shouldDiscard = await showDialog<bool>(
+                    context: context,
+                    builder:
+                        (context) => AlertDialog(
+                          title: const Text(
+                            'Discard changes?',
+                            style: TextStyle(color: Colors.black87),
+                          ),
+                          content: const Text(
+                            'You have unsaved changes. Are you sure you want to discard them?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text('KEEP EDITING'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: const Text('DISCARD'),
+                            ),
+                          ],
+                        ),
+                  );
+                  return shouldDiscard ?? false;
+                }
+                return true;
+              },
+              child: AlertDialog(                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Edit OCR Text',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87, // Explicitly set color for visibility
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Correct any inaccuracies in the extracted text',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
                 content: ConstrainedBox(
                   constraints: BoxConstraints(
                     maxHeight: availableHeight > 100 ? availableHeight : 200,
@@ -166,26 +229,115 @@ class OcrUtils {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        TextField(
-                          controller: dialogController,
-                          maxLines: null,
-                          decoration: InputDecoration(
-                            border: const OutlineInputBorder(),
-                            hintText: 'Edit text here...',
-                            errorText: errorText,
+                        Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color:
+                                  focusNode.hasFocus
+                                      ? AppColors.primary
+                                      : Colors.grey.shade300,
+                              width: focusNode.hasFocus ? 2.0 : 1.0,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.white,
+                            // Add shadow when focused
+                            boxShadow:
+                                focusNode.hasFocus
+                                    ? [
+                                      BoxShadow(
+                                        color: AppColors.primary.withOpacity(
+                                          0.3,
+                                        ),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ]
+                                    : null,
                           ),
-                          autofocus: true,
+                          child: TextField(
+                            controller: dialogController,
+                            focusNode: focusNode,
+                            maxLines: null,
+                            decoration: InputDecoration(
+                              hintText: 'Edit text here...',
+                              errorText: errorText,
+                              contentPadding: const EdgeInsets.all(16),
+                              border: InputBorder.none,
+                            ),
+                            autofocus: true,
+                            onChanged: (value) {
+                              if (value != originalText && !hasEdited) {
+                                setDialogState(() {
+                                  hasEdited = true;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                        // Character count indicator
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Text(
+                                '${dialogController.text.length} characters',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
                 actions: [
+                  // Action buttons - more compact and subtle
                   TextButton(
-                    onPressed: () => Navigator.of(context).pop(null),
+                    onPressed: () {
+                      if (hasEdited) {
+                        showDialog<bool>(
+                          context: context,
+                          builder:
+                              (context) => AlertDialog(
+                                title: const Text(
+                              'Discard changes?',
+                              style: TextStyle(color: Colors.black87),
+                            ),
+                                content: const Text(
+                                  'You have made changes to the text. Are you sure you want to discard them?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.of(context).pop(false),
+                                    child: const Text('Keep Editing'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop(true);
+                                      Navigator.of(dialogContext).pop(null);
+                                    },
+                                    child: const Text('Discard'),
+                                  ),
+                                ],
+                              ),
+                        );
+                      } else {
+                        Navigator.of(dialogContext).pop(null);
+                      }
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.grey[700],
+                      minimumSize: const Size(60, 36),
+                    ),
                     child: const Text('Cancel'),
                   ),
-                  ElevatedButton(
+                  const SizedBox(width: 8),
+                  TextButton(
                     onPressed: () {
                       final text = dialogController.text.trim();
                       if (text.isEmpty) {
@@ -193,12 +345,13 @@ class OcrUtils {
                           errorText = 'Text cannot be empty';
                         });
                       } else {
-                        Navigator.of(context).pop(text);
+                        Navigator.of(dialogContext).pop(text);
                       }
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      minimumSize: const Size(60, 36),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                     child: const Text('Save'),
                   ),

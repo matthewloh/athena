@@ -258,16 +258,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final materialId = state.pathParameters['materialId']!;
           return MaterialDetailScreen(materialId: materialId);
         },
-      ),
-      GoRoute(
+      ),      GoRoute(
         path: '/${AppRouteNames.addEditMaterial}',
         name: AppRouteNames.addEditMaterial,
         builder: (context, state) {
           // Get optional query parameters
           final contentType = state.uri.queryParameters['contentType'];
+          final materialId = state.uri.queryParameters['materialId'];
 
           return AddEditMaterialScreen(
-            material: null, // In real app, would fetch by materialId if editing
+            materialId: materialId,
             initialContentType:
                 contentType != null
                     ? ContentType.values.firstWhere(

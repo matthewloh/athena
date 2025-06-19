@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,14 +22,13 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:go_router/go_router.dart';
 
 class AddEditMaterialScreen extends ConsumerStatefulWidget {
-  final StudyMaterialEntity?
-  material; // Null when adding new, non-null when editing
+  final String? materialId; // Null when adding new, non-null when editing
   final ContentType?
   initialContentType; // Optional initial content type for new materials
 
   const AddEditMaterialScreen({
     Key? key,
-    this.material,
+    this.materialId,
     this.initialContentType,
   }) : super(key: key);
 
@@ -42,6 +42,10 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _contentController = TextEditingController();
+
+  // Material loading state
+  bool _isLoadingMaterial = false;
+  StudyMaterialEntity? _loadedMaterial;
 
   // Subject selection (replacing TextEditingController)
   Subject? _selectedSubject;
@@ -58,49 +62,131 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
   _imageTextController; // Controller for editing extracted text
   bool _isLoading = false;
   String? _fileErrorText;
-
   @override
   void initState() {
     super.initState();
     // Initialize QuillController with empty document
     _quillController = QuillController.basic();
 
-    // Initialize content type
-    _selectedContentType =
-        widget.initialContentType ??
-        ContentType.typedText; // Initialize with existing data if editing
-    if (widget.material != null) {
-      _titleController.text = widget.material!.title;
+    // Initialize content type - will be updated if we're editing
+    _selectedContentType = widget.initialContentType ?? ContentType.typedText;
 
-      // Set the subject if available
-      _selectedSubject = widget.material!.subject;
-
-      _selectedContentType = widget.material!.contentType;
-
-      // If typed text, populate the content
-      if (_selectedContentType == ContentType.typedText &&
-          widget.material!.originalContentText != null) {
-        // For regular text content
-        _contentController.text = widget.material!.originalContentText!;
-
-        // For rich text content (if it's stored as JSON)
-        try {
-          final dynamic jsonData = json.decode(
-            widget.material!.originalContentText!,
-          );
-          _quillController = QuillController(
-            document: Document.fromJson(jsonData),
-            selection: const TextSelection.collapsed(offset: 0),
-          );
-        } catch (e) {
-          // If not valid JSON, create a document from plain text
-          final document =
-              Document()..insert(0, widget.material!.originalContentText!);
-          _quillController = QuillController(
-            document: document,
-            selection: const TextSelection.collapsed(offset: 0),
-          );
+    // If we have materialId, it means we're in edit mode - load material
+    if (widget.materialId != null) {
+      // Use a post-frame callback to ensure the widget tree is built first
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _loadMaterialData(widget.materialId!);
         }
+      });
+    }
+  }
+
+  // Load material data by ID from the viewmodel
+  Future<void> _loadMaterialData(String materialId) async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoadingMaterial = true;
+    });
+
+    try {
+      // Get the viewmodel and load the material
+      final viewModel = ref.read(studyMaterialViewModelProvider.notifier);
+
+      // Load material using the viewmodel - this operation modifies the provider state
+      await viewModel.loadMaterial(materialId);
+
+      if (!mounted) return;
+
+      // Now it's safe to read the updated state
+      final state = ref.read(studyMaterialViewModelProvider);
+      final material = state.selectedMaterial;
+
+      if (material != null && mounted) {
+        // Update UI in a setState call to ensure proper rebuilding
+        setState(() {
+          // Store loaded material
+          _loadedMaterial = material;
+
+          // Populate form fields
+          _titleController.text = material.title;
+          _selectedSubject = material.subject;
+          _descriptionController.text =
+              material.description ?? ''; // Handle null description
+          _selectedContentType =
+              material.contentType; // Handle different content types
+          if (_selectedContentType == ContentType.typedText &&
+              material.originalContentText != null) {
+            // For regular text content
+            _contentController.text = material.originalContentText!;
+
+            // Try to parse as rich text JSON
+            try {
+              final dynamic jsonData = json.decode(
+                material.originalContentText!,
+              );
+              _quillController = QuillController(
+                document: Document.fromJson(jsonData),
+                selection: const TextSelection.collapsed(offset: 0),
+              );
+            } catch (e) {
+              // If not valid JSON, create a document from plain text
+              final document =
+                  Document()..insert(0, material.originalContentText!);
+              _quillController = QuillController(
+                document: document,
+                selection: const TextSelection.collapsed(offset: 0),
+              );
+            }
+          }
+          // Handle image file content type
+          else if (_selectedContentType == ContentType.imageFile) {
+            // If we have a stored file path, create a File reference
+            if (material.fileStoragePath != null &&
+                material.fileStoragePath!.isNotEmpty) {
+              try {
+                final file = File(material.fileStoragePath!);
+                if (file.existsSync()) {
+                  _selectedImage = file;
+                  debugPrint(
+                    'Image file loaded from path: ${material.fileStoragePath}',
+                  );
+                } else {
+                  debugPrint(
+                    'Image file does not exist at path: ${material.fileStoragePath}',
+                  );
+                }
+              } catch (e) {
+                debugPrint('Error loading image file: $e');
+              }
+            }
+
+            // If there's extracted OCR text, populate it
+            if (material.ocrExtractedText != null &&
+                material.ocrExtractedText!.isNotEmpty) {
+              _extractedImageText = material.ocrExtractedText;
+              _imageTextController = TextEditingController(
+                text: _extractedImageText,
+              );
+              debugPrint(
+                'OCR text loaded: ${_extractedImageText!.substring(0, min(50, _extractedImageText!.length))}...',
+              );
+            }
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading material: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingMaterial = false;
+        });
       }
     }
   }
@@ -354,6 +440,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
       return null;
     }
   }
+
   Future<void> _processImageWithOCR(File imageFile) async {
     if (!mounted) return;
 
@@ -377,8 +464,8 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
       if (mounted) {
         // Show a dialog with the extracted text and options
         bool? addTextToImage = await OcrUtils.showOcrResultDialog(
-          context, 
-          extractedText
+          context,
+          extractedText,
         );
 
         // If user chooses to add the text to the image
@@ -394,7 +481,9 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
             }
 
             // Initialize the text controller with the extracted text
-            _imageTextController = TextEditingController(text: extractedText ?? '');
+            _imageTextController = TextEditingController(
+              text: extractedText ?? '',
+            );
           });
         }
       }
@@ -429,7 +518,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
     try {
       final viewModel = ref.read(studyMaterialViewModelProvider.notifier);
 
-      if (widget.material == null) {
+      if (widget.materialId == null) {
         // Adding new material
         await _createNewMaterial(viewModel);
       } else {
@@ -442,7 +531,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              widget.material == null
+              widget.materialId == null
                   ? 'Study material created successfully!'
                   : 'Study material updated successfully!',
             ),
@@ -564,21 +653,88 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
 
     await viewModel.createMaterial(params);
   }
-
   Future<void> _updateExistingMaterial(StudyMaterialViewModel viewModel) async {
-    if (widget.material == null) return;
+    if (widget.materialId == null || _loadedMaterial == null) return;
 
-    // For editing, we'll update metadata and content if it's typed text
+    // For editing, we'll update metadata and content based on content type
     String? updatedContent;
+    String? newFilePath;
 
-    if (_selectedContentType == ContentType.typedText) {
-      // Convert Quill document to JSON string for storage
-      final documentJson = _quillController.document.toDelta().toJson();
-      updatedContent = json.encode(documentJson);
+    switch (_selectedContentType) {
+      case ContentType.typedText:
+        // Convert Quill document to JSON string for storage
+        final documentJson = _quillController.document.toDelta().toJson();
+        updatedContent = json.encode(documentJson);
+        break;
+        
+      case ContentType.textFile:
+        // Only include the file path if a new file was selected
+        if (_selectedFile != null) {
+          // Check if this is a new file (not a storage path)
+          final bool isExistingSupabaseFile = _loadedMaterial?.fileStoragePath != null && 
+              _loadedMaterial!.fileStoragePath!.contains('supabase.co');
+          
+          final bool isSameLocalFile = _loadedMaterial?.fileStoragePath != null &&
+              _selectedFile!.path == _loadedMaterial?.fileStoragePath;
+              
+          final bool isNewFile = !(isExistingSupabaseFile || isSameLocalFile);
+
+          if (isNewFile) {
+            debugPrint('Using new text file: ${_selectedFile!.path}');
+            newFilePath = _selectedFile!.path;
+
+            // For text files, try to read the content if possible
+            try {
+              final extension = newFilePath.split('.').last.toLowerCase();
+              if (extension == 'txt' || extension == 'md') {
+                updatedContent = await _selectedFile!.readAsString();
+              } else {
+                // For other files (PDF, DOCX), store filename info
+                updatedContent = 'File uploaded: ${_selectedFile!.path.split(Platform.isWindows ? '\\' : '/').last}';
+              }
+            } catch (e) {
+              debugPrint('Could not read file content: $e');
+              // If reading fails, at least store file information
+              updatedContent = 'File uploaded: ${_selectedFile!.path.split(Platform.isWindows ? '\\' : '/').last}';
+            }
+          } else {
+            debugPrint('No new text file selected, keeping original');
+          }
+        } else if (_loadedMaterial?.fileStoragePath == null) {
+          // No file was previously attached and none selected now
+          // This is an error case in edit mode
+          throw Exception('Please select a file');
+        }
+        break;
+
+      case ContentType.imageFile:
+        // Only include the image path if a new image was selected
+        if (_selectedImage != null) {
+          // Check if this is a new image (not a storage path)
+          final bool isExistingSupabaseFile = _loadedMaterial?.fileStoragePath != null && 
+              _loadedMaterial!.fileStoragePath!.contains('supabase.co');
+              
+          final bool isSameLocalFile = _loadedMaterial?.fileStoragePath != null &&
+              _selectedImage!.path == _loadedMaterial?.fileStoragePath;
+              
+          final bool isNewImage = !(isExistingSupabaseFile || isSameLocalFile);
+
+          if (isNewImage) {
+            debugPrint('Using new image: ${_selectedImage!.path}');
+            newFilePath = _selectedImage!.path;
+          } else {
+            debugPrint('No new image selected, keeping original');
+          }
+        } else if (_loadedMaterial?.fileStoragePath == null) {
+          // No image was previously attached and none selected now
+          // This is an error case in edit mode
+          throw Exception('Please select an image');
+        }
+        break;
     }
 
     final params = UpdateStudyMaterialParams(
-      id: widget.material!.id,
+      id: _loadedMaterial!.id,
       title: _titleController.text.trim(),
       description:
           _descriptionController.text.trim().isEmpty
@@ -586,39 +742,62 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               : _descriptionController.text.trim(),
       subject: _selectedSubject,
       originalContentText: updatedContent,
+      // Include new file path if available
+      fileStoragePath: newFilePath,
+      // Preserve the OCR text if it was modified
+      ocrExtractedText: _extractedImageText,
     );
 
     await viewModel.updateMaterial(params);
   }
-
   bool _isContentRequired() {
-    // Content is required when creating new materials (not when editing)
-    return widget.material == null;
+    // Content is always required, even in edit mode
+    // The difference is in edit mode we might already have content
+    return true;
   }
 
   bool _isContentProvided() {
+    final bool isEditing = widget.materialId != null;
+    
     switch (_selectedContentType) {
       case ContentType.typedText:
         // Check if Quill document has actual content
         final text = _quillController.document.toPlainText().trim();
         return text.isNotEmpty;
+        
       case ContentType.textFile:
+        // In edit mode, we either need the original file or a new selection
+        if (isEditing) {
+          return _selectedFile != null || 
+                (_loadedMaterial?.fileStoragePath != null && 
+                 _loadedMaterial!.fileStoragePath!.isNotEmpty);
+        }
+        // In create mode, we need a new file selection
         return _selectedFile != null;
+        
       case ContentType.imageFile:
+        // In edit mode, we either need the original image or a new selection
+        if (isEditing) {
+          return _selectedImage != null || 
+                (_loadedMaterial?.fileStoragePath != null && 
+                 _loadedMaterial!.fileStoragePath!.isNotEmpty);
+        }
+        // In create mode, we need a new image selection
         return _selectedImage != null;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isEditing = widget.material != null;
-    final appTheme = Theme.of(context);
-
-    // Watch for errors from the viewmodel
+    final isEditing = widget.materialId != null;
+    final appTheme = Theme.of(
+      context,
+    ); // Watch for errors and material updates from the viewmodel
     ref.listen<StudyMaterialState>(studyMaterialViewModelProvider, (
       previous,
       current,
     ) {
+      // Handle error messages
       if (current.error != null && current.error!.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -630,15 +809,60 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
         // Clear the error after showing it
         ref.read(studyMaterialViewModelProvider.notifier).clearError();
       }
-    });
 
+      // Check for material updates when in edit mode and not already loading
+      if (widget.materialId != null &&
+          !_isLoadingMaterial &&
+          current.selectedMaterial != null &&
+          current.selectedMaterialId == widget.materialId &&
+          _loadedMaterial?.id != current.selectedMaterial?.id) {
+        // Update the loaded material with the freshly loaded one
+        final material = current.selectedMaterial!;
+        setState(() {
+          _loadedMaterial = material;
+          _isLoadingMaterial = false;
+
+          // Populate form fields again with the latest data
+          _titleController.text = material.title;
+          _selectedSubject = material.subject;
+          _selectedContentType = material.contentType;
+
+          // Handle different content types
+          if (_selectedContentType == ContentType.typedText &&
+              material.originalContentText != null) {
+            // Update content controllers
+            _contentController.text = material.originalContentText!;
+
+            // Update Quill editor
+            try {
+              final dynamic jsonData = json.decode(
+                material.originalContentText!,
+              );
+              _quillController = QuillController(
+                document: Document.fromJson(jsonData),
+                selection: const TextSelection.collapsed(offset: 0),
+              );
+            } catch (e) {
+              final document =
+                  Document()..insert(0, material.originalContentText!);
+              _quillController = QuillController(
+                document: document,
+                selection: const TextSelection.collapsed(offset: 0),
+              );
+            }
+          }
+        });
+      }
+    });
     final state = ref.watch(studyMaterialViewModelProvider);
     final isCreatingMaterial = state.isCreating;
-
     return Scaffold(
       appBar: _buildAppBar(),
       body:
-          (_isLoading || isCreatingMaterial)
+          (_isLoading ||
+                  isCreatingMaterial ||
+                  _isLoadingMaterial ||
+                  state.isLoadingMaterial)
               ? const Center(child: CircularProgressIndicator())
               : Form(
                 key: _formKey,
@@ -672,9 +896,9 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                       labelText: 'Description (Optional)',
                       maxLines: 3,
                     ),
-                    const SizedBox(height: 24),
-
-                    // Content Type Selection
+                    const SizedBox(
+                      height: 24,
+                    ), // Content Type Selection - Only shown in create mode
                     if (!isEditing) ...[
                       Text(
                         'Content Type',
@@ -708,10 +932,39 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                         },
                       ),
                       const SizedBox(height: 24),
-
-                      // Content Input based on selected type
-                      _buildContentInput(),
+                    ], // Content type indicator for edit mode
+                    if (isEditing) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Icon(
+                            _selectedContentType == ContentType.typedText
+                                ? Icons.edit_note
+                                : _selectedContentType == ContentType.textFile
+                                ? Icons.description
+                                : Icons.image,
+                            size: 20,
+                            color: AppColors.athenaPurple,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Content Type: ${_selectedContentType == ContentType.typedText
+                                ? 'Rich Text'
+                                : _selectedContentType == ContentType.textFile
+                                ? 'Text File'
+                                : 'Image'}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.athenaDarkGrey,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
                     ],
+
+                    // Content Input is ALWAYS shown, for both create and edit modes
+                    _buildContentInput(),
 
                     const SizedBox(height: 32), // Save Button
                     AppButton(
@@ -730,10 +983,11 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
   AppBar _buildAppBar() {
     final state = ref.watch(studyMaterialViewModelProvider);
     final isCreatingMaterial = state.isCreating;
-
     return AppBar(
       title: Text(
-        widget.material == null ? 'Add Study Material' : 'Edit Study Material',
+        widget.materialId == null
+            ? 'Add Study Material'
+            : 'Edit Study Material',
       ),
       backgroundColor: AppColors.athenaPurple,
       leading: IconButton(
@@ -764,12 +1018,38 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Study Notes',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                color: AppColors.athenaDarkGrey,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Study Notes',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.athenaDarkGrey,
+                  ),
+                ),
+                // Add a hint text that this is editable
+                if (widget.materialId != null)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.edit,
+                        size: 16,
+                        color: AppColors.secondary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Edit content',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.secondary,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
             ),
             const SizedBox(height: 8),
             Container(
@@ -785,17 +1065,99 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               Text(_fileErrorText!, style: const TextStyle(color: Colors.red)),
             ],
           ],
-        );
+        );      case ContentType.textFile:
+        final bool isEditing = widget.materialId != null;
+        
+        // Extract original filename more reliably with cross-platform path handling
+        String? originalFileName;
+        if (isEditing && _loadedMaterial?.fileStoragePath != null) {
+          final String path = _loadedMaterial!.fileStoragePath!;
+          
+          if (path.contains('supabase.co')) {
+            // If it's a URL, extract the filename from the last part
+            final segments = path.split('/');
+            final fullName = segments.last;
+            
+            // Extract meaningful name by removing UUID prefixes if present (typical pattern)
+            final parts = fullName.split('_');
+            originalFileName = parts.length > 1 ? parts.sublist(1).join('_') : fullName;
+          } else {
+            // For local file paths, handle both Windows and UNIX paths
+            final segments = path.split(Platform.isWindows ? '\\' : '/');
+            originalFileName = segments.last;
+          }
+        }
 
-      case ContentType.textFile:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AppButton(
-              label: 'Select Text File (.pdf, .docx, etc.)',
+            // Show original file name if in edit mode
+            if (isEditing && originalFileName != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.athenaPurple.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.file_present_rounded, 
+                          color: AppColors.athenaPurple, 
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Current File',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.athenaDarkGrey,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.description, color: AppColors.primary),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              originalFileName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],            AppButton(
+              label:
+                  isEditing
+                      ? 'Change File'
+                      : 'Select Text File (.pdf, .docx, etc.)',
               onPressed: _pickTextFile,
-              icon: const Icon(Icons.upload_file),
-              backgroundColor: AppColors.secondary,
+              icon: Icon(isEditing ? Icons.change_circle_outlined : Icons.upload_file),
+              backgroundColor: isEditing ? Colors.white : AppColors.secondary,
+              textColor: isEditing ? AppColors.secondary : Colors.white,
             ),
             if (_selectedFile != null) ...[
               const SizedBox(height: 8),
@@ -811,7 +1173,9 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        _selectedFile!.path.split('/').last,
+                        _selectedFile!.path
+                            .split(Platform.isWindows ? '\\' : '/')
+                            .last,
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                     ),
@@ -832,17 +1196,325 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               Text(_fileErrorText!, style: const TextStyle(color: Colors.red)),
             ],
           ],
-        );
-      case ContentType.imageFile:
+        );      case ContentType.imageFile:
+        final bool isEditing = widget.materialId != null;
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _selectedImage == null
-                ? _buildImagePickerArea()
-                : _buildSelectedImagePreview(),
+            // Header for Image content section
+            Container(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.image, 
+                    size: 20, 
+                    color: AppColors.athenaDarkGrey,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Image Content',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.athenaDarkGrey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Always show either the image preview or the picker
+            _selectedImage != null
+                ? _buildSelectedImagePreview()
+                : _buildImagePickerArea(),// OCR text section in edit mode when we have an image but no extracted text
+            if (isEditing &&
+                _extractedImageText == null &&
+                _selectedImage != null) ...[
+              const SizedBox(height: 24),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.text_fields, color: AppColors.athenaPurple),
+                        SizedBox(width: 8),
+                        Text(
+                          'No OCR Text Available',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        if (_selectedImage != null) {
+                          _processImageWithOCR(_selectedImage!);
+                        }
+                      },
+                      icon: const Icon(Icons.text_fields, size: 18),
+                      label: const Text('Extract Text from Image'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.athenaPurple,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            // Always show OCR text in edit mode if it exists, regardless of image availability
+            if (isEditing && _extractedImageText != null) ...[
+              const SizedBox(height: 24),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Enhanced header for OCR text section
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.athenaPurple.withOpacity(0.1),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(12),
+                      ),
+                      border: Border.all(
+                        color: AppColors.athenaPurple.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.text_fields,
+                          size: 20,
+                          color: AppColors.athenaPurple,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'OCR Extracted Text',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.athenaPurple,
+                          ),
+                        ),
+                        const Spacer(),
+                        // Help icon with tooltip
+                        Tooltip(
+                          message:
+                              'Text automatically extracted from image. You can edit it for better accuracy.',
+                          child: const Icon(
+                            Icons.help_outline,
+                            size: 16,
+                            color: AppColors.athenaDarkGrey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Action buttons with more prominence
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 6,
+                      horizontal: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      border: Border(
+                        left: BorderSide(
+                          color: AppColors.athenaPurple.withOpacity(0.3),
+                        ),
+                        right: BorderSide(
+                          color: AppColors.athenaPurple.withOpacity(0.3),
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        // Edit button - more compact and subtle
+                        TextButton.icon(
+                          onPressed: _editExtractedText,
+                          icon: const Icon(Icons.edit, size: 14),
+                          label: const Text(
+                            'Edit',
+                            style: TextStyle(fontSize: 13),
+                          ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.secondary,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            minimumSize: const Size(0, 30),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Remove button - more compact and subtle
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _extractedImageText = null;
+                              _imageTextController?.dispose();
+                              _imageTextController = null;
+                            });
+                          },
+                          icon: const Icon(Icons.delete_outline, size: 14),
+                          label: const Text(
+                            'Remove',
+                            style: TextStyle(fontSize: 13),
+                          ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.red.shade600,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            minimumSize: const Size(0, 30),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Text display with animation and better interaction cues
+                  GestureDetector(
+                    onTap: _editExtractedText,
+                    child: Container(
+                      width: double.infinity,
+                      constraints: const BoxConstraints(
+                        minHeight: 100,
+                        maxHeight: 300,
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(12),
+                        ),
+                        border: Border.all(
+                          color: AppColors.athenaPurple.withOpacity(0.3),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 2,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Stack(
+                        children: [
+                          // Scrollable text content
+                          SingleChildScrollView(
+                            child: Text(
+                              _extractedImageText!,
+                              style: const TextStyle(fontSize: 16, height: 1.5),
+                            ),
+                          ),
+
+                          // Edit indicator overlay
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.secondary,
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(8),
+                                  bottomRight: Radius.circular(12),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.touch_app,
+                                    color: Colors.white,
+                                    size: 14,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Tap to Edit',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Help text to guide users
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8, left: 4),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.info_outline,
+                          size: 14,
+                          color: AppColors.secondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'OCR text might not be 100% accurate. Tap on the text to make corrections.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
             if (_fileErrorText != null) ...[
               const SizedBox(height: 8),
               Text(_fileErrorText!, style: const TextStyle(color: Colors.red)),
+            ],
+
+            // In edit mode, if there's no OCR text but we're in image mode, add an option to extract new text
+            if (isEditing &&
+                _extractedImageText == null &&
+                _selectedImage == null) ...[
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: _pickImage,
+                icon: const Icon(Icons.add_photo_alternate),
+                label: const Text('Add a new image to extract text'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.secondary,
+                ),
+              ),
             ],
           ],
         );
@@ -853,77 +1525,166 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        QuillSimpleToolbar(
-          controller: _quillController,
-          config: QuillSimpleToolbarConfig(
-            // Only show essential buttons for mobile
-            multiRowsDisplay: false,
-            showFontFamily: false,
-            showFontSize: false,
-            showBoldButton: true,
-            showItalicButton: true,
-            showUnderLineButton: true,
-            showStrikeThrough: false,
-            showInlineCode: true,
-            showColorButton: true,
-            showBackgroundColorButton: false,
-            showClearFormat: true,
-            showAlignmentButtons: false,
-            showLeftAlignment: false,
-            showCenterAlignment: false,
-            showRightAlignment: false,
-            showJustifyAlignment: false,
-            showHeaderStyle: true,
-            showListNumbers: true,
-            showListBullets: true,
-            showListCheck: false,
-            showCodeBlock: false,
-            showQuote: true,
-            showIndent: false,
-            showLink: true,
-            showUndo: true,
-            showRedo: true,
-            showClipboardPaste: true,
-            showDividers: true,
-            buttonOptions: QuillSimpleToolbarButtonOptions(
-              base: QuillToolbarBaseButtonOptions(
-                afterButtonPressed: () {
-                  final isDesktop = {
-                    TargetPlatform.linux,
-                    TargetPlatform.windows,
-                    TargetPlatform.macOS,
-                  }.contains(defaultTargetPlatform);
-                  if (isDesktop) {
-                    _quillFocusNode.requestFocus();
-                  }
-                },
+        // Editor header with edit indicator
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: AppColors.athenaPurple.withOpacity(0.1),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.edit_note,
+                color: AppColors.athenaPurple,
+                size: 20,
               ),
-              linkStyle: QuillToolbarLinkStyleButtonOptions(
-                validateLink: (link) {
-                  return true;
-                },
+              const SizedBox(width: 6),
+              const Text(
+                'Rich Text Editor',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.athenaPurple,
+                ),
+              ),
+              const Spacer(),
+              // Help text for new users
+              Text(
+                'Format your notes here',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Toolbar with improved visibility
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            border: Border.symmetric(
+              horizontal: BorderSide(color: Colors.grey.shade300),
+            ),
+          ),
+          child: QuillSimpleToolbar(
+            controller: _quillController,
+            config: QuillSimpleToolbarConfig(
+              // Only show essential buttons for mobile
+              multiRowsDisplay: false,
+              showFontFamily: false,
+              showFontSize: false,
+              showBoldButton: true,
+              showItalicButton: true,
+              showUnderLineButton: true,
+              showStrikeThrough: false,
+              showInlineCode: true,
+              showColorButton: true,
+              showBackgroundColorButton: false,
+              showClearFormat: true,
+              showAlignmentButtons: false,
+              showLeftAlignment: false,
+              showCenterAlignment: false,
+              showRightAlignment: false,
+              showJustifyAlignment: false,
+              showHeaderStyle: true,
+              showListNumbers: true,
+              showListBullets: true,
+              showListCheck: false,
+              showCodeBlock: false,
+              showQuote: true,
+              showIndent: false,
+              showLink: true,
+              showUndo: true,
+              showRedo: true,
+              showClipboardPaste: true,
+              showDividers: true,
+              buttonOptions: QuillSimpleToolbarButtonOptions(
+                base: QuillToolbarBaseButtonOptions(
+                  afterButtonPressed: () {
+                    final isDesktop = {
+                      TargetPlatform.linux,
+                      TargetPlatform.windows,
+                      TargetPlatform.macOS,
+                    }.contains(defaultTargetPlatform);
+                    if (isDesktop) {
+                      _quillFocusNode.requestFocus();
+                    }
+                  },
+                ),
+                linkStyle: QuillToolbarLinkStyleButtonOptions(
+                  validateLink: (link) {
+                    return true;
+                  },
+                ),
               ),
             ),
           ),
         ),
-        // Use a SizedBox with fixed height instead of Expanded
-        SizedBox(
-          height: 250, // Specify a fixed height for the editor
-          child: QuillEditor(
-            focusNode: _quillFocusNode,
-            scrollController: _quillScrollController,
-            controller: _quillController,
-            config: QuillEditorConfig(
-              placeholder: 'Enter your study notes here...',
-              padding: const EdgeInsets.all(16),
+
+        // Editor with animation and highlights to make it more interactive
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 300, // Increased height for better editing experience
+          decoration: BoxDecoration(
+            border: Border.all(
+              color:
+                  _quillFocusNode.hasFocus
+                      ? AppColors.secondary
+                      : Colors.grey.shade300,
+              width: _quillFocusNode.hasFocus ? 2.0 : 1.0,
+            ),
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(8),
+            ),
+            color: Colors.white,
+            boxShadow:
+                _quillFocusNode.hasFocus
+                    ? [
+                      BoxShadow(
+                        color: AppColors.secondary.withOpacity(0.3),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                    : [],
+          ),
+          child: Stack(
+            children: [
+              // Editor
+              QuillEditor(
+                focusNode: _quillFocusNode,
+                scrollController: _quillScrollController,
+                controller: _quillController,
+                config: QuillEditorConfig(
+                  placeholder: 'Tap here to edit your study notes...',
+                  padding: const EdgeInsets.all(16),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Helper text to guide users
+        Padding(
+          padding: const EdgeInsets.only(top: 8, left: 4),
+          child: Text(
+            'Use the formatting tools above to customize your notes',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              fontStyle: FontStyle.italic,
             ),
           ),
         ),
       ],
     );
   }
-
   Widget _buildImagePickerArea() {
+    final bool isEditing = widget.materialId != null;
+
     return GestureDetector(
       onTap: _pickImage,
       child: Container(
@@ -932,7 +1693,17 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
         decoration: BoxDecoration(
           color: Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade300, width: 2),
+          border: Border.all(
+            color: isEditing ? AppColors.secondary.withOpacity(0.5) : Colors.grey.shade300, 
+            width: isEditing ? 2.5 : 2,
+          ),
+          boxShadow: isEditing 
+              ? [BoxShadow(
+                  color: AppColors.secondary.withOpacity(0.2),
+                  blurRadius: 4,
+                  spreadRadius: 1,
+                )] 
+              : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -940,186 +1711,456 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.secondary.withOpacity(0.1),
+                color: isEditing
+                    ? AppColors.secondary.withOpacity(0.2)
+                    : AppColors.secondary.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.add_photo_alternate_rounded,
+              child: Icon(
+                isEditing
+                    ? Icons.change_circle_outlined
+                    : Icons.add_photo_alternate_rounded,
                 size: 40,
                 color: AppColors.secondary,
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Add Image',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            Text(
+              isEditing ? 'Change Image' : 'Add Image',
+              style: TextStyle(
+                fontSize: 16, 
+                fontWeight: FontWeight.w600,
+                color: isEditing ? AppColors.secondary : Colors.black87,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
-              'Tap to select an image from camera or gallery',
+              isEditing
+                  ? 'Select a new image from camera or gallery'
+                  : 'Tap to select an image from camera or gallery',
               style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
+            if (isEditing) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.info_outline, size: 16, color: AppColors.secondary),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Original image not available',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.secondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
-
   Widget _buildSelectedImagePreview() {
+    final bool isEditing = widget.materialId != null;
+    final bool isNewImage = isEditing && 
+        _loadedMaterial?.fileStoragePath != null && 
+        !_selectedImage!.path.contains('supabase.co') &&
+        _loadedMaterial?.fileStoragePath != _selectedImage?.path;
+
     return Column(
       children: [
-        Stack(
-          children: [
-            Container(
-              width: double.infinity,
-              height: 250,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    spreadRadius: 1,
-                    blurRadius: 3,
-                    offset: const Offset(0, 2),
+        // Image change indicator - improved visibility
+        if (isEditing) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            decoration: BoxDecoration(
+              color: isNewImage 
+                  ? AppColors.secondary.withOpacity(0.1) 
+                  : Colors.grey.shade50,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              border: Border.all(
+                color: isNewImage 
+                    ? AppColors.secondary.withOpacity(0.5) 
+                    : Colors.grey.shade300,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isNewImage ? Icons.change_circle_outlined : Icons.check_circle_outline,
+                  size: 18, 
+                  color: isNewImage ? AppColors.secondary : Colors.green,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    isNewImage 
+                        ? 'New image selected - will replace original'
+                        : 'Current image from study material',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: isNewImage ? FontWeight.w500 : FontWeight.normal,
+                      color: isNewImage ? AppColors.secondary : Colors.grey.shade800,
+                    ),
                   ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.file(_selectedImage!, fit: BoxFit.cover),
-              ),
+                ),
+              ],
             ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: GestureDetector(
-                onTap:
-                    () => setState(() {
-                      _selectedImage = null;
-                      _extractedImageText = null;
-                      _imageTextController?.dispose();
-                      _imageTextController = null;
-                    }),
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
-                    shape: BoxShape.circle,
+          ),
+        ],
+        
+        // Image preview with improved styling
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: isEditing 
+                ? const BorderRadius.vertical(bottom: Radius.circular(12))
+                : BorderRadius.circular(12),
+            border: Border.all(
+              color: isEditing && isNewImage 
+                  ? AppColors.secondary.withOpacity(0.5) 
+                  : Colors.grey.shade300,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                spreadRadius: 1,
+                blurRadius: 3,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Image container
+              ClipRRect(
+                borderRadius: isEditing 
+                    ? const BorderRadius.vertical(bottom: Radius.circular(0))
+                    : BorderRadius.circular(12),
+                child: SizedBox(
+                  height: 250,
+                  width: double.infinity,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Image with error handling
+                      Image.file(
+                        _selectedImage!, 
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey.shade200,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Unable to load image',
+                                  style: TextStyle(color: Colors.grey.shade700),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      
+                      // Remove button
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: GestureDetector(
+                          onTap: () => setState(() {
+                            _selectedImage = null;
+                            // Only clear extracted text if we're in create mode
+                            // In edit mode, keep existing OCR text unless explicitly removed
+                            if (!isEditing) {
+                              _extractedImageText = null;
+                              _imageTextController?.dispose();
+                              _imageTextController = null;
+                            }
+                          }),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.7),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close, color: Colors.white, size: 20),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  child: const Icon(Icons.close, color: Colors.white, size: 20),
                 ),
               ),
-            ),
-          ],
+              
+              // Action buttons directly under the image
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _pickImage,
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('Change Image'),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: AppColors.secondary),
+                          foregroundColor: AppColors.secondary,
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          if (_selectedImage != null) {
+                            _processImageWithOCR(_selectedImage!);
+                          }
+                        },
+                        icon: const Icon(Icons.text_fields, size: 18),
+                        label: const Text('Extract Text'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.athenaPurple,
+                          foregroundColor: Colors.white,
+                          elevation: 1,
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _pickImage,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Change'),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: AppColors.secondary),
-                  foregroundColor: AppColors.secondary,
-                  minimumSize: const Size(
-                    0,
-                    44,
-                  ), // Fixed height for both buttons
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  if (_selectedImage != null) {
-                    _processImageWithOCR(_selectedImage!);
-                  }
-                },
-                icon: const Icon(Icons.text_fields, size: 18),
-                label: const Text('Extract Text'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.athenaPurple,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(
-                    0,
-                    44,
-                  ), // Fixed height for both buttons
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                ),
-              ),
-            ),
-          ],
-        ),
-
-        // Display extracted text section if available
-        if (_extractedImageText != null) ...[
+        const SizedBox(height: 8),// Display extracted text section if available and NOT in edit mode
+        // (since we're already handling it in the main build method for edit mode)
+        if (_extractedImageText != null && widget.materialId == null) ...[
           const SizedBox(height: 24),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.text_fields,
-                    size: 16,
-                    color: AppColors.athenaPurple,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Extracted Text',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.athenaDarkGrey,
-                    ),
-                  ),
-                  const Spacer(),
-                  // Remove button
-                  TextButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _extractedImageText = null;
-                        _imageTextController?.dispose();
-                        _imageTextController = null;
-                      });
-                    },
-                    icon: const Icon(Icons.delete_outline, size: 16),
-                    label: const Text('Remove'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.red.shade600,
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      minimumSize: const Size(0, 32),
-                    ),
-                  ), // Edit button for text
-                  TextButton.icon(
-                    onPressed:
-                        _extractedImageText != null ? _editExtractedText : null,
-                    icon: const Icon(Icons.edit, size: 16),
-                    label: const Text('Edit'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.secondary,
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      minimumSize: const Size(0, 32),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
+              // Enhanced header for OCR text section
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 8,
+                  horizontal: 12,
                 ),
-                child: Text(
-                  _extractedImageText!,
-                  style: const TextStyle(fontSize: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.athenaPurple.withOpacity(0.1),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12),
+                  ),
+                  border: Border.all(
+                    color: AppColors.athenaPurple.withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.text_fields,
+                      size: 20,
+                      color: AppColors.athenaPurple,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'OCR Extracted Text',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.athenaPurple,
+                      ),
+                    ),
+                    const Spacer(),
+                    // Help icon with tooltip
+                    Tooltip(
+                      message:
+                          'Text automatically extracted from image. You can edit it for better accuracy.',
+                      child: const Icon(
+                        Icons.help_outline,
+                        size: 16,
+                        color: AppColors.athenaDarkGrey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Action buttons with more prominence
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 6,
+                  horizontal: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  border: Border(
+                    left: BorderSide(
+                      color: AppColors.athenaPurple.withOpacity(0.3),
+                    ),
+                    right: BorderSide(
+                      color: AppColors.athenaPurple.withOpacity(0.3),
+                    ),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    // Edit button - more compact and subtle
+                    TextButton.icon(
+                      onPressed: _editExtractedText,
+                      icon: const Icon(Icons.edit, size: 14),
+                      label: const Text('Edit', style: TextStyle(fontSize: 13)),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.secondary,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        minimumSize: const Size(0, 30),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Remove button - more compact and subtle
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _extractedImageText = null;
+                          _imageTextController?.dispose();
+                          _imageTextController = null;
+                        });
+                      },
+                      icon: const Icon(Icons.delete_outline, size: 14),
+                      label: const Text(
+                        'Remove',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.red.shade600,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        minimumSize: const Size(0, 30),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Text display with animation and better interaction cues
+              GestureDetector(
+                onTap: _editExtractedText,
+                child: Container(
+                  width: double.infinity,
+                  constraints: const BoxConstraints(
+                    minHeight: 100,
+                    maxHeight: 300,
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(12),
+                    ),
+                    border: Border.all(
+                      color: AppColors.athenaPurple.withOpacity(0.3),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 2,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      // Scrollable text content
+                      SingleChildScrollView(
+                        child: Text(
+                          _extractedImageText!,
+                          style: const TextStyle(fontSize: 16, height: 1.5),
+                        ),
+                      ),
+
+                      // Edit indicator overlay
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondary,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(8),
+                              bottomRight: Radius.circular(12),
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.touch_app,
+                                color: Colors.white,
+                                size: 14,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Tap to Edit',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Help text to guide users
+              Padding(
+                padding: const EdgeInsets.only(top: 8, left: 4),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      size: 14,
+                      color: AppColors.secondary,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'OCR text might not be 100% accurate. Tap on the text to make corrections.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1128,32 +2169,51 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
       ],
     );
   }
+
   Future<void> _editExtractedText() async {
     if (_extractedImageText == null) return;
 
-    // Use the OCR utility to show the edit dialog
-    final editedText = await OcrUtils.showEditTextDialog(
-      context, 
-      _extractedImageText!
+    // Show a brief toast to indicate editing mode
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Edit the OCR text for better accuracy'),
+        duration: Duration(seconds: 2),
+        backgroundColor: AppColors.secondary,
+        behavior: SnackBarBehavior.floating,
+      ),
     );
 
-    // Update main state if user saved changes
-    // We need to make sure we're still mounted before updating the state
+    // Use the OCR utility to display the edit dialog
+    final editedText = await OcrUtils.showEditTextDialog(
+      context,
+      _extractedImageText!,
+    );
+
+    // Update the state if user made changes
     if (editedText != null && mounted) {
       setState(() {
         _extractedImageText = editedText;
 
-        // Always dispose the old controller first to prevent memory leaks
+        // Dispose of old controller to prevent memory leaks
         if (_imageTextController != null) {
           _imageTextController!.dispose();
-          _imageTextController = null; // Set to null after disposing
         }
 
-        // Only then create a new controller with the edited text
-        if (mounted) {
-          _imageTextController = TextEditingController(text: editedText);
-        }
+        // Create new controller with updated text
+        _imageTextController = TextEditingController(text: editedText);
       });
+
+      // Confirmation message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Text updated successfully'),
+            duration: Duration(seconds: 1),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 }

@@ -125,8 +125,7 @@ class StudyMaterialSupabaseDataSourceImpl
           studyMaterial.contentType == ContentType.imageFile) {
         // If there's a new file path (local path, not a storage path), upload the new file
         if (studyMaterial.fileStoragePath != null &&
-            studyMaterial.fileStoragePath!.isNotEmpty &&
-            !studyMaterial.fileStoragePath!.contains('/')) {
+            studyMaterial.fileStoragePath!.isNotEmpty) {
           // Upload new file to Supabase Storage
           final storagePath = await _uploadFileWithMaterialId(
             studyMaterial.fileStoragePath!,
