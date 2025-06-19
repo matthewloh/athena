@@ -112,7 +112,6 @@ class StudyMaterialSupabaseDataSourceImpl
       throw ServerException('Failed to create study material: ${e.toString()}');
     }
   }
-
   @override
   Future<StudyMaterialModel> updateStudyMaterial(
     StudyMaterialModel studyMaterial,
@@ -123,21 +122,28 @@ class StudyMaterialSupabaseDataSourceImpl
       // Handle file uploads for textFile and imageFile content types
       if (studyMaterial.contentType == ContentType.textFile ||
           studyMaterial.contentType == ContentType.imageFile) {
-        // If there's a new file path (local path, not a storage path), upload the new file
+        // If there's a file path, check if it's a local file that needs uploading
         if (studyMaterial.fileStoragePath != null &&
             studyMaterial.fileStoragePath!.isNotEmpty) {
-          // Upload new file to Supabase Storage
-          final storagePath = await _uploadFileWithMaterialId(
-            studyMaterial.fileStoragePath!,
-            studyMaterial.userId,
-            studyMaterial.id,
-            studyMaterial.contentType,
-          );
+          
+          // Check if this is a local file path (needs uploading) vs existing storage path (keep as is)
+          final bool isLocalFilePath = _isLocalFilePath(studyMaterial.fileStoragePath!);
+          
+          if (isLocalFilePath) {
+            // This is a new local file that needs to be uploaded
+            final storagePath = await _uploadFileWithMaterialId(
+              studyMaterial.fileStoragePath!,
+              studyMaterial.userId,
+              studyMaterial.id,
+              studyMaterial.contentType,
+            );
 
-          // Update the material with the new storage path
-          materialToUpdate = studyMaterial.copyWith(
-            fileStoragePath: storagePath,
-          );
+            // Update the material with the new storage path
+            materialToUpdate = studyMaterial.copyWith(
+              fileStoragePath: storagePath,
+            );
+          }
+          // If it's not a local file path, it's already a storage path - keep it as is
         }
       }
 
@@ -276,5 +282,47 @@ class StudyMaterialSupabaseDataSourceImpl
     } catch (e) {
       throw ServerException('Failed to upload file: ${e.toString()}');
     }
+  }
+
+  /// Determines if a given path is a local file path that needs uploading
+  /// vs an existing Supabase storage path that should be preserved
+  bool _isLocalFilePath(String filePath) {
+    // Local file paths typically:
+    // - Start with '/' on Unix-like systems (Android, iOS, Linux, macOS)
+    // - Start with drive letter on Windows (C:\, D:\, etc.)
+    // - Contain full directory structures
+    
+    // Supabase storage paths typically:
+    // - Don't start with '/' or drive letters
+    // - Follow pattern: userId/materialId/filename
+    // - Are relatively short and structured
+    
+    // Check if it's an absolute path (local file)
+    if (filePath.startsWith('/') || // Unix-like absolute path
+        (filePath.length >= 3 && filePath[1] == ':')) { // Windows drive path (C:, D:, etc.)
+      return true;
+    }
+    
+    // Check if file exists locally (this is the most reliable check)
+    try {
+      final file = File(filePath);
+      return file.existsSync();
+    } catch (e) {
+      // If we can't check file existence, fall back to path pattern analysis
+    }
+    
+    // If path contains typical storage bucket pattern (userId/materialId/filename),
+    // it's likely a storage path
+    final pathSegments = filePath.split('/');
+    if (pathSegments.length == 3 && 
+        pathSegments[0].isNotEmpty && 
+        pathSegments[1].isNotEmpty && 
+        pathSegments[2].isNotEmpty) {
+      // Looks like userId/materialId/filename pattern
+      return false;
+    }
+    
+    // Default to treating as local path if uncertain
+    return true;
   }
 }

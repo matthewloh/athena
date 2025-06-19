@@ -62,6 +62,11 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
   _imageTextController; // Controller for editing extracted text
   bool _isLoading = false;
   String? _fileErrorText;
+
+  // Track if user has selected new files in edit mode
+  bool _hasSelectedNewFile = false;
+  bool _hasSelectedNewImage = false;
+  
   @override
   void initState() {
     super.initState();
@@ -109,6 +114,10 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
           // Store loaded material
           _loadedMaterial = material;
 
+          // Reset selection flags when loading existing material
+          _hasSelectedNewFile = false;
+          _hasSelectedNewImage = false;
+
           // Populate form fields
           _titleController.text = material.title;
           _selectedSubject = material.subject;
@@ -139,26 +148,30 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                 selection: const TextSelection.collapsed(offset: 0),
               );
             }
-          }
-          // Handle image file content type
+          } // Handle image file content type
           else if (_selectedContentType == ContentType.imageFile) {
-            // If we have a stored file path, create a File reference
+            // If we have a stored file path, store it for later use
             if (material.fileStoragePath != null &&
                 material.fileStoragePath!.isNotEmpty) {
-              try {
-                final file = File(material.fileStoragePath!);
-                if (file.existsSync()) {
-                  _selectedImage = file;
-                  debugPrint(
-                    'Image file loaded from path: ${material.fileStoragePath}',
-                  );
-                } else {
-                  debugPrint(
-                    'Image file does not exist at path: ${material.fileStoragePath}',
-                  );
+              final bool isSupabaseImage = material.fileStoragePath!.contains(
+                'supabase.co',
+              );
+
+              debugPrint(
+                'Image path stored: ${material.fileStoragePath}, isSupabaseImage: $isSupabaseImage',
+              );
+
+              // Only create a File reference if it's a local file that exists
+              if (!isSupabaseImage) {
+                try {
+                  final file = File(material.fileStoragePath!);
+                  if (file.existsSync()) {
+                    _selectedImage = file;
+                    debugPrint('Local image file loaded successfully');
+                  }
+                } catch (e) {
+                  debugPrint('Error loading local image file: $e');
                 }
-              } catch (e) {
-                debugPrint('Error loading image file: $e');
               }
             }
 
@@ -230,9 +243,9 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
         });
         return;
       }
-
       setState(() {
         _selectedFile = file;
+        _hasSelectedNewFile = true; // Mark that user selected a new file
       });
     }
   }
@@ -354,11 +367,10 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                 'Image too large (${(fileSize / (1024 * 1024)).toStringAsFixed(1)}MB, max 10MB)';
           });
           return;
-        }
-
-        // Set the image immediately to avoid blank screen if cropping fails
+        } // Set the image immediately to avoid blank screen if cropping fails
         setState(() {
           _selectedImage = imageFile;
+          _hasSelectedNewImage = true; // Mark that user selected a new image
           // Clear any previous error
           _fileErrorText = null;
         });
@@ -370,12 +382,13 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
 
           // If cropping was successful, update the image
           if (croppedFile != null) {
-            final File croppedImageFile = File(croppedFile.path);
-
-            // Update the image if we're still in image mode
+            final File croppedImageFile = File(
+              croppedFile.path,
+            ); // Update the image if we're still in image mode
             if (mounted && _selectedContentType == ContentType.imageFile) {
               setState(() {
                 _selectedImage = croppedImageFile;
+                // Keep the flag as true since this is still a new image
               });
 
               // Try OCR on the cropped image
@@ -653,6 +666,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
 
     await viewModel.createMaterial(params);
   }
+
   Future<void> _updateExistingMaterial(StudyMaterialViewModel viewModel) async {
     if (widget.materialId == null || _loadedMaterial == null) return;
 
@@ -666,73 +680,42 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
         final documentJson = _quillController.document.toDelta().toJson();
         updatedContent = json.encode(documentJson);
         break;
-        
       case ContentType.textFile:
-        // Only include the file path if a new file was selected
-        if (_selectedFile != null) {
-          // Check if this is a new file (not a storage path)
-          final bool isExistingSupabaseFile = _loadedMaterial?.fileStoragePath != null && 
-              _loadedMaterial!.fileStoragePath!.contains('supabase.co');
-          
-          final bool isSameLocalFile = _loadedMaterial?.fileStoragePath != null &&
-              _selectedFile!.path == _loadedMaterial?.fileStoragePath;
-              
-          final bool isNewFile = !(isExistingSupabaseFile || isSameLocalFile);
+        // Only include the file path if user has selected a new file
+        if (_selectedFile != null && _hasSelectedNewFile) {
+          debugPrint('Using new text file: ${_selectedFile!.path}');
+          newFilePath = _selectedFile!.path;
 
-          if (isNewFile) {
-            debugPrint('Using new text file: ${_selectedFile!.path}');
-            newFilePath = _selectedFile!.path;
-
-            // For text files, try to read the content if possible
-            try {
-              final extension = newFilePath.split('.').last.toLowerCase();
-              if (extension == 'txt' || extension == 'md') {
-                updatedContent = await _selectedFile!.readAsString();
-              } else {
-                // For other files (PDF, DOCX), store filename info
-                updatedContent = 'File uploaded: ${_selectedFile!.path.split(Platform.isWindows ? '\\' : '/').last}';
-              }
-            } catch (e) {
-              debugPrint('Could not read file content: $e');
-              // If reading fails, at least store file information
-              updatedContent = 'File uploaded: ${_selectedFile!.path.split(Platform.isWindows ? '\\' : '/').last}';
+          // For text files, try to read the content if possible
+          try {
+            final extension = newFilePath.split('.').last.toLowerCase();
+            if (extension == 'txt' || extension == 'md') {
+              updatedContent = await _selectedFile!.readAsString();
+            } else {
+              // For other files (PDF, DOCX), store filename info
+              updatedContent =
+                  'File uploaded: ${_selectedFile!.path.split(Platform.isWindows ? '\\' : '/').last}';
             }
-          } else {
-            debugPrint('No new text file selected, keeping original');
+          } catch (e) {
+            debugPrint('Could not read file content: $e');
+            // If reading fails, at least store file information
+            updatedContent =
+                'File uploaded: ${_selectedFile!.path.split(Platform.isWindows ? '\\' : '/').last}';
           }
-        } else if (_loadedMaterial?.fileStoragePath == null) {
-          // No file was previously attached and none selected now
-          // This is an error case in edit mode
-          throw Exception('Please select a file');
+        } else {
+          debugPrint('No new text file selected, keeping original');
         }
         break;
-
       case ContentType.imageFile:
-        // Only include the image path if a new image was selected
-        if (_selectedImage != null) {
-          // Check if this is a new image (not a storage path)
-          final bool isExistingSupabaseFile = _loadedMaterial?.fileStoragePath != null && 
-              _loadedMaterial!.fileStoragePath!.contains('supabase.co');
-              
-          final bool isSameLocalFile = _loadedMaterial?.fileStoragePath != null &&
-              _selectedImage!.path == _loadedMaterial?.fileStoragePath;
-              
-          final bool isNewImage = !(isExistingSupabaseFile || isSameLocalFile);
-
-          if (isNewImage) {
-            debugPrint('Using new image: ${_selectedImage!.path}');
-            newFilePath = _selectedImage!.path;
-          } else {
-            debugPrint('No new image selected, keeping original');
-          }
-        } else if (_loadedMaterial?.fileStoragePath == null) {
-          // No image was previously attached and none selected now
-          // This is an error case in edit mode
-          throw Exception('Please select an image');
+        // Only include the image path if user has selected a new image
+        if (_selectedImage != null && _hasSelectedNewImage) {
+          debugPrint('Using new image: ${_selectedImage!.path}');
+          newFilePath = _selectedImage!.path;
+        } else {
+          debugPrint('No new image selected, keeping original');
         }
         break;
     }
-
     final params = UpdateStudyMaterialParams(
       id: _loadedMaterial!.id,
       title: _titleController.text.trim(),
@@ -742,14 +725,16 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               : _descriptionController.text.trim(),
       subject: _selectedSubject,
       originalContentText: updatedContent,
-      // Include new file path if available
-      fileStoragePath: newFilePath,
+      // Only include file path if a new file was actually selected
+      fileStoragePath: newFilePath, // This will be null if no new file
       // Preserve the OCR text if it was modified
       ocrExtractedText: _extractedImageText,
     );
 
+    debugPrint('Updating material with newFilePath: $newFilePath');
     await viewModel.updateMaterial(params);
   }
+
   bool _isContentRequired() {
     // Content is always required, even in edit mode
     // The difference is in edit mode we might already have content
@@ -758,29 +743,29 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
 
   bool _isContentProvided() {
     final bool isEditing = widget.materialId != null;
-    
+
     switch (_selectedContentType) {
       case ContentType.typedText:
         // Check if Quill document has actual content
         final text = _quillController.document.toPlainText().trim();
         return text.isNotEmpty;
-        
+
       case ContentType.textFile:
         // In edit mode, we either need the original file or a new selection
         if (isEditing) {
-          return _selectedFile != null || 
-                (_loadedMaterial?.fileStoragePath != null && 
-                 _loadedMaterial!.fileStoragePath!.isNotEmpty);
+          return _selectedFile != null ||
+              (_loadedMaterial?.fileStoragePath != null &&
+                  _loadedMaterial!.fileStoragePath!.isNotEmpty);
         }
         // In create mode, we need a new file selection
         return _selectedFile != null;
-        
+
       case ContentType.imageFile:
         // In edit mode, we either need the original image or a new selection
         if (isEditing) {
-          return _selectedImage != null || 
-                (_loadedMaterial?.fileStoragePath != null && 
-                 _loadedMaterial!.fileStoragePath!.isNotEmpty);
+          return _selectedImage != null ||
+              (_loadedMaterial?.fileStoragePath != null &&
+                  _loadedMaterial!.fileStoragePath!.isNotEmpty);
         }
         // In create mode, we need a new image selection
         return _selectedImage != null;
@@ -789,6 +774,21 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Add debug print to check _loadedMaterial
+    if (widget.materialId != null &&
+        _loadedMaterial != null &&
+        _selectedContentType == ContentType.imageFile) {
+      debugPrint(
+        'Build with image material: ${_loadedMaterial?.fileStoragePath}',
+      );
+      debugPrint(
+        '_selectedImage is ${_selectedImage != null ? 'not null' : 'null'}',
+      );
+      debugPrint(
+        'Is Supabase image: ${_loadedMaterial?.fileStoragePath?.contains('supabase.co')}',
+      );
+    }
+
     final isEditing = widget.materialId != null;
     final appTheme = Theme.of(
       context,
@@ -1065,22 +1065,24 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               Text(_fileErrorText!, style: const TextStyle(color: Colors.red)),
             ],
           ],
-        );      case ContentType.textFile:
+        );
+      case ContentType.textFile:
         final bool isEditing = widget.materialId != null;
-        
+
         // Extract original filename more reliably with cross-platform path handling
         String? originalFileName;
         if (isEditing && _loadedMaterial?.fileStoragePath != null) {
           final String path = _loadedMaterial!.fileStoragePath!;
-          
+
           if (path.contains('supabase.co')) {
             // If it's a URL, extract the filename from the last part
             final segments = path.split('/');
             final fullName = segments.last;
-            
+
             // Extract meaningful name by removing UUID prefixes if present (typical pattern)
             final parts = fullName.split('_');
-            originalFileName = parts.length > 1 ? parts.sublist(1).join('_') : fullName;
+            originalFileName =
+                parts.length > 1 ? parts.sublist(1).join('_') : fullName;
           } else {
             // For local file paths, handle both Windows and UNIX paths
             final segments = path.split(Platform.isWindows ? '\\' : '/');
@@ -1099,15 +1101,18 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.athenaPurple.withOpacity(0.3)),
+                  border: Border.all(
+                    color: AppColors.athenaPurple.withOpacity(0.3),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.file_present_rounded, 
-                          color: AppColors.athenaPurple, 
+                        Icon(
+                          Icons.file_present_rounded,
+                          color: AppColors.athenaPurple,
                           size: 18,
                         ),
                         const SizedBox(width: 8),
@@ -1123,7 +1128,10 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(6),
@@ -1135,7 +1143,12 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              originalFileName,
+                              originalFileName
+                                  .split('/')
+                                  .last
+                                  .split('_')
+                                  .sublist(1)
+                                  .join('_'),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w500,
                                 height: 1.3,
@@ -1149,13 +1162,16 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-            ],            AppButton(
+            ],
+            AppButton(
               label:
                   isEditing
                       ? 'Change File'
                       : 'Select Text File (.pdf, .docx, etc.)',
               onPressed: _pickTextFile,
-              icon: Icon(isEditing ? Icons.change_circle_outlined : Icons.upload_file),
+              icon: Icon(
+                isEditing ? Icons.change_circle_outlined : Icons.upload_file,
+              ),
               backgroundColor: isEditing ? Colors.white : AppColors.secondary,
               textColor: isEditing ? AppColors.secondary : Colors.white,
             ),
@@ -1184,6 +1200,8 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                       onPressed: () {
                         setState(() {
                           _selectedFile = null;
+                          _hasSelectedNewFile =
+                              false; // Reset flag when removing file
                         });
                       },
                     ),
@@ -1196,39 +1214,40 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               Text(_fileErrorText!, style: const TextStyle(color: Colors.red)),
             ],
           ],
-        );      case ContentType.imageFile:
+        );
+      case ContentType.imageFile:
         final bool isEditing = widget.materialId != null;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header for Image content section
-            Container(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.image, 
-                    size: 20, 
-                    color: AppColors.athenaDarkGrey,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Image Content',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+            if (!isEditing)
+              // Header for Image content section
+              Container(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.image,
+                      size: 20,
                       color: AppColors.athenaDarkGrey,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Text(
+                      'Image Content',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.athenaDarkGrey,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            
-            // Always show either the image preview or the picker
+            // In edit mode OR if we have a local image, use appropriate display
             _selectedImage != null
                 ? _buildSelectedImagePreview()
-                : _buildImagePickerArea(),// OCR text section in edit mode when we have an image but no extracted text
+                : _buildImagePickerArea(), // OCR text section in edit mode when we have an image but no extracted text
             if (isEditing &&
                 _extractedImageText == null &&
                 _selectedImage != null) ...[
@@ -1682,98 +1701,322 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
       ],
     );
   }
+
   Widget _buildImagePickerArea() {
     final bool isEditing = widget.materialId != null;
+    final bool hasOriginalImage =
+        isEditing &&
+        _loadedMaterial?.fileStoragePath != null &&
+        _loadedMaterial!.fileStoragePath!.isNotEmpty;
 
-    return GestureDetector(
-      onTap: _pickImage,
-      child: Container(
-        height: 200,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isEditing ? AppColors.secondary.withOpacity(0.5) : Colors.grey.shade300, 
-            width: isEditing ? 2.5 : 2,
-          ),
-          boxShadow: isEditing 
-              ? [BoxShadow(
-                  color: AppColors.secondary.withOpacity(0.2),
-                  blurRadius: 4,
+    // For Supabase stored images, the fileStoragePath is just the path within the bucket
+    // not a full URL, so we need a different check
+    final bool isSupabaseImage =
+        hasOriginalImage &&
+        !_loadedMaterial!.fileStoragePath!.startsWith('/') &&
+        !File(_loadedMaterial!.fileStoragePath!).existsSync();
+
+    // Debug prints to help diagnose issues
+    if (isEditing) {
+      debugPrint(
+        '_buildImagePickerArea - hasOriginalImage: $hasOriginalImage, isSupabaseImage: $isSupabaseImage',
+      );
+      debugPrint(
+        '_buildImagePickerArea - filePath: ${_loadedMaterial?.fileStoragePath}',
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Display original image if in edit mode and available from Supabase
+        if (hasOriginalImage && isSupabaseImage) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppColors.athenaPurple.withOpacity(0.3),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 5,
                   spreadRadius: 1,
-                )] 
-              : null,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isEditing
-                    ? AppColors.secondary.withOpacity(0.2)
-                    : AppColors.secondary.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isEditing
-                    ? Icons.change_circle_outlined
-                    : Icons.add_photo_alternate_rounded,
-                size: 40,
-                color: AppColors.secondary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              isEditing ? 'Change Image' : 'Add Image',
-              style: TextStyle(
-                fontSize: 16, 
-                fontWeight: FontWeight.w600,
-                color: isEditing ? AppColors.secondary : Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              isEditing
-                  ? 'Select a new image from camera or gallery'
-                  : 'Tap to select an image from camera or gallery',
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-            ),
-            if (isEditing) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.secondary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Icon(Icons.info_outline, size: 16, color: AppColors.secondary),
-                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.image_rounded,
+                      color: AppColors.athenaPurple,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
                     Text(
-                      'Original image not available',
+                      'Current Image',
                       style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.secondary,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.athenaDarkGrey,
+                        fontSize: 14,
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+
+                // Image container with border and shadow
+                Container(
+                  height: 250,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 3,
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    // Use a FutureBuilder to load the Supabase image
+                    child: FutureBuilder<String>(
+                      // Get a temporary signed URL for the image from Supabase
+                      future: _getSupabaseImageUrl(
+                        _loadedMaterial!.fileStoragePath!,
+                      ),
+                      builder: (context, snapshot) {
+                        debugPrint(
+                          'FutureBuilder state: ${snapshot.connectionState}, hasData: ${snapshot.hasData}, error: ${snapshot.error}',
+                        );
+
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  color: AppColors.athenaPurple,
+                                ),
+                                const SizedBox(height: 16),
+                                const Text('Loading image...'),
+                              ],
+                            ),
+                          );
+                        }
+
+                        if (snapshot.hasError ||
+                            !snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.broken_image,
+                                  size: 48,
+                                  color: Colors.grey,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Could not load image',
+                                  style: TextStyle(color: Colors.grey.shade700),
+                                ),
+                                if (snapshot.hasError) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '${snapshot.error}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.red,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        }
+
+                        debugPrint('Image URL: ${snapshot.data!}');
+                        return Image.network(
+                          snapshot.data!,
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CircularProgressIndicator(
+                                    value:
+                                        loadingProgress.expectedTotalBytes !=
+                                                null
+                                            ? loadingProgress
+                                                    .cumulativeBytesLoaded /
+                                                loadingProgress
+                                                    .expectedTotalBytes!
+                                            : null,
+                                    strokeWidth: 3,
+                                    color: AppColors.athenaPurple,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    loadingProgress.expectedTotalBytes != null
+                                        ? '${((loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!) * 100).toStringAsFixed(0)}%'
+                                        : 'Loading...',
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            debugPrint('Image error: $error');
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.broken_image,
+                                    size: 48,
+                                    color: Colors.grey,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Error loading image',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // The image picker area
+        GestureDetector(
+          onTap: _pickImage,
+          child: Container(
+            height: 160, // Reduced height when showing with original image
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color:
+                    isEditing
+                        ? AppColors.secondary.withOpacity(0.5)
+                        : Colors.grey.shade300,
+                width: isEditing ? 2 : 1.5,
               ),
-            ],
-          ],
+              boxShadow:
+                  isEditing
+                      ? [
+                        BoxShadow(
+                          color: AppColors.secondary.withOpacity(0.2),
+                          blurRadius: 4,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                      : null,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color:
+                        isEditing
+                            ? AppColors.secondary.withOpacity(0.2)
+                            : AppColors.secondary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isEditing
+                        ? Icons.change_circle_outlined
+                        : Icons.add_photo_alternate_rounded,
+                    size: 36,
+                    color: AppColors.secondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  isEditing ? 'Change Image' : 'Add Image',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isEditing ? AppColors.secondary : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Select from camera or gallery',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
+
+  // Helper method to get a temporary public URL for an image from Supabase
+  Future<String> _getSupabaseImageUrl(String storagePath) async {
+    debugPrint('Getting Supabase URL for: $storagePath');
+
+    if (storagePath.isEmpty) {
+      debugPrint('Empty storage path');
+      return '';
+    }
+
+    try {
+      final viewModel = ref.read(studyMaterialViewModelProvider.notifier);
+      final url = await viewModel.getSignedDownloadUrl(storagePath);
+
+      if (url == null || url.isEmpty) {
+        debugPrint('Received empty URL from getSignedDownloadUrl');
+        return '';
+      }
+
+      debugPrint('Successfully got Supabase URL: $url');
+      return url;
+    } catch (e) {
+      debugPrint('Error getting Supabase image URL: $e');
+      if (e is Error) {
+        debugPrint('Stack trace: ${e.stackTrace}');
+      }
+      return '';
+    }
+  }
+
   Widget _buildSelectedImagePreview() {
     final bool isEditing = widget.materialId != null;
-    final bool isNewImage = isEditing && 
-        _loadedMaterial?.fileStoragePath != null && 
+    final bool isNewImage =
+        isEditing &&
+        _loadedMaterial?.fileStoragePath != null &&
         !_selectedImage!.path.contains('supabase.co') &&
         _loadedMaterial?.fileStoragePath != _selectedImage?.path;
 
@@ -1785,33 +2028,43 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
             decoration: BoxDecoration(
-              color: isNewImage 
-                  ? AppColors.secondary.withOpacity(0.1) 
-                  : Colors.grey.shade50,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              color:
+                  isNewImage
+                      ? AppColors.secondary.withOpacity(0.1)
+                      : Colors.grey.shade50,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
               border: Border.all(
-                color: isNewImage 
-                    ? AppColors.secondary.withOpacity(0.5) 
-                    : Colors.grey.shade300,
+                color:
+                    isNewImage
+                        ? AppColors.secondary.withOpacity(0.5)
+                        : Colors.grey.shade300,
               ),
             ),
             child: Row(
               children: [
                 Icon(
-                  isNewImage ? Icons.change_circle_outlined : Icons.check_circle_outline,
-                  size: 18, 
+                  isNewImage
+                      ? Icons.change_circle_outlined
+                      : Icons.check_circle_outline,
+                  size: 18,
                   color: isNewImage ? AppColors.secondary : Colors.green,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    isNewImage 
+                    isNewImage
                         ? 'New image selected - will replace original'
                         : 'Current image from study material',
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight: isNewImage ? FontWeight.w500 : FontWeight.normal,
-                      color: isNewImage ? AppColors.secondary : Colors.grey.shade800,
+                      fontWeight:
+                          isNewImage ? FontWeight.w500 : FontWeight.normal,
+                      color:
+                          isNewImage
+                              ? AppColors.secondary
+                              : Colors.grey.shade800,
                     ),
                   ),
                 ),
@@ -1819,19 +2072,21 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
             ),
           ),
         ],
-        
+
         // Image preview with improved styling
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: isEditing 
-                ? const BorderRadius.vertical(bottom: Radius.circular(12))
-                : BorderRadius.circular(12),
+            borderRadius:
+                isEditing
+                    ? const BorderRadius.vertical(bottom: Radius.circular(12))
+                    : BorderRadius.circular(12),
             border: Border.all(
-              color: isEditing && isNewImage 
-                  ? AppColors.secondary.withOpacity(0.5) 
-                  : Colors.grey.shade300,
+              color:
+                  isEditing && isNewImage
+                      ? AppColors.secondary.withOpacity(0.5)
+                      : Colors.grey.shade300,
             ),
             boxShadow: [
               BoxShadow(
@@ -1846,9 +2101,12 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
             children: [
               // Image container
               ClipRRect(
-                borderRadius: isEditing 
-                    ? const BorderRadius.vertical(bottom: Radius.circular(0))
-                    : BorderRadius.circular(12),
+                borderRadius:
+                    isEditing
+                        ? const BorderRadius.vertical(
+                          bottom: Radius.circular(0),
+                        )
+                        : BorderRadius.circular(12),
                 child: SizedBox(
                   height: 250,
                   width: double.infinity,
@@ -1857,7 +2115,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                     children: [
                       // Image with error handling
                       Image.file(
-                        _selectedImage!, 
+                        _selectedImage!,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
@@ -1865,7 +2123,11 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                                Icon(
+                                  Icons.broken_image,
+                                  size: 48,
+                                  color: Colors.grey,
+                                ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Unable to load image',
@@ -1876,29 +2138,36 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                           );
                         },
                       ),
-                      
+
                       // Remove button
                       Positioned(
                         top: 8,
                         right: 8,
                         child: GestureDetector(
-                          onTap: () => setState(() {
-                            _selectedImage = null;
-                            // Only clear extracted text if we're in create mode
-                            // In edit mode, keep existing OCR text unless explicitly removed
-                            if (!isEditing) {
-                              _extractedImageText = null;
-                              _imageTextController?.dispose();
-                              _imageTextController = null;
-                            }
-                          }),
+                          onTap:
+                              () => setState(() {
+                                _selectedImage = null;
+                                _hasSelectedNewImage =
+                                    false; // Reset flag when removing image
+                                // Only clear extracted text if we're in create mode
+                                // In edit mode, keep existing OCR text unless explicitly removed
+                                if (!isEditing) {
+                                  _extractedImageText = null;
+                                  _imageTextController?.dispose();
+                                  _imageTextController = null;
+                                }
+                              }),
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: Colors.black.withOpacity(0.7),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.close, color: Colors.white, size: 20),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                         ),
                       ),
@@ -1906,7 +2175,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                   ),
                 ),
               ),
-              
+
               // Action buttons directly under the image
               Padding(
                 padding: const EdgeInsets.all(12),
@@ -1920,7 +2189,10 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(color: AppColors.secondary),
                           foregroundColor: AppColors.secondary,
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 8,
+                          ),
                         ),
                       ),
                     ),
@@ -1938,7 +2210,10 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                           backgroundColor: AppColors.athenaPurple,
                           foregroundColor: Colors.white,
                           elevation: 1,
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 8,
+                          ),
                         ),
                       ),
                     ),
@@ -1948,7 +2223,9 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 8),// Display extracted text section if available and NOT in edit mode
+        const SizedBox(
+          height: 8,
+        ), // Display extracted text section if available and NOT in edit mode
         // (since we're already handling it in the main build method for edit mode)
         if (_extractedImageText != null && widget.materialId == null) ...[
           const SizedBox(height: 24),
