@@ -19,7 +19,9 @@ class MaterialListItemCard extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    final (subjectColor, subjectIcon) = SubjectUtils.getSubjectAttributes(material.subject);
+    final (subjectColor, subjectIcon) = SubjectUtils.getSubjectAttributes(
+      material.subject,
+    );
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -42,7 +44,7 @@ class MaterialListItemCard extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildHeader(
     Color subjectColor,
     IconData subjectIcon,
@@ -97,6 +99,36 @@ class MaterialListItemCard extends StatelessWidget {
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _getContentTypeIcon(material.contentType),
+                          size: 12,
+                          color: Colors.grey[700],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _getContentTypeLabel(material.contentType),
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -166,5 +198,27 @@ class MaterialListItemCard extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  IconData _getContentTypeIcon(ContentType type) {
+    switch (type) {
+      case ContentType.typedText:
+        return Icons.text_fields_rounded;
+      case ContentType.imageFile:
+        return Icons.image_rounded;
+      case ContentType.textFile:
+        return Icons.description_rounded;
+    }
+  }
+
+  String _getContentTypeLabel(ContentType type) {
+    switch (type) {
+      case ContentType.typedText:
+        return 'Text';
+      case ContentType.imageFile:
+        return 'Image';
+      case ContentType.textFile:
+        return 'File';
+    }
   }
 }
