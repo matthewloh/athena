@@ -30,6 +30,7 @@ class MaterialDetailScreen extends ConsumerStatefulWidget {
 class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _isDeleting = false; // Track if this specific material is being deleted
 
   @override
   void initState() {
@@ -47,11 +48,20 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(studyMaterialViewModelProvider);
     final viewModel = ref.read(studyMaterialViewModelProvider.notifier);
-
-    // Load material if not already loaded
     final material = state.getMaterialById(widget.materialId);
-
     if (material == null) {
+      // Don't try to reload if we're currently deleting this material
+      if (_isDeleting) {
+        return Scaffold(
+          backgroundColor: AppColors.athenaOffWhite,
+          appBar: AppBar(
+            backgroundColor: AppColors.athenaPurple,
+            title: const Text('Deleting...'),
+          ),
+          body: const Center(child: CircularProgressIndicator()),
+        );
+      }
+
       // Try to load the material
       WidgetsBinding.instance.addPostFrameCallback((_) {
         viewModel.loadMaterial(widget.materialId);
@@ -126,10 +136,26 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
                 child: const Text('CANCEL'),
               ),
               TextButton(
-                onPressed: () {
-                  viewModel.deleteMaterial(material.id);
-                  context.pop(); // Close the dialog
-                  context.pop(); // Return to the materials list
+                onPressed: () async {
+                  // Set local deleting flag to prevent reload attempts
+                  setState(() {
+                    _isDeleting = true;
+                  });
+
+                  try {
+                    await viewModel.deleteMaterial(material.id);
+                    if (context.mounted) {
+                      context.pop(); // Close the dialog
+                      context.pop(); // Return to the materials list
+                    }
+                  } catch (e) {
+                    // Reset flag if deletion fails
+                    if (mounted) {
+                      setState(() {
+                        _isDeleting = false;
+                      });
+                    }
+                  }
                 },
                 child: const Text(
                   'DELETE',
@@ -206,7 +232,7 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
 
           const Divider(),
           const SizedBox(height: 16),
-          
+
           // Material content based on type
           if (material.contentType == ContentType.typedText)
             _buildTypedTextContent(material)
@@ -220,7 +246,7 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
               material,
               ref.read(studyMaterialViewModelProvider.notifier),
             ),
-          
+
           const SizedBox(height: 32),
         ],
       ),
@@ -702,7 +728,8 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
                       final Uri url = Uri.parse(snapshot.data!);
                       launchUrl(url, mode: LaunchMode.externalApplication);
                     }
-                  },                ),
+                  },
+                ),
                 // Show OCR button if there's no OCR text yet and we're not already processing
                 if ((material.ocrExtractedText == null ||
                         material.ocrExtractedText!.isEmpty) &&
@@ -710,7 +737,11 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
                   TextButton.icon(
                     icon: const Icon(Icons.document_scanner),
                     label: const Text('Extract Text (OCR)'),
-                    onPressed: () => _processRemoteImageWithOCR(snapshot.data!, material.id),
+                    onPressed:
+                        () => _processRemoteImageWithOCR(
+                          snapshot.data!,
+                          material.id,
+                        ),
                   ),
               ],
             ),
@@ -850,7 +881,12 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
         }
 
         // File URL retrieved successfully
-        final fileName = material.fileStoragePath!.split('/').last.split('_').sublist(1).join('_');
+        final fileName = material.fileStoragePath!
+            .split('/')
+            .last
+            .split('_')
+            .sublist(1)
+            .join('_');
         final fileExtension = fileName.split('.').last.toLowerCase();
 
         return Column(
@@ -922,7 +958,7 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
                     launchUrl(url, mode: LaunchMode.platformDefault);
                   },
                 ),
-                
+
                 // Open locally button - if the user already has downloaded the file
                 TextButton.icon(
                   icon: const Icon(Icons.folder_open),
@@ -942,63 +978,68 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
     // Show a dialog explaining how to use this feature
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Open Local File'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'This feature attempts to open a file with the same name from your downloads folder.',
-              style: TextStyle(fontSize: 16),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Open Local File'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'This feature attempts to open a file with the same name from your downloads folder.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 16),
+                const Text('Requirements:'),
+                const SizedBox(height: 8),
+                ...const [
+                  '• You must have downloaded this file previously',
+                  '• The file must be in your default downloads location',
+                  '• The filename must match exactly',
+                ].map(
+                  (text) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(text, style: TextStyle(fontSize: 14)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Attempting to open: $fileName',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            const Text('Requirements:'),
-            const SizedBox(height: 8),
-            ...const [
-              '• You must have downloaded this file previously',
-              '• The file must be in your default downloads location',
-              '• The filename must match exactly',
-            ].map((text) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(text, style: TextStyle(fontSize: 14)),
-            )),
-            const SizedBox(height: 12),
-            Text(
-              'Attempting to open: $fileName',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => context.pop(),
-            child: const Text('CANCEL'),
+            actions: [
+              TextButton(
+                onPressed: () => context.pop(),
+                child: const Text('CANCEL'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  context.pop();
+                  // Try to launch the file using the downloads:// URI scheme
+                  // This is a simple approach and may not work on all platforms
+                  final encodedFileName = Uri.encodeComponent(fileName);
+                  launchUrl(
+                    Uri.parse('file:///Downloads/$encodedFileName'),
+                    mode: LaunchMode.platformDefault,
+                  ).then((success) {
+                    if (!success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Failed to open local file. Make sure you have downloaded it first.',
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  });
+                },
+                child: const Text('OPEN'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              context.pop();
-              // Try to launch the file using the downloads:// URI scheme
-              // This is a simple approach and may not work on all platforms
-              final encodedFileName = Uri.encodeComponent(fileName);
-              launchUrl(
-                Uri.parse('file:///Downloads/$encodedFileName'),
-                mode: LaunchMode.platformDefault,
-              ).then((success) {
-                if (!success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Failed to open local file. Make sure you have downloaded it first.'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              });
-            },
-            child: const Text('OPEN'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -1042,23 +1083,27 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
   }
 
   // Download image from URL and process with OCR
-  Future<void> _processRemoteImageWithOCR(String imageUrl, String materialId) async {
+  Future<void> _processRemoteImageWithOCR(
+    String imageUrl,
+    String materialId,
+  ) async {
     try {
       // Show processing dialog
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
-              Text("Downloading image for OCR processing...")
-            ],
-          ),
-        ),
+        builder:
+            (context) => const AlertDialog(
+              content: Row(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 16),
+                  Text("Downloading image for OCR processing..."),
+                ],
+              ),
+            ),
       );
-      
+
       // Download image
       final response = await http.get(Uri.parse(imageUrl));
       if (response.statusCode != 200) {
@@ -1068,32 +1113,38 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
         );
         return;
       }
-      
+
       // Save image to a temporary file
       final tempDir = await getTemporaryDirectory();
-      final tempImageFile = File('${tempDir.path}/temp_ocr_image_$materialId.jpg');
+      final tempImageFile = File(
+        '${tempDir.path}/temp_ocr_image_$materialId.jpg',
+      );
       await tempImageFile.writeAsBytes(response.bodyBytes);
-      
+
       // Close the download dialog
       context.pop();
-      
+
       // Process image with OCR
       setState(() {
-        ref.read(studyMaterialViewModelProvider.notifier).setProcessingOcr(true);
+        ref
+            .read(studyMaterialViewModelProvider.notifier)
+            .setProcessingOcr(true);
       });
-      
+
       final extractedText = await OcrUtils.processImageWithOCR(tempImageFile);
-      
+
       // Display result dialog
       if (mounted) {
-        final result = await OcrUtils.showOcrResultDialog(context, extractedText);
-        
+        final result = await OcrUtils.showOcrResultDialog(
+          context,
+          extractedText,
+        );
+
         if (result == true && extractedText != null) {
           // Save the OCR text to the material
-          await ref.read(studyMaterialViewModelProvider.notifier).saveExtractedOcrText(
-            materialId, 
-            extractedText
-          );
+          await ref
+              .read(studyMaterialViewModelProvider.notifier)
+              .saveExtractedOcrText(materialId, extractedText);
         }
       }
     } catch (e) {
@@ -1107,7 +1158,9 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
       // Reset OCR processing state
       if (mounted) {
         setState(() {
-          ref.read(studyMaterialViewModelProvider.notifier).setProcessingOcr(false);
+          ref
+              .read(studyMaterialViewModelProvider.notifier)
+              .setProcessingOcr(false);
         });
       }
     }
