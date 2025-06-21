@@ -50,8 +50,4 @@ class SimpleFailure extends Failure {
   const SimpleFailure(super.message, {super.code});
 }
 
-class ValidationFailure extends Failure {
-  const ValidationFailure(super.message) : super(statusCode: 400);
-}
-
 // Add more specific failure types as needed

@@ -12,11 +12,6 @@ class UpdateStudyMaterialUseCase {
   Future<Either<Failure, StudyMaterialEntity>> call(
     UpdateStudyMaterialParams params,
   ) async {
-    // Input validation
-    if (params.title != null && params.title!.trim().isEmpty) {
-      return Left(ValidationFailure('Title cannot be empty'));
-    }
-
     // Get the existing material first
     final existingResult = await _repository.getStudyMaterialById(params.id);
 
