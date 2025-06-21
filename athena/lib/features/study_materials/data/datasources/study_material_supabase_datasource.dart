@@ -206,17 +206,26 @@ class StudyMaterialSupabaseDataSourceImpl
   @override
   Future<String> requestAiSummary(String studyMaterialId) async {
     try {
-      // TODO: Implement AI summary generation using Supabase Edge Functions
-      // Example implementation:
-      // final response = await _supabaseClient.functions.invoke(
-      //   'generate-summary',
-      //   body: {'material_id': studyMaterialId},
-      // );
-      // return response.data['summary'] as String;
+      final response = await _supabaseClient.functions.invoke(
+        'summarize-material',
+        body: {'material_id': studyMaterialId},
+      );
 
-      throw ServerException('AI summary generation not yet implemented');
+      // Update the study material with the AI summary
+      if (response.data != null) {
+        final summary = response.data['summary'] as String?;
+        if (summary != null) {
+          // Update the study material with the AI summary
+          await _supabaseClient
+              .from('study_materials')
+              .update({'summary_text': summary, 'has_ai_summary': true})
+              .eq('id', studyMaterialId);
+        }
+      }
+
+      return response.data['summary'] as String;
     } catch (e) {
-      throw ServerException('Failed to generate AI summary: ${e.toString()}');
+      throw ServerException(e.toString());
     }
   }
 

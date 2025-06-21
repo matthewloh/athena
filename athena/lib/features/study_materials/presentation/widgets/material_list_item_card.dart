@@ -79,9 +79,10 @@ class MaterialListItemCard extends StatelessWidget {
               Text(
                 material.description ?? "No Description",
                 style: TextStyle(color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 8),
-              Row(
+              ),              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -101,7 +102,6 @@ class MaterialListItemCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
@@ -131,7 +131,6 @@ class MaterialListItemCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
                   if (material.hasAiSummary)
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -143,6 +142,7 @@ class MaterialListItemCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
                             Icons.auto_awesome,

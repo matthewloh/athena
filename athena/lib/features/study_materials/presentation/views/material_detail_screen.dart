@@ -15,6 +15,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 class MaterialDetailScreen extends ConsumerStatefulWidget {
   final String materialId;
@@ -49,6 +50,7 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
     final state = ref.watch(studyMaterialViewModelProvider);
     final viewModel = ref.read(studyMaterialViewModelProvider.notifier);
     final material = state.getMaterialById(widget.materialId);
+
     if (material == null) {
       // Don't try to reload if we're currently deleting this material
       if (_isDeleting) {
@@ -494,36 +496,72 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Header with title and action buttons
-        Row(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'AI-Generated Summary',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
-            const Spacer(),
-            // Copy button
-            IconButton(
-              tooltip: 'Copy summary to clipboard',
-              icon: const Icon(Icons.copy, size: 20),
-              onPressed: () {
-                // Copy to clipboard functionality
-                final summaryText = material.summaryText ?? '';
-                if (summaryText.isNotEmpty) {
-                  _copyToClipboard(summaryText);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Summary copied to clipboard'),
-                      behavior: SnackBarBehavior.floating,
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                // Regenerate button
+                TextButton.icon(
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: const Text('Regenerate'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
                     ),
-                  );
-                }
-              },
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: AppColors.athenaPurple,
+                  ),
+                  onPressed: () {
+                    viewModel.generateAiSummary(material.id);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Regenerating summary...'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+                // Copy button
+                TextButton.icon(
+                  icon: const Icon(Icons.copy, size: 16),
+                  label: const Text('Copy'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: Colors.grey[600],
+                  ),
+                  onPressed: () {
+                    // Copy to clipboard functionality
+                    final summaryText = material.summaryText ?? '';
+                    if (summaryText.isNotEmpty) {
+                      _copyToClipboard(summaryText);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Summary copied to clipboard'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ],
             ),
           ],
         ),
         const SizedBox(height: 12),
 
-        // Summary content
+        // Summary content with markdown support
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
@@ -539,33 +577,34 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
             ],
           ),
           padding: const EdgeInsets.all(16),
-          child: Text(
-            material.summaryText!,
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-        ),
-
-        const SizedBox(height: 24),
-
-        // Regenerate button
-        Center(
-          child: OutlinedButton.icon(
-            onPressed: () {
-              viewModel.generateAiSummary(material.id);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Regenerating summary...'),
-                  behavior: SnackBarBehavior.floating,
+          child: MarkdownBody(
+            data: material.summaryText!,
+            styleSheet: MarkdownStyleSheet.fromTheme(
+              Theme.of(context),
+            ).copyWith(
+              p: Theme.of(context).textTheme.bodyLarge,
+              h1: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+              h2: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              h3: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              listBullet: Theme.of(context).textTheme.bodyLarge,
+              blockquoteDecoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                border: const Border(
+                  left: BorderSide(color: AppColors.athenaPurple, width: 3),
                 ),
-              );
-            },
-            icon: const Icon(Icons.refresh),
-            label: const Text('Regenerate Summary'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
             ),
+            selectable: true,
           ),
         ),
+
+        SizedBox(height: 30),
       ],
     );
   }
