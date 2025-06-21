@@ -576,28 +576,82 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
               ),
             ],
           ),
-          padding: const EdgeInsets.all(16),
-          child: MarkdownBody(
+          padding: const EdgeInsets.all(16),          child: MarkdownBody(
             data: material.summaryText!,
             styleSheet: MarkdownStyleSheet.fromTheme(
               Theme.of(context),
             ).copyWith(
-              p: Theme.of(context).textTheme.bodyLarge,
-              h1: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-              h2: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              h3: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              listBullet: Theme.of(context).textTheme.bodyLarge,
+              // Main paragraph text
+              p: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontSize: 14,
+                height: 1.6,
+                color: Colors.grey[800],
+              ),
+              // Heading styles with proper hierarchy
+              h1: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+                color: AppColors.athenaPurple,
+                height: 1.3,
+              ),
+              h2: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                color: Colors.grey[800],
+                height: 1.4,
+              ),
+              h3: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 18,
+                color: Colors.grey[800],
+                height: 1.4,
+              ),
+              h4: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: Colors.grey[700],
+                height: 1.4,
+              ),
+              // List styling
+              listBullet: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontSize: 16,
+                height: 1.5,
+                color: AppColors.athenaPurple,
+              ),
+              // Code styling
+              code: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontFamily: 'monospace',
+                fontSize: 14,
+                backgroundColor: Colors.grey[100],
+                color: Colors.grey[800],
+              ),
+              codeblockDecoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              // Blockquote styling
+              blockquote: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontSize: 15,
+                fontStyle: FontStyle.italic,
+                color: Colors.grey[700],
+                height: 1.5,
+              ),
               blockquoteDecoration: BoxDecoration(
                 color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(4),
                 border: const Border(
-                  left: BorderSide(color: AppColors.athenaPurple, width: 3),
+                  left: BorderSide(color: AppColors.athenaPurple, width: 4),
                 ),
+              ),
+              // Emphasis styling
+              em: const TextStyle(
+                fontStyle: FontStyle.italic,
+                color: Colors.black87,
+              ),
+              strong: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
             ),
             selectable: true,
@@ -920,12 +974,7 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
         }
 
         // File URL retrieved successfully
-        final fileName = material.fileStoragePath!
-            .split('/')
-            .last
-            .split('_')
-            .sublist(1)
-            .join('_');
+        final fileName = material.fileStoragePath!.split('/').last;
         final fileExtension = fileName.split('.').last.toLowerCase();
 
         return Column(
@@ -952,7 +1001,7 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          fileName,
+                          fileName.split('_').sublist(1).join('_'),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -964,6 +1013,14 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
                           style: TextStyle(
                             color: Colors.grey.shade700,
                             fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Stored Filename: $fileName',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 12,
                           ),
                         ),
                       ],
@@ -1025,16 +1082,16 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'This feature attempts to open a file with the same name from your downloads folder.',
+                  'This will open your device\'s file manager to help you locate and open the file.',
                   style: TextStyle(fontSize: 16),
                 ),
                 const SizedBox(height: 16),
-                const Text('Requirements:'),
+                const Text('Tips:'),
                 const SizedBox(height: 8),
                 ...const [
-                  '• You must have downloaded this file previously',
-                  '• The file must be in your default downloads location',
-                  '• The filename must match exactly',
+                  '• Check your Downloads folder first',
+                  '• Look for files with similar names',
+                  '• The file may have been renamed when downloaded',
                 ].map(
                   (text) => Padding(
                     padding: const EdgeInsets.only(bottom: 4),
@@ -1043,7 +1100,7 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Attempting to open: $fileName',
+                  'Looking for: $fileName',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ],
@@ -1053,33 +1110,87 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
                 onPressed: () => context.pop(),
                 child: const Text('CANCEL'),
               ),
-              ElevatedButton(
+              TextButton(
                 onPressed: () {
                   context.pop();
-                  // Try to launch the file using the downloads:// URI scheme
-                  // This is a simple approach and may not work on all platforms
-                  final encodedFileName = Uri.encodeComponent(fileName);
-                  launchUrl(
-                    Uri.parse('file:///Downloads/$encodedFileName'),
-                    mode: LaunchMode.platformDefault,
-                  ).then((success) {
-                    if (!success) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Failed to open local file. Make sure you have downloaded it first.',
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  });
+                  _openFileManager();
                 },
-                child: const Text('OPEN'),
+                child: const Text(
+                  'OPEN FILE MANAGER',
+                  style: TextStyle(
+                    color: AppColors.athenaPurple,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
     );
+  }
+
+  // Open the device's file manager
+  void _openFileManager() async {
+    try {
+      // Try to open the Downloads folder using a content URI
+      // This is safer and works across different Android versions
+      final Uri downloadsUri = Uri.parse(
+        'content://com.android.externalstorage.documents/document/primary%3ADownload',
+      );
+
+      bool launched = await launchUrl(
+        downloadsUri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched) {
+        // Fallback: try to open any file manager app
+        final Uri fileManagerUri = Uri.parse(
+          'content://com.android.externalstorage.documents/root/primary',
+        );
+        launched = await launchUrl(
+          fileManagerUri,
+          mode: LaunchMode.externalApplication,
+        );
+      }
+
+      if (!launched) {
+        // Last resort: try opening the generic file manager intent
+        final Uri genericUri = Uri.parse(
+          'file:///storage/emulated/0/Download/',
+        );
+        launched = await launchUrl(
+          genericUri,
+          mode: LaunchMode.externalApplication,
+        );
+      }
+
+      if (!launched) {
+        // If all else fails, show a helpful message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Could not open file manager. Please open your Downloads folder manually.',
+              ),
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error opening file manager: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not open file manager. Please check your Downloads folder manually.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   // Helper to get appropriate icon based on file extension

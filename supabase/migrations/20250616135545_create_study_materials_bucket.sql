@@ -3,7 +3,8 @@ INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 VALUES (
   'study-materials',
   'study-materials',
-  false, -- Set to false for private access, users can only access their own files  10485760, -- 10MB file size limit
+  false, -- Set to false for private access, users can only access their own files
+  10485760, -- 10MB file size limit
   ARRAY[
     'text/plain', 
     'application/pdf', 
