@@ -1,58 +1,51 @@
 import 'package:athena/core/enums/subject.dart';
 import 'package:equatable/equatable.dart';
 
-class QuizEntity extends Equatable{
-  final String id;
+class CreateQuizParams extends Equatable {
   final String userId;
   final String title;
   final String? studyMaterialId;
   final Subject? subject;
   final String? description;
-  final DateTime createdAt;
-  final DateTime updatedAt;
 
-  const QuizEntity({
-    required this.id,
+  const CreateQuizParams({
     required this.userId,
     required this.title,
     this.studyMaterialId,
     this.subject,
     this.description,
-    required this.createdAt,
-    required this.updatedAt,
   });
 
   @override
   List<Object?> get props => [
-    id,
     userId,
     title,
     studyMaterialId,
     subject,
     description,
-    createdAt,
-    updatedAt,
   ];
 
-QuizEntity copyWith({
-    String? id,
+  CreateQuizParams copyWith({
     String? userId,
     String? title,
     String? studyMaterialId,
     Subject? subject,
     String? description,
-    DateTime? createdAt,
-    DateTime? updatedAt,
   }) {
-    return QuizEntity(
-      id: id ?? this.id,
+    return CreateQuizParams(
       userId: userId ?? this.userId,
       title: title ?? this.title,
       studyMaterialId: studyMaterialId ?? this.studyMaterialId,
       subject: subject ?? this.subject,
       description: description ?? this.description,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+  
+  const CreateQuizParams.fromUserInput({
+    required this.userId,
+    required this.title,
+    this.studyMaterialId,
+    this.subject,
+    this.description,
+  });
 }

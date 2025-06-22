@@ -3,12 +3,12 @@ import 'package:athena/features/review/domain/entities/quiz_entity.dart';
 import 'package:athena/features/review/domain/repositories/review_repository.dart';
 import 'package:dartz/dartz.dart';
 
-class GetAllQuizzesUseCase {
+class GetQuizUseCase {
   final ReviewRepository _repository;
 
-  GetAllQuizzesUseCase(this._repository);
+  GetQuizUseCase(this._repository);
 
-  Future<Either<Failure, List<QuizEntity>>> call(String userId) {
-    return _repository.getAllQuizzes(userId);
+  Future<Either<Failure, QuizEntity>> call(String quizId) {
+    return _repository.getQuizById(quizId);
   }
 }
