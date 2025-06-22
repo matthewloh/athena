@@ -12,7 +12,19 @@ import 'package:dartz/dartz.dart';
 class ChatRepositoryImpl implements ChatRepository {
   final ChatRemoteDataSource _remoteDataSource;
 
+<<<<<<< HEAD
   ChatRepositoryImpl(this._remoteDataSource);
+=======
+  ChatRepositoryImpl(this._remoteDataSource, this._ref);
+
+  String _getCurrentUserId() {
+    final user = _ref.read(appAuthProvider).valueOrNull;
+    if (user == null) {
+      throw AuthException('User not authenticated.', statusCode: '401');
+    }
+    return user.id;
+  }
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
 
   @override
   Stream<List<ChatMessageEntity>> getMessagesStream(String conversationId) {
@@ -88,6 +100,13 @@ class ChatRepositoryImpl implements ChatRepository {
     String userId,
   ) async {
     try {
+<<<<<<< HEAD
+=======
+      final userId = _getCurrentUserId();
+      print(
+        'ChatRepositoryImpl: Attempting to get conversations for userId: $userId',
+      );
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
       final conversations = await _remoteDataSource.getConversations(userId);
       return Right(conversations);
     } on AuthException catch (e) {

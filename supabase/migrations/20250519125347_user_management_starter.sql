@@ -46,7 +46,8 @@ CREATE TRIGGER on_auth_user_created
 
 -- Set up storage bucket for avatars
 INSERT INTO storage.buckets (id, name)
-  VALUES ('avatars', 'avatars');
+  VALUES ('avatars', 'avatars')
+  ON CONFLICT (id) DO NOTHING;
 
 -- Create robust RLS policies for the avatars storage bucket - NO PUBLIC ACCESS
 

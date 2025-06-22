@@ -48,19 +48,22 @@ CreateConversationUseCase createConversationUseCase(Ref ref) {
 // Additional Use Cases for enhanced functionality
 
 @riverpod
+<<<<<<< HEAD
 Future<void> updateConversation(
   Ref ref,
   String conversationId, {
   String? title,
 }) async {
+=======
+Future<void> updateConversation(Ref ref, String conversationId, {String? title}) async {
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
   // Implementation would go here - for now just a placeholder
   // This would call repository.updateConversation with the new data
 }
 
 @riverpod
 Future<void> deleteConversation(Ref ref, String conversationId) async {
-  final repository = ref.read(chatRepositoryProvider);
-  final result = await repository.deleteConversation(conversationId);
+  final result = await ref.read(chatRepositoryProvider).deleteConversation(conversationId);
   return result.fold(
     (failure) => throw Exception(failure.message),
     (_) => null,

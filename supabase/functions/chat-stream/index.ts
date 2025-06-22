@@ -1,9 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { openai } from "npm:@ai-sdk/openai";
 import { CoreMessage, streamText } from "npm:ai";
 import { z } from "npm:zod";
-
 // Zod schemas for request validation
 const ChatRequestSchema = z.object({
   conversationId: z.string().uuid(),
@@ -11,6 +10,7 @@ const ChatRequestSchema = z.object({
   includeContext: z.boolean().default(true),
   maxContextMessages: z.number().min(1).max(20).default(10),
 });
+<<<<<<< HEAD
 
 const MessageSchema = z.object({
   id: z.string(),
@@ -22,6 +22,8 @@ const MessageSchema = z.object({
 type ChatRequest = z.infer<typeof ChatRequestSchema>;
 type Message = z.infer<typeof MessageSchema>;
 
+=======
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
 // System prompt with academic focus
 const SYSTEM_PROMPT =
   `You are Athena, an AI-powered study companion designed to help students learn effectively. Your core principles:
@@ -43,6 +45,7 @@ When explaining concepts:
 - Connect new information to previously learned concepts
 
 Always maintain a helpful, encouraging, and educational tone.`;
+<<<<<<< HEAD
 
 // Helper function to get conversation context
 async function getConversationContext(
@@ -71,10 +74,13 @@ async function getConversationContext(
     }));
 }
 
+=======
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
 // Helper function to save message to database
 async function saveMessage(
-  supabase: any,
+  supabase: SupabaseClient,
   conversationId: string,
+<<<<<<< HEAD
   sender: "user" | "ai",
   content: string,
 ): Promise<void> {
@@ -86,11 +92,22 @@ async function saveMessage(
       content,
     });
 
+=======
+  sender: string,
+  content: string,
+) {
+  const { error } = await supabase.from("chat_messages").insert({
+    conversation_id: conversationId,
+    sender,
+    content,
+  });
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
   if (error) {
     console.error("Error saving message:", error);
     throw new Error("Failed to save message");
   }
 }
+<<<<<<< HEAD
 
 // Helper function to ensure conversation exists
 async function ensureConversationExists(
@@ -113,6 +130,8 @@ async function ensureConversationExists(
   return !!data;
 }
 
+=======
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -121,23 +140,29 @@ Deno.serve(async (req) => {
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
+<<<<<<< HEAD
         "Access-Control-Allow-Headers":
           "authorization, x-client-info, apikey, content-type",
+=======
+        "Access-Control-Allow-Headers": "authorization, content-type",
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
       },
     });
   }
-
   try {
-    // Initialize Supabase client with user context
+    // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
         global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
+          headers: {
+            Authorization: req.headers.get("Authorization") ?? "",
+          },
         },
       },
     );
+<<<<<<< HEAD
 
     // Get user from auth
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -172,6 +197,11 @@ Deno.serve(async (req) => {
       );
     }
 
+=======
+    // Parse and validate request body
+    const body = await req.json();
+    const validatedRequest = ChatRequestSchema.parse(body);
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
     // Save user message first
     await saveMessage(
       supabase,
@@ -179,6 +209,7 @@ Deno.serve(async (req) => {
       "user",
       validatedRequest.message,
     );
+<<<<<<< HEAD
 
     // Get conversation context if requested
     let messages: CoreMessage[] = [
@@ -203,33 +234,58 @@ Deno.serve(async (req) => {
     // Initialize OpenAI client correctly
     const model = openai("gpt-4o");
 
+=======
+    // Prepare messages for AI
+    const messages = [
+      {
+        role: "system",
+        content: SYSTEM_PROMPT,
+      },
+      {
+        role: "user",
+        content: validatedRequest.message,
+      },
+    ];
+    // Initialize OpenAI client
+    const model = openai("gpt-4o-mini", {
+      apiKey: Deno.env.get("OPENAI_API_KEY"),
+    });
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
     // Stream the AI response
     const result = await streamText({
       model,
-      messages,
+      messages: messages as CoreMessage[],
       temperature: 0.7,
       maxTokens: 1000,
     });
-
     // Create a readable stream for the response
+<<<<<<< HEAD
     let fullResponse = "";
+=======
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          let fullResponse = "";
           for await (const delta of result.textStream) {
             fullResponse += delta;
+<<<<<<< HEAD
 
             // Send each chunk as Server-Sent Events format
+=======
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
             const chunk = `data: ${
               JSON.stringify({
                 type: "chunk",
                 content: delta,
               })
             }\n\n`;
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
             controller.enqueue(new TextEncoder().encode(chunk));
           }
-
           // Save the complete AI response to database
           await saveMessage(
             supabase,
@@ -237,7 +293,6 @@ Deno.serve(async (req) => {
             "ai",
             fullResponse,
           );
-
           // Send completion signal
           const completionChunk = `data: ${
             JSON.stringify({
@@ -246,7 +301,10 @@ Deno.serve(async (req) => {
             })
           }\n\n`;
           controller.enqueue(new TextEncoder().encode(completionChunk));
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
           controller.close();
         } catch (error) {
           console.error("Streaming error:", error);
@@ -264,7 +322,6 @@ Deno.serve(async (req) => {
         }
       },
     });
-
     return new Response(stream, {
       headers: {
         "Content-Type": "text/event-stream",
@@ -272,12 +329,17 @@ Deno.serve(async (req) => {
         "Connection": "keep-alive",
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
+<<<<<<< HEAD
         "Access-Control-Allow-Headers":
           "authorization, x-client-info, apikey, content-type",
+=======
+        "Access-Control-Allow-Headers": "authorization, content-type",
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
       },
     });
   } catch (error) {
     console.error("Chat stream error:", error);
+<<<<<<< HEAD
 
     if (error instanceof z.ZodError) {
       return new Response(
@@ -292,6 +354,8 @@ Deno.serve(async (req) => {
       );
     }
 
+=======
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
     const errorMessage = error instanceof Error
       ? error.message
       : "Unknown error";
@@ -302,11 +366,18 @@ Deno.serve(async (req) => {
       }),
       {
         status: 500,
+<<<<<<< HEAD
         headers: { "Content-Type": "application/json" },
+=======
+        headers: {
+          "Content-Type": "application/json",
+        },
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
       },
     );
   }
 });
+<<<<<<< HEAD
 
 /* To invoke locally:
 
@@ -326,3 +397,5 @@ Deno.serve(async (req) => {
     }'
 
 */
+=======
+>>>>>>> 5c773fd1b1b3cf86226be86f597a1f7c26919e81
