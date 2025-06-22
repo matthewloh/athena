@@ -176,6 +176,23 @@ class ChatViewModel extends _$ChatViewModel {
     );
   }
 
+  /// Starts a new chat session without creating a backend conversation
+  /// The conversation will be created when the user sends their first message
+  void startNewChat() {
+    final previousState = state.valueOrNull ?? _initialChatState();
+    _activeConversationId = null;
+    
+    state = AsyncData(
+      previousState.copyWith(
+        activeConversationId: null,
+        currentMessages: [],
+        isLoading: false,
+        isReceivingAiResponse: false,
+        clearError: true,
+      ),
+    );
+  }
+
   Future<void> setActiveConversation(String? conversationId) async {
     final previousState = state.valueOrNull ?? _initialChatState();
     
@@ -247,7 +264,7 @@ class ChatViewModel extends _$ChatViewModel {
 
   Future<void> sendMessage(String text) async {
     if (_activeConversationId == null) {
-      // If no active conversation, create one first
+      // If no active conversation, create one first with the user's message
       await createNewConversation(
         title: _generateTitleFromMessage(text),
         firstMessageText: text,

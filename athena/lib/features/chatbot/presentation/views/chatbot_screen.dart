@@ -15,14 +15,52 @@ class ChatbotScreen extends ConsumerStatefulWidget {
   ConsumerState<ChatbotScreen> createState() => _ChatbotScreenState();
 }
 
-class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
+class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
+    with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   bool _isInitialized = false;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  
+  // Animation controllers for ChatGPT-style animations
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+  
+  // Gesture tracking
+  bool _isDrawerOpen = false;
 
   @override
   void initState() {
     super.initState();
+    
+    // Initialize animations
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    ));
+    
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeOutCubic,
+    ));
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeChatbot();
     });
@@ -43,11 +81,17 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
          await chatViewModel.setActiveConversation(currentState.conversations.first.id);
       }
     }
+    
+    // Start animations
+    _fadeController.forward();
+    _slideController.forward();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _fadeController.dispose();
+    _slideController.dispose();
     super.dispose();
   }
 
@@ -60,6 +104,44 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
           curve: Curves.easeOut,
         );
       });
+    }
+  }
+
+  void _toggleDrawer() {
+    if (_scaffoldKey.currentState?.isDrawerOpen == true) {
+      Navigator.of(context).pop();
+      setState(() => _isDrawerOpen = false);
+    } else {
+      _scaffoldKey.currentState?.openDrawer();
+      setState(() => _isDrawerOpen = true);
+    }
+  }
+
+  void _handleHorizontalDragStart(DragStartDetails details) {
+    // Only respond to edge swipes
+    const edgeThreshold = 20.0;
+    
+    if (details.globalPosition.dx < edgeThreshold) {
+      // Starting from left edge - prepare to open drawer
+    }
+  }
+
+  void _handleHorizontalDragUpdate(DragUpdateDetails details) {
+    // Handle swipe to open/close drawer
+    const sensitivity = 4.0;
+    
+    if (details.primaryDelta! > sensitivity) {
+      // Swiping right - open drawer
+      if (!_isDrawerOpen && details.globalPosition.dx < 100) {
+        _scaffoldKey.currentState?.openDrawer();
+        setState(() => _isDrawerOpen = true);
+      }
+    } else if (details.primaryDelta! < -sensitivity) {
+      // Swiping left - close drawer
+      if (_isDrawerOpen) {
+        Navigator.of(context).pop();
+        setState(() => _isDrawerOpen = false);
+      }
     }
   }
 
@@ -76,284 +158,445 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
       }
     });
 
-    return Scaffold(
-      key: _scaffoldKey,
-      appBar: AppBar(
-        backgroundColor: AppColors.athenaBlue,
-        leading: IconButton(
-          icon: const Icon(Icons.history_rounded, color: Colors.white),
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-          tooltip: 'View Conversations',
+    return GestureDetector(
+      onHorizontalDragStart: _handleHorizontalDragStart,
+      onHorizontalDragUpdate: _handleHorizontalDragUpdate,
+      child: Scaffold(
+        key: _scaffoldKey,
+        appBar: _buildChatGPTStyleAppBar(chatStateAsync),
+        drawer: const ConversationListDrawer(),
+        onDrawerChanged: (isOpen) {
+          setState(() => _isDrawerOpen = isOpen);
+        },
+        body: Column(
+          children: [
+            Expanded(
+              child: chatStateAsync.when(
+                data: (chatState) {
+                  // Show loading for initial state
+                  if (chatState.isLoading && chatState.currentMessages.isEmpty) {
+                    return _buildLoadingView();
+                  }
+
+                  // Always show chat area - either with messages or empty and ready
+                  if (chatState.currentMessages.isEmpty && !chatState.isReceivingAiResponse) {
+                    return FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: SlideTransition(
+                        position: _slideAnimation,
+                        child: _buildReadyToChatView(context),
+                      ),
+                    );
+                  }
+
+                  // Build message list with proper bounds checking
+                  return FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                      itemCount: chatState.currentMessages.length,
+                      itemBuilder: (context, index) {
+                        if (index >= chatState.currentMessages.length) {
+                          return const SizedBox.shrink(); // Safety check
+                        }
+                        
+                        final message = chatState.currentMessages[index];
+                        return AnimatedOpacity(
+                          opacity: 1.0,
+                          duration: Duration(milliseconds: 200 + (index * 50)),
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: Offset(message.sender.name == 'user' ? 0.3 : -0.3, 0),
+                              end: Offset.zero,
+                            ).animate(CurvedAnimation(
+                              parent: _slideController,
+                              curve: Interval(
+                                (index * 0.1).clamp(0.0, 1.0),
+                                1.0,
+                                curve: Curves.easeOutCubic,
+                              ),
+                            )),
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: ChatBubble(message: message),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+                loading: () => _buildLoadingView(),
+                error: (err, stack) => _buildErrorView(context, err),
+              ),
+            ),
+            _buildChatGPTStyleInputArea(chatStateAsync),
+          ],
         ),
-        title: Text(
-          chatStateAsync.maybeWhen(
-            data: (data) {
-              if (data.activeConversationId == null || 
-                  data.conversations.where((c) => c.id == data.activeConversationId).isEmpty) {
-                return 'AI Chatbot'; // Default title if no active or not found
-              }
-              final activeConversation = data.conversations
-                  .firstWhere((c) => c.id == data.activeConversationId);
-              return activeConversation.title ?? 'AI Chatbot';
-            },
-            orElse: () => 'AI Chatbot',
-          ),
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildChatGPTStyleAppBar(AsyncValue<vm.ChatState> chatStateAsync) {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      surfaceTintColor: Colors.transparent,
+      leading: Container(
+        margin: const EdgeInsets.all(8.0),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          color: AppColors.athenaBlue.withValues(alpha: 0.1),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_comment_rounded, color: Colors.white),
-            onPressed: () {
-              ref
-                  .read(vm.chatViewModelProvider.notifier)
-                  .createNewConversation(title: 'New Chat');
-            },
-            tooltip: 'New Conversation',
+        child: IconButton(
+          icon: Icon(
+            _isDrawerOpen ? Icons.close : Icons.menu_rounded,
+            color: AppColors.athenaBlue,
+            size: 20,
           ),
-          IconButton(
-            icon: const Icon(Icons.info_outline_rounded, color: Colors.white),
-            onPressed: () => _showChatInfoDialog(context),
-            tooltip: 'About Chatbot',
+          onPressed: _toggleDrawer,
+          tooltip: _isDrawerOpen ? 'Close Menu' : 'Open Conversations',
+        ),
+      ),
+      title: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.athenaBlue, AppColors.athenaPurple],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.psychology_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  chatStateAsync.maybeWhen(
+                    data: (data) {
+                      if (data.activeConversationId == null || 
+                          data.conversations.where((c) => c.id == data.activeConversationId).isEmpty) {
+                        return 'Athena'; // Default title if no active or not found
+                      }
+                      final activeConversation = data.conversations
+                          .firstWhere((c) => c.id == data.activeConversationId);
+                      return activeConversation.title ?? 'Athena';
+                    },
+                    orElse: () => 'Athena',
+                  ),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                    fontSize: 18,
+                  ),
+                ),
+                Text(
+                  'AI Study Companion',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.black.withValues(alpha: 0.6),
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      drawer: const ConversationListDrawer(),
-      body: Column(
-        children: [
-          Expanded(
-            child: chatStateAsync.when(
-              data: (chatState) {
-                // Show loading for initial state
-                if (chatState.isLoading && chatState.currentMessages.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text('Initializing chat...'),
-                      ],
-                    ),
-                  );
-                }
-
-                // Always show chat area - either with messages or empty and ready
-                if (chatState.currentMessages.isEmpty && !chatState.isReceivingAiResponse) {
-                  return _buildReadyToChatView(context);
-                }
-
-                // Build message list with proper bounds checking
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: chatState.currentMessages.length,
-                  itemBuilder: (context, index) {
-                    if (index >= chatState.currentMessages.length) {
-                      return const SizedBox.shrink(); // Safety check
-                    }
-                    
-                    final message = chatState.currentMessages[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: ChatBubble(message: message),
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Loading conversations...'),
-                  ],
-                ),
-              ),
-              error: (err, stack) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Something went wrong',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        err is vm.ChatError ? err.message : err.toString(),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => _initializeChatbot(),
-                        child: const Text('Try Again'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+      actions: [
+        Container(
+          margin: const EdgeInsets.only(right: 8.0),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: AppColors.athenaBlue.withValues(alpha: 0.1),
           ),
-          
-          // Show typing indicator when AI is responding
-          chatStateAsync.maybeWhen(
-            data: (chatState) {
-              if (chatState.isReceivingAiResponse) {
-                return Container(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Athena is typing...',
-                        style: TextStyle(
-                          color: AppColors.athenaMediumGrey,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-              return const SizedBox.shrink();
+          child: IconButton(
+            icon: Icon(
+              Icons.add_rounded,
+              color: AppColors.athenaBlue,
+              size: 20,
+            ),
+            onPressed: () {
+              ref
+                  .read(vm.chatViewModelProvider.notifier)
+                  .startNewChat();
             },
-            orElse: () => const SizedBox.shrink(),
+            tooltip: 'New Conversation',
           ),
-          
-          // ALWAYS show message input bar - this is the key fix!
-          chatStateAsync.maybeWhen(
-            data: (chatState) => MessageInputBar(
-              onSendMessage: (text) {
-                if (text.trim().isNotEmpty) {
-                  ref
-                      .read(vm.chatViewModelProvider.notifier)
-                      .sendMessage(text.trim());
-                }
-              },
-              isSending: chatState.isLoading || chatState.isReceivingAiResponse,
+        ),
+      ],
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Container(
+          height: 1,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.transparent,
+                Colors.black.withValues(alpha: 0.1),
+                Colors.transparent,
+              ],
             ),
-            loading: () => MessageInputBar(
-              onSendMessage: (text) {
-                // Even during loading, allow message input
-                if (text.trim().isNotEmpty) {
-                  ref
-                      .read(vm.chatViewModelProvider.notifier)
-                      .sendMessage(text.trim());
-                }
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChatGPTStyleInputArea(AsyncValue<vm.ChatState> chatStateAsync) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, -10),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+          child: chatStateAsync.maybeWhen(
+            data: (data) => MessageInputBar(
+              onSend: (String message) {
+                ref.read(vm.chatViewModelProvider.notifier).sendMessage(message);
               },
-              isSending: true,
-            ),
-            error: (_, __) => MessageInputBar(
-              onSendMessage: (text) {
-                // Allow retry by sending message even in error state
-                if (text.trim().isNotEmpty) {
-                  ref
-                      .read(vm.chatViewModelProvider.notifier)
-                      .sendMessage(text.trim());
-                }
-              },
-              isSending: false,
+              isLoading: data.isReceivingAiResponse,
             ),
             orElse: () => MessageInputBar(
-              onSendMessage: (text) {
-                if (text.trim().isNotEmpty) {
-                  ref
-                      .read(vm.chatViewModelProvider.notifier)
-                      .sendMessage(text.trim());
-                }
+              onSend: (String message) {
+                ref.read(vm.chatViewModelProvider.notifier).sendMessage(message);
               },
-              isSending: false,
+              isLoading: false,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [AppColors.athenaBlue, AppColors.athenaPurple],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: const Icon(
+              Icons.psychology_rounded,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const CircularProgressIndicator(),
+          const SizedBox(height: 16),
+          const Text(
+            'Initializing Athena...',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorView(BuildContext context, Object err) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+              ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Something went wrong',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              err is vm.ChatError ? err.message : err.toString(),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => _initializeChatbot(),
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Try Again'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildReadyToChatView(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.chat_bubble_outline_rounded,
-            size: 80,
-            color: AppColors.athenaMediumGrey,
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Hi! I\'m Athena',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: AppColors.athenaDarkGrey,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Ask me anything to get started!',
-            textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: AppColors.athenaMediumGrey),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(16),
-            margin: const EdgeInsets.symmetric(horizontal: 32),
-            decoration: BoxDecoration(
-              color: AppColors.athenaPurple.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.athenaPurple.withValues(alpha: 0.3),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [AppColors.athenaBlue, AppColors.athenaPurple],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.athenaBlue.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.psychology_rounded,
+                size: 40,
+                color: Colors.white,
               ),
             ),
-            child: Text(
-              'I can help you with your studies, explain concepts, solve problems, or just have a conversation. Just type your message below!',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            const SizedBox(height: 24),
+            Text(
+              'Hi! I\'m Athena',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: AppColors.athenaDarkGrey,
+                fontWeight: FontWeight.w700,
+                fontSize: 24,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              'Your AI Study Companion',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.athenaMediumGrey,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.athenaBlue.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.athenaBlue.withValues(alpha: 0.1),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'I can help you with your studies, explain concepts, solve problems, or just have a conversation. Just type your message below!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.athenaDarkGrey,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      _buildSuggestionChip('Explain a concept', '💡'),
+                      _buildSuggestionChip('Help with homework', '📚'),
+                      _buildSuggestionChip('Study tips', '🎯'),
+                      _buildSuggestionChip('Quick question', '❓'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  void _showChatInfoDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('About Athena AI Chatbot'),
-            content: const SingleChildScrollView(
-              child: Text(
-                'Athena is your AI-powered study companion. Ask questions, get explanations, and explore topics. \n\nThis chatbot is currently under development. Response quality and features will improve over time.',
-              ),
+  Widget _buildSuggestionChip(String label, String emoji) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () {
+          ref.read(vm.chatViewModelProvider.notifier).sendMessage(label);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: AppColors.athenaBlue.withValues(alpha: 0.2),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 12)),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.athenaBlue,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
+        ),
+      ),
     );
   }
 }

@@ -32,7 +32,7 @@ ProfileRepository profileRepository(Ref ref) {
 // This provider will fetch the current user's profile.
 // It depends on the auth state, so it should react to login/logout.
 @riverpod
-Future<ProfileEntity?> currentUserProfile(CurrentUserProfileRef ref) async {
+Future<ProfileEntity?> currentUserProfile(Ref ref) async {
   // No need to watch appAuthProvider here directly,
   // as profileRepository.getCurrentUserProfile() internally gets the current user ID
   // or returns AuthFailure if not logged in.
