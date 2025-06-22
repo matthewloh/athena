@@ -20,11 +20,14 @@ This feature follows the Clean Architecture principles adopted by the Athena pro
 ### 3.1. Domain Layer (`lib/features/review/domain/`)
 
 - **Entities:**
-  - `QuizEntity.dart`: Represents a quiz collection (e.g., ID, title, study material reference, creation timestamp).
+  - `QuizEntity.dart`: Represents a quiz collection (e.g., ID, title, subject, description, study material reference, creation timestamp).
   - `QuizItemEntity.dart`: Represents individual quiz items (flashcards, MCQs) with spaced repetition metadata (easiness factor, interval, repetitions, next review date).
   - `ReviewSessionEntity.dart`: Represents a review session with performance metrics and session progress.
+  - `ReviewResponseEntity.dart`: Represents individual responses during review sessions with spaced repetition data.
   - `QuizType` enum: Defines types of quiz items (`flashcard`, `multipleChoice`).
   - `DifficultyRating` enum: User self-assessment ratings (`again`, `hard`, `good`, `easy`).
+  - `SessionType` enum: Types of review sessions (`mixed`, `dueOnly`, `newOnly`).
+  - `SessionStatus` enum: Review session states (`active`, `completed`, `abandoned`).
 - **Repositories:**
   - `ReviewRepository.dart` (Interface): Defines the contract for all review-related data operations, including:
     - Creating and managing quizzes.
@@ -46,7 +49,8 @@ This feature follows the Clean Architecture principles adopted by the Athena pro
 - **Models:**
   - `QuizModel.dart`: Data Transfer Object (DTO) for quizzes, with `fromJson`/`toJson` for Supabase.
   - `QuizItemModel.dart`: DTO for quiz items including spaced repetition fields, with `fromJson`/`toJson` for Supabase.
-  - `ReviewSessionModel.dart`: DTO for review sessions with performance metrics.
+  - `ReviewSessionModel.dart`: DTO for review sessions with performance metrics and session tracking.
+  - `ReviewResponseModel.dart`: DTO for individual review responses with spaced repetition calculations.
 - **Data Sources:**
   - `ReviewRemoteDataSource.dart` (Interface): Defines methods for interacting with the backend (Supabase).
   - `ReviewSupabaseDataSourceImpl.dart`: Concrete implementation using Supabase client to:
@@ -85,11 +89,13 @@ This feature follows the Clean Architecture principles adopted by the Athena pro
 ### 3.4. Backend Integration (Supabase)
 
 - **Tables:**
-  - `quizzes`: Stores quiz metadata (`id`, `user_id`, `title`, `study_material_id`, `created_at`, `updated_at`).
+  - `quizzes`: Stores quiz metadata (`id`, `user_id`, `title`, `subject`, `description`, `study_material_id`, `created_at`, `updated_at`).
   - `quiz_items`: Stores individual quiz items with spaced repetition fields:
     - Basic fields: `id`, `quiz_id`, `user_id`, `item_type`, `question_text`, `answer_text`
     - MCQ fields: `mcq_options` (JSONB), `mcq_correct_option_key`
     - Spaced repetition fields: `easiness_factor`, `interval_days`, `repetitions`, `last_reviewed_at`, `next_review_date`
+  - `review_sessions`: Tracks review session metadata and performance metrics (`id`, `user_id`, `quiz_id`, `session_type`, `total_items`, `completed_items`, `correct_responses`, `average_difficulty`, `session_duration_seconds`, `status`, `started_at`, `completed_at`).
+  - `review_responses`: Records individual responses during review sessions with spaced repetition calculations (`id`, `session_id`, `quiz_item_id`, `user_id`, `difficulty_rating`, `response_time_seconds`, `user_answer`, `is_correct`, `previous_*`, `new_*`, `responded_at`).
 - **Edge Function:**
   - `generate-quiz-questions`: TypeScript Edge Function responsible for:
     - Receiving study material content and question generation parameters.
@@ -137,17 +143,18 @@ The system implements a simplified version of the SM-2 (SuperMemo 2) algorithm:
 ## 7. Current Status
 
 - **Architecture Planned:** Complete domain, data, and presentation layer architecture defined.
-- **Database Schema:** Detailed Supabase table schemas for quizzes and quiz items with spaced repetition support.
+- **Database Schema:** ✅ **COMPLETED** - Detailed Supabase table schemas for quizzes and quiz items with spaced repetition support. Enhanced with `subject` and `description` fields for flexible quiz categorization.
 - **Algorithm Design:** Spaced repetition algorithm (SM-2) specification completed.
 - **UI/UX Design:** Comprehensive screen layouts and user interaction flows planned.
 - **AI Integration Plan:** Edge function design for LLM-powered question generation.
 
 ## 8. Next Steps & To-Do
 
-- **Database Implementation:**
-  - Create and implement `quizzes` and `quiz_items` table schemas in Supabase.
-  - Set up proper RLS policies for user data isolation.
-  - Create database indexes for performance optimization (especially `next_review_date`).
+- **Database Implementation:** ✅ **COMPLETED**
+  - ✅ Created and implemented `quizzes`, `quiz_items`, `review_sessions`, and `review_responses` table schemas in Supabase.
+  - ✅ Enhanced `quizzes` table with `subject` and `description` fields for better categorization.
+  - ✅ Set up proper RLS policies for user data isolation.
+  - ✅ Created database indexes for performance optimization (especially `next_review_date`).
 
 - **Core Feature Development:**
   - Implement domain layer entities and use cases.
@@ -187,3 +194,66 @@ The system implements a simplified version of the SM-2 (SuperMemo 2) algorithm:
 - **Data Migration:** Plan for future algorithm improvements and data schema evolution.
 - **Analytics:** Track learning patterns and system effectiveness for continuous improvement.
 - **Scalability:** Design for users with large numbers of quizzes and review items.
+
+## 10. Enhanced Quiz Schema
+
+The quiz system supports both study material-linked and standalone quizzes through enhanced schema design:
+
+### **Quiz Fields:**
+- **`title`** (required): The quiz name/title
+- **`subject`** (optional): Subject categorization (e.g., "Mathematics", "Biology", "History")
+- **`description`** (optional): Additional context or notes about the quiz
+- **`study_material_id`** (optional): Link to existing study material
+
+### **Use Cases:**
+- **Linked to Study Material:**
+  - Create quizzes directly from selected study material content.
+  - Include/exclude specific sections of the material.
+  - Generate initial questions (flashcards, MCQs) based on the material.
+
+- **Standalone Quizzes:**
+  - Manually create quizzes without linking to study materials.
+  - Use for self-assessment, exam preparation, or topic revision.
+  - Full control over question content and structure.
+
+- **AI-Assisted Creation:**
+  - Option to use AI for generating quiz questions from study materials.
+  - Review and edit AI-generated questions before saving.
+
+- **Flexible Review Sessions:**
+  - Review based on due items from all quizzes or specific subjects/topics.
+  - Mixed review sessions with new and previously learned items.
+  - Customizable session length and difficulty level.
+
+## 11. Database Schema Details
+
+The review system uses 4 main tables to support comprehensive spaced repetition and session tracking:
+
+### **Core Tables:**
+
+#### **1. `quizzes` Table:**
+- **Purpose**: Stores quiz collections and metadata
+- **Key Fields**: `id`, `user_id`, `title`, `subject`, `description`, `study_material_id`
+- **Features**: Supports both study material-linked and standalone quizzes
+
+#### **2. `quiz_items` Table:**
+- **Purpose**: Individual quiz items (flashcards/MCQs) with spaced repetition data
+- **Key Fields**: `question_text`, `answer_text`, `mcq_options`, `easiness_factor`, `interval_days`, `repetitions`, `next_review_date`
+- **Features**: Full SM-2 algorithm support, flexible question types
+
+#### **3. `review_sessions` Table:**
+- **Purpose**: Tracks review session metadata and performance metrics
+- **Key Fields**: `session_type`, `total_items`, `completed_items`, `correct_responses`, `average_difficulty`, `session_duration_seconds`, `status`
+- **Features**: Session progress tracking, performance analytics, session types (mixed/due only/new only)
+
+#### **4. `review_responses` Table:**
+- **Purpose**: Records individual item responses with spaced repetition calculations
+- **Key Fields**: `difficulty_rating`, `response_time_seconds`, `user_answer`, `is_correct`, `previous_*`, `new_*`
+- **Features**: Detailed response tracking, before/after spaced repetition values for analytics
+
+### **Schema Benefits:**
+- **Complete Audit Trail**: Every response and calculation is recorded
+- **Performance Analytics**: Detailed session and response metrics
+- **Flexible Session Types**: Support for different review strategies
+- **Historical Analysis**: Track learning progress over time
+- **Algorithm Transparency**: Before/after values for spaced repetition calculations
