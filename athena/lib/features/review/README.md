@@ -63,28 +63,52 @@ This feature follows the Clean Architecture principles adopted by the Athena pro
 
 ### 3.3. Presentation Layer (`lib/features/review/presentation/`)
 
-- **ViewModel / Providers:**
-  - `ReviewViewModel.dart` (extends `AsyncNotifier`):
-    - Manages the state of the review system UI (`ReviewState`).
-    - Handles quiz creation, review session management, and progress tracking.
-    - Implements spaced repetition algorithm logic for scheduling reviews.
-    - Interacts with domain layer use cases.
-    - Provides methods like `loadQuizzes`, `createQuiz`, `startReviewSession`, `submitResponse`, `generateAiQuestions`.
-  - `review_providers.dart`: Contains Riverpod providers for the `ReviewViewModel`, use cases, repository, and data source.
-  - `ReviewState`: Helper class to hold UI state (list of quizzes, current review session, due items count, loading status, error status).
-  - `ReviewError`: Helper class for specific error messages related to review operations.
+- **Providers:**
+  - `review_providers.dart`: Contains Riverpod providers for all review feature dependencies:
+    - Use case providers (`getAllQuizzesUseCaseProvider`, `createQuizUseCaseProvider`, etc.)
+    - Repository and data source providers
+    - ViewModel providers for each screen's state management
+
+- **ViewModels & State Management:**
+  - `review_viewmodel.dart` & `review_state.dart`: 
+    - Main review dashboard state management
+    - Handles quiz list display, due items overview, and navigation to other screens
+    - Manages loading states and error handling for quiz data
+  
+  - `create_quiz_viewmodel.dart` & `create_quiz_state.dart`:
+    - Manages quiz creation flow (manual and AI-assisted)
+    - Handles form validation, quiz metadata input, and initial question creation
+    - Coordinates with AI question generation use cases
+  
+  - `edit_quiz_viewmodel.dart` & `edit_quiz_state.dart`:
+    - Manages quiz editing operations (title, description, questions)
+    - Handles adding/removing/modifying quiz items
+    - Provides CRUD operations for existing quiz content
+  
+  - `review_session_viewmodel.dart` & `review_session_state.dart`:
+    - Controls active review session flow and progress tracking
+    - Manages question presentation, user responses, and spaced repetition calculations
+    - Handles session completion and performance metrics
+  
+  - `quiz_results_viewmodel.dart` & `quiz_results_state.dart`:
+    - Displays session completion summary and performance analytics
+    - Shows spaced repetition adjustments and next review scheduling
+    - Provides navigation back to dashboard or start new session
+
 - **Views (Screens):**
-  - `review_dashboard_screen.dart`: Main dashboard showing quiz overview, due items, and progress statistics.
-  - `create_quiz_screen.dart`: Interface for creating new quizzes manually or with AI assistance.
-  - `review_session_screen.dart`: Interactive review session with flashcards and multiple-choice questions.
-  - `quiz_results_screen.dart`: Session summary and performance feedback.
+  - `review_screen.dart`: Main dashboard showing quiz overview, due items count, and quick access to review sessions
+  - `create_quiz_screen.dart`: Interface for creating new quizzes with title, subject, description, and initial questions
+  - `edit_quiz_screen.dart`: Screen for modifying existing quiz metadata and managing quiz items
+  - `review_session_screen.dart`: Interactive review session with flashcard/MCQ presentation and difficulty rating
+  - `quiz_results_screen.dart`: Session summary displaying performance metrics, completion stats, and next review schedule
+
 - **Widgets:**
-  - `QuizCard.dart`: Displays quiz information with due items count and access to review sessions.
-  - `FlashcardWidget.dart`: Interactive flashcard component with flip animation and self-assessment controls.
-  - `MultipleChoiceWidget.dart`: Multiple-choice question interface with option selection.
-  - `ProgressIndicator.dart`: Shows review session progress and completion status.
-  - `DifficultyButtons.dart`: Self-assessment buttons for spaced repetition feedback.
-  - `ReviewStatsWidget.dart`: Displays learning analytics and progress metrics.
+  - `quiz_card.dart`: Displays quiz information cards with due items count, subject, and quick action buttons
+  - `flashcard.dart`: Interactive flashcard component with flip animation and self-assessment controls
+  - `multiple_choice_widget.dart`: Multiple-choice question interface with option selection and answer validation
+  - `progress_indicator.dart`: Shows review session progress, completion percentage, and time elapsed
+  - `difficulty_buttons.dart`: Self-assessment buttons for spaced repetition feedback (Again, Hard, Good, Easy)
+  - `review_stats_widget.dart`: Displays learning analytics, streak information, and progress metrics
 
 ### 3.4. Backend Integration (Supabase)
 
