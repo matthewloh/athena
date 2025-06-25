@@ -2,6 +2,7 @@ import 'package:athena/core/theme/app_colors.dart';
 // import 'package:athena/features/chatbot/domain/entities/conversation_entity.dart'; // Not directly used here
 import 'package:athena/features/chatbot/presentation/viewmodel/chat_viewmodel.dart'
     as vm;
+import 'package:athena/features/chatbot/presentation/widgets/athena_logo.dart';
 import 'package:athena/features/chatbot/presentation/widgets/chat_bubble.dart';
 import 'package:athena/features/chatbot/presentation/widgets/conversation_list_drawer.dart';
 import 'package:athena/features/chatbot/presentation/widgets/message_input_bar.dart';
@@ -276,11 +277,7 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
               ),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(
-              Icons.psychology_rounded,
-              color: Colors.white,
-              size: 20,
-            ),
+            child: const AthenaLogo.small(showBackground: false),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -415,11 +412,7 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
                 end: Alignment.bottomRight,
               ),
             ),
-            child: const Icon(
-              Icons.psychology_rounded,
-              color: Colors.white,
-              size: 32,
-            ),
+            child: const AthenaLogo.medium(showBackground: false),
           ),
           const SizedBox(height: 16),
           const CircularProgressIndicator(),
@@ -493,7 +486,6 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
@@ -509,10 +501,9 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.psychology_rounded,
-                size: 40,
-                color: Colors.white,
+              child: const AthenaLogo.extraLarge(
+                showBackground: false,
+                padding: EdgeInsets.all(20),
               ),
             ),
             const SizedBox(height: 24),

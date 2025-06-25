@@ -1,6 +1,8 @@
 import 'package:athena/core/theme/app_colors.dart';
 // import 'package:athena/features/chatbot/domain/entities/conversation_entity.dart'; // Not directly used here, ViewModel provides it
-import 'package:athena/features/chatbot/presentation/viewmodel/chat_viewmodel.dart' as vm;
+import 'package:athena/features/chatbot/presentation/viewmodel/chat_viewmodel.dart'
+    as vm;
+import 'package:athena/features/chatbot/presentation/widgets/athena_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart'; // For date formatting
@@ -9,7 +11,8 @@ class ConversationListDrawer extends ConsumerStatefulWidget {
   const ConversationListDrawer({super.key});
 
   @override
-  ConsumerState<ConversationListDrawer> createState() => _ConversationListDrawerState();
+  ConsumerState<ConversationListDrawer> createState() =>
+      _ConversationListDrawerState();
 }
 
 class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
@@ -24,15 +27,14 @@ class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(-1.0, 0.0),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
-    
+    ).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+    );
+
     _slideController.forward();
   }
 
@@ -120,11 +122,7 @@ class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
-                  Icons.psychology_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
+                child: const AthenaLogo.small(showBackground: false),
               ),
               const SizedBox(width: 10),
               const Expanded(
@@ -166,25 +164,31 @@ class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
       itemBuilder: (context, index) {
         final conversation = chatState.conversations[index];
         final bool isActive = chatState.activeConversationId == conversation.id;
-        
+
         return AnimatedContainer(
           duration: Duration(milliseconds: 200 + (index * 50)),
           margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
           decoration: BoxDecoration(
-            color: isActive 
-              ? AppColors.athenaBlue.withValues(alpha: 0.1)
-              : Colors.transparent,
+            color:
+                isActive
+                    ? AppColors.athenaBlue.withValues(alpha: 0.1)
+                    : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
-            border: isActive 
-              ? Border.all(color: AppColors.athenaBlue.withValues(alpha: 0.3))
-              : null,
+            border:
+                isActive
+                    ? Border.all(
+                      color: AppColors.athenaBlue.withValues(alpha: 0.3),
+                    )
+                    : null,
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(10),
               onTap: () {
-                ref.read(vm.chatViewModelProvider.notifier).setActiveConversation(conversation.id);
+                ref
+                    .read(vm.chatViewModelProvider.notifier)
+                    .setActiveConversation(conversation.id);
                 Navigator.of(context).pop(); // Close the drawer
               },
               child: Padding(
@@ -195,9 +199,10 @@ class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: isActive 
-                          ? AppColors.athenaBlue
-                          : AppColors.athenaBlue.withValues(alpha: 0.1),
+                        color:
+                            isActive
+                                ? AppColors.athenaBlue
+                                : AppColors.athenaBlue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
@@ -216,8 +221,12 @@ class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                              color: isActive ? AppColors.athenaBlue : AppColors.athenaDarkGrey,
+                              fontWeight:
+                                  isActive ? FontWeight.w600 : FontWeight.w500,
+                              color:
+                                  isActive
+                                      ? AppColors.athenaBlue
+                                      : AppColors.athenaDarkGrey,
                               fontSize: 14,
                             ),
                           ),
@@ -239,21 +248,29 @@ class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
                           await _showDeleteDialog(context, conversation);
                         }
                       },
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete_outline_rounded, 
-                                   color: Theme.of(context).colorScheme.error,
-                                   size: 16),
-                              const SizedBox(width: 6),
-                              Text('Delete',
-                                   style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                            ],
-                          ),
-                        ),
-                      ],
+                      itemBuilder:
+                          (context) => [
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.delete_outline_rounded,
+                                    color: Theme.of(context).colorScheme.error,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Delete',
+                                    style: TextStyle(
+                                      color:
+                                          Theme.of(context).colorScheme.error,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
@@ -317,8 +334,7 @@ class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () {
-                ref.read(vm.chatViewModelProvider.notifier)
-                   .startNewChat();
+                ref.read(vm.chatViewModelProvider.notifier).startNewChat();
                 Navigator.of(context).pop();
               },
               icon: const Icon(Icons.add_rounded, size: 18),
@@ -326,7 +342,10 @@ class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.athenaBlue,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -347,10 +366,7 @@ class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
           SizedBox(height: 16),
           Text(
             'Loading conversations...',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -368,7 +384,9 @@ class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                color: Theme.of(
+                  context,
+                ).colorScheme.error.withValues(alpha: 0.1),
               ),
               child: Icon(
                 Icons.error_outline_rounded,
@@ -379,9 +397,9 @@ class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
             const SizedBox(height: 16),
             Text(
               'Error loading conversations',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
@@ -403,18 +421,14 @@ class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(
-            color: Colors.black.withValues(alpha: 0.1),
-            width: 1,
-          ),
+          top: BorderSide(color: Colors.black.withValues(alpha: 0.1), width: 1),
         ),
       ),
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
           onPressed: () {
-            ref.read(vm.chatViewModelProvider.notifier)
-               .startNewChat();
+            ref.read(vm.chatViewModelProvider.notifier).startNewChat();
             Navigator.of(context).pop();
           },
           icon: const Icon(Icons.add_rounded, size: 18),
@@ -438,11 +452,15 @@ class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Row(
             children: [
-              Icon(Icons.delete_outline_rounded, 
-                   color: Theme.of(context).colorScheme.error),
+              Icon(
+                Icons.delete_outline_rounded,
+                color: Theme.of(context).colorScheme.error,
+              ),
               const SizedBox(width: 8),
               const Text('Delete Conversation'),
             ],
@@ -474,7 +492,9 @@ class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
     );
 
     if (confirmDelete == true) {
-      await ref.read(vm.chatViewModelProvider.notifier).deleteConversation(conversation.id);
+      await ref
+          .read(vm.chatViewModelProvider.notifier)
+          .deleteConversation(conversation.id);
     }
   }
-} 
+}
