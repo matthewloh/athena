@@ -1,28 +1,27 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'create_quiz_viewmodel.dart';
+part of 'review_viewmodel.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$createQuizViewModelHash() =>
-    r'b7e14fcb4fffcdb421ba20e8aba747ce2a044c73';
+String _$reviewViewModelHash() => r'56e5fc35a65a751bdeb902c5036239d611a608dc';
 
-/// See also [CreateQuizViewModel].
-@ProviderFor(CreateQuizViewModel)
-final createQuizViewModelProvider =
-    AutoDisposeNotifierProvider<CreateQuizViewModel, CreateQuizState>.internal(
-      CreateQuizViewModel.new,
-      name: r'createQuizViewModelProvider',
+/// See also [ReviewViewModel].
+@ProviderFor(ReviewViewModel)
+final reviewViewModelProvider =
+    AutoDisposeNotifierProvider<ReviewViewModel, ReviewState>.internal(
+      ReviewViewModel.new,
+      name: r'reviewViewModelProvider',
       debugGetCreateSourceHash:
           const bool.fromEnvironment('dart.vm.product')
               ? null
-              : _$createQuizViewModelHash,
+              : _$reviewViewModelHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
-typedef _$CreateQuizViewModel = AutoDisposeNotifier<CreateQuizState>;
+typedef _$ReviewViewModel = AutoDisposeNotifier<ReviewState>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

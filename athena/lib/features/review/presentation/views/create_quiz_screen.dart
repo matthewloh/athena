@@ -12,8 +12,9 @@ import 'package:go_router/go_router.dart';
 
 class CreateQuizScreen extends ConsumerStatefulWidget {
   final String? studyMaterialId;
+  final String? initialMode;
 
-  const CreateQuizScreen({super.key, this.studyMaterialId});
+  const CreateQuizScreen({super.key, this.studyMaterialId, this.initialMode});
 
   @override
   ConsumerState<CreateQuizScreen> createState() => _CreateQuizScreenState();
@@ -29,9 +30,20 @@ class _CreateQuizScreenState extends ConsumerState<CreateQuizScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Parse initial mode from string
+      CreateQuizMode? initialMode;
+      if (widget.initialMode == 'manual') {
+        initialMode = CreateQuizMode.manual;
+      } else if (widget.initialMode == 'ai') {
+        initialMode = CreateQuizMode.aiGenerated;
+      }
+
       ref
           .read(createQuizViewModelProvider.notifier)
-          .initialize(studyMaterialId: widget.studyMaterialId);
+          .initialize(
+            studyMaterialId: widget.studyMaterialId,
+            initialMode: initialMode,
+          );
     });
   }
 

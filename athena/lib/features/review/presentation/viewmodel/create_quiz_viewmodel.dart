@@ -29,14 +29,30 @@ class CreateQuizViewModel extends _$CreateQuizViewModel {
     return const CreateQuizState();
   }
 
-  // Initialize screen with optional study material
-  void initialize({String? studyMaterialId}) {
+  // Initialize screen with optional study material and mode
+  void initialize({String? studyMaterialId, CreateQuizMode? initialMode}) {
+    String? updatedStudyMaterialId = state.selectedStudyMaterialId;
+    CreateQuizMode updatedMode = state.mode;
+
     if (studyMaterialId != null) {
+      updatedStudyMaterialId = studyMaterialId;
+      // Default to AI generated mode if study material is provided
+      updatedMode = CreateQuizMode.aiGenerated;
+    }
+
+    if (initialMode != null) {
+      updatedMode = initialMode;
+    }
+
+    // Update state if anything changed
+    if (updatedStudyMaterialId != state.selectedStudyMaterialId || 
+        updatedMode != state.mode) {
       state = state.copyWith(
-        selectedStudyMaterialId: studyMaterialId,
-        mode: CreateQuizMode.aiGenerated,
+        selectedStudyMaterialId: updatedStudyMaterialId,
+        mode: updatedMode,
       );
     }
+
     _loadStudyMaterials();
   }
 

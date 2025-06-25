@@ -285,7 +285,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/${AppRouteNames.createQuiz}',
         name: AppRouteNames.createQuiz,
-        builder: (context, state) => const CreateQuizScreen(),
+        builder:
+            (context, state) => CreateQuizScreen(
+              studyMaterialId: state.uri.queryParameters['studyMaterialId'],
+              initialMode: state.uri.queryParameters['mode'],
+            ),
       ),
     ],
   );
