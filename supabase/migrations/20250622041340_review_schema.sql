@@ -3,9 +3,10 @@
 -- including quizzes, quiz_items tables with spaced repetition support, indexes, and RLS policies
 
 -- Create enum types for quiz system
-CREATE TYPE quiz_item_type AS ENUM ('flashcard', 'multiple_choice');
+CREATE TYPE quiz_type AS ENUM ('flashcard', 'multipleChoice');
+CREATE TYPE quiz_item_type AS ENUM ('flashcard', 'multipleChoice');
 CREATE TYPE difficulty_rating AS ENUM ('again', 'hard', 'good', 'easy');
-CREATE TYPE session_type AS ENUM ('mixed', 'due_only', 'new_only');
+CREATE TYPE session_type AS ENUM ('mixed', 'dueOnly', 'newOnly');
 CREATE TYPE session_status AS ENUM ('active', 'completed', 'abandoned');
 
 -- Create quizzes table
@@ -13,6 +14,7 @@ CREATE TABLE public.quizzes (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
+    quiz_type quiz_type NOT NULL DEFAULT 'flashcard', -- Type of quiz (flashcard or multiple choice)
     study_material_id UUID REFERENCES public.study_materials(id) ON DELETE SET NULL,
     subject subject, -- Optional subject for categorization (enum defined in separate migration)
     description TEXT, -- Optional description for additional context
@@ -51,20 +53,23 @@ CREATE TABLE public.quiz_items (
     metadata JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    
-    -- Constraints
+      -- Constraints
     CONSTRAINT quiz_items_question_not_empty CHECK (LENGTH(TRIM(question_text)) > 0),
-    CONSTRAINT quiz_items_answer_not_empty CHECK (LENGTH(TRIM(answer_text)) > 0),
+    CONSTRAINT quiz_items_answer_required_for_flashcard CHECK (
+        (item_type = 'flashcard' AND LENGTH(TRIM(answer_text)) > 0)
+        OR
+        (item_type = 'multipleChoice')
+    ),
     CONSTRAINT quiz_items_question_length CHECK (LENGTH(question_text) <= 1000),
     CONSTRAINT quiz_items_answer_length CHECK (LENGTH(answer_text) <= 2000),
     CONSTRAINT quiz_items_easiness_factor_range CHECK (easiness_factor >= 1.3 AND easiness_factor <= 3.0),
     CONSTRAINT quiz_items_interval_days_positive CHECK (interval_days >= 0),
     CONSTRAINT quiz_items_repetitions_positive CHECK (repetitions >= 0),
-    
+
     -- MCQ specific constraints
     CONSTRAINT quiz_items_mcq_options_required 
         CHECK (
-            (item_type = 'multiple_choice' AND mcq_options IS NOT NULL AND mcq_correct_option_key IS NOT NULL) 
+            (item_type = 'multipleChoice' AND mcq_options IS NOT NULL AND mcq_correct_option_key IS NOT NULL) 
             OR 
             (item_type = 'flashcard' AND mcq_options IS NULL AND mcq_correct_option_key IS NULL)
         ),
@@ -72,7 +77,7 @@ CREATE TABLE public.quiz_items (
         CHECK (
             mcq_options IS NULL 
             OR 
-            (jsonb_typeof(mcq_options) = 'object' AND jsonb_array_length(jsonb_object_keys(mcq_options)) >= 2)
+            jsonb_typeof(mcq_options) = 'object'
         )
 );
 
@@ -157,6 +162,7 @@ CREATE INDEX idx_quiz_items_quiz_user ON public.quiz_items(quiz_id, user_id);
 
 -- Indexes for quiz management
 CREATE INDEX idx_quizzes_user_updated ON public.quizzes(user_id, updated_at DESC);
+CREATE INDEX idx_quizzes_quiz_type ON public.quizzes(quiz_type);
 CREATE INDEX idx_quizzes_study_material ON public.quizzes(study_material_id) 
     WHERE study_material_id IS NOT NULL;
 CREATE INDEX idx_quizzes_subject ON public.quizzes(user_id, subject) 
@@ -248,7 +254,7 @@ CREATE POLICY "Users can delete their own review responses" ON public.review_res
 
 -- Essential database performance optimizations for review system queries
 CREATE INDEX IF NOT EXISTS idx_quiz_items_easiness_factor ON quiz_items(user_id, easiness_factor);
-CREATE INDEX IF NOT EXISTS idx_review_responses_user_date ON review_responses(user_id, DATE(responded_at));
+CREATE INDEX IF NOT EXISTS idx_review_responses_user_responded ON review_responses(user_id, responded_at);
 CREATE INDEX IF NOT EXISTS idx_review_sessions_completed_status ON review_sessions(user_id, status, completed_at) WHERE status = 'completed';
 
 -- Create a function to validate MCQ options format (data validation only)
