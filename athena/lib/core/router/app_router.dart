@@ -17,6 +17,9 @@ import 'package:athena/features/navigation/main_navigation_screen.dart';
 import 'package:athena/features/planner/presentation/views/planner_screen.dart';
 import 'package:athena/features/review/presentation/views/review_screen.dart';
 import 'package:athena/features/study_materials/presentation/views/materials_screen.dart';
+import 'package:athena/features/study_materials/presentation/views/material_detail_screen.dart';
+import 'package:athena/features/study_materials/presentation/views/add_edit_material_screen.dart';
+import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -245,6 +248,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const PlannerScreen(),
           ),
         ],
+      ),
+
+      // Materials routes
+      GoRoute(
+        path: '/${AppRouteNames.materialDetail}/:materialId',
+        name: AppRouteNames.materialDetail,
+        builder: (context, state) {
+          final materialId = state.pathParameters['materialId']!;
+          return MaterialDetailScreen(materialId: materialId);
+        },
+      ),      GoRoute(
+        path: '/${AppRouteNames.addEditMaterial}',
+        name: AppRouteNames.addEditMaterial,
+        builder: (context, state) {
+          // Get optional query parameters
+          final contentType = state.uri.queryParameters['contentType'];
+          final materialId = state.uri.queryParameters['materialId'];
+
+          return AddEditMaterialScreen(
+            materialId: materialId,
+            initialContentType:
+                contentType != null
+                    ? ContentType.values.firstWhere(
+                      (e) => e.toString().split('.').last == contentType,
+                      orElse: () => ContentType.typedText,
+                    )
+                    : null,
+          );
+        },
       ),
     ],
   );

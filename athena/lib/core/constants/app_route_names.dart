@@ -11,12 +11,15 @@ class AppRouteNames {
   // Main app routes
   static const String home = 'home';
   static const String loading = 'loading';
-
   // Feature routes
   static const String chat = 'chat';
   static const String materials = 'materials';
   static const String review = 'review';
   static const String planner = 'planner';
+
+  // Materials routes
+  static const String materialDetail = 'material-detail';
+  static const String addEditMaterial = 'add-edit-material';
 
   static const String loginCallback =
       'loginCallback'; // Kept for now, though unused in current flow
