@@ -1,4 +1,8 @@
 import 'package:athena/core/theme/app_colors.dart';
+import 'package:athena/features/planner/domain/entities/study_goal_entity.dart';
+import 'package:athena/features/planner/domain/entities/study_session_entity.dart';
+import 'package:athena/features/planner/presentation/viewmodel/study_goals_viewmodel.dart';
+import 'package:athena/features/planner/presentation/viewmodel/study_sessions_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -15,70 +19,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   late TabController _tabController;
   DateTime _selectedDate = DateTime.now();
 
-  // Dummy data for UI scaffolding
-  final List<StudyGoal> _studyGoals = [
-    StudyGoal(
-      id: '1',
-      title: 'Master Calculus',
-      description: 'Complete all practice problems and review key concepts',
-      subject: 'Mathematics',
-      targetDate: DateTime.now().add(const Duration(days: 14)),
-      progress: 0.65,
-    ),
-    StudyGoal(
-      id: '2',
-      title: 'Learn Cell Biology',
-      description: 'Understand cell structures and functions',
-      subject: 'Biology',
-      targetDate: DateTime.now().add(const Duration(days: 7)),
-      progress: 0.3,
-    ),
-    StudyGoal(
-      id: '3',
-      title: 'Memorize Historical Dates',
-      description: 'Know key events from 1900-1950',
-      subject: 'History',
-      targetDate: DateTime.now().add(const Duration(days: 10)),
-      progress: 0.8,
-    ),
-  ];
-
-  final List<StudySession> _studySessions = [
-    StudySession(
-      id: '1',
-      title: 'Review Biology Notes',
-      subject: 'Biology',
-      startTime: DateTime.now().add(const Duration(hours: 1)),
-      endTime: DateTime.now().add(const Duration(hours: 2, minutes: 30)),
-      isCompleted: false,
-    ),
-    StudySession(
-      id: '2',
-      title: 'Math Practice Quiz',
-      subject: 'Mathematics',
-      startTime: DateTime.now().add(const Duration(hours: 4)),
-      endTime: DateTime.now().add(const Duration(hours: 5)),
-      isCompleted: false,
-    ),
-    StudySession(
-      id: '3',
-      title: 'Read History Chapter 5',
-      subject: 'History',
-      startTime: DateTime.now().add(const Duration(days: 1, hours: 10)),
-      endTime: DateTime.now().add(
-        const Duration(days: 1, hours: 11, minutes: 30),
-      ),
-      isCompleted: false,
-    ),
-    StudySession(
-      id: '4',
-      title: 'Complete Physics Assignment',
-      subject: 'Physics',
-      startTime: DateTime.now().add(const Duration(days: 2, hours: 14)),
-      endTime: DateTime.now().add(const Duration(days: 2, hours: 16)),
-      isCompleted: false,
-    ),
-  ];
+  // No more dummy data - using real ViewModels!
 
   @override
   void initState() {
@@ -218,57 +159,99 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 ],
               ),
               const SizedBox(height: 16),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: List.generate(7, (index) {
-                    final date = DateTime.now().add(Duration(days: index - 3));
-                    final isSelected = DateUtils.isSameDay(date, _selectedDate);
+              Consumer(
+                builder: (context, ref, child) {
+                  final sessionsState = ref.watch(
+                    studySessionsViewModelProvider,
+                  );
 
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedDate = date;
-                          });
-                        },
-                        child: CircleAvatar(
-                          radius: 24,
-                          backgroundColor:
-                              isSelected ? Colors.orange : Colors.grey[200],
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                DateFormat('E').format(date)[0],
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color:
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: List.generate(7, (index) {
+                        final date = DateTime.now().add(
+                          Duration(days: index - 3),
+                        );
+                        final isSelected = DateUtils.isSameDay(
+                          date,
+                          _selectedDate,
+                        );
+
+                        // Check if this date has any sessions
+                        final hasSession = sessionsState.sessions.any(
+                          (session) =>
+                              DateUtils.isSameDay(session.startTime, date),
+                        );
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedDate = date;
+                              });
+                            },
+                            child: Column(
+                              children: [
+                                CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor:
                                       isSelected
-                                          ? Colors.white
-                                          : Colors.grey[700],
-                                  fontWeight: FontWeight.bold,
+                                          ? Colors.orange
+                                          : Colors.grey[200],
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        DateFormat('E').format(date)[0],
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color:
+                                              isSelected
+                                                  ? Colors.white
+                                                  : Colors.grey[700],
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        date.day.toString(),
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color:
+                                              isSelected
+                                                  ? Colors.white
+                                                  : Colors.grey[800],
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                date.day.toString(),
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color:
-                                      isSelected
-                                          ? Colors.white
-                                          : Colors.grey[800],
-                                  fontWeight: FontWeight.bold,
+                                const SizedBox(height: 4),
+                                // Session indicator dot
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color:
+                                        hasSession
+                                            ? (isSelected
+                                                ? Colors.orange
+                                                : Colors.orange.withValues(
+                                                  alpha: 0.7,
+                                                ))
+                                            : Colors.transparent,
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
+                        );
+                      }),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -276,27 +259,43 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
 
         // Session list
         Expanded(
-          child:
-              _filteredSessions.isEmpty
-                  ? _buildEmptySessionsState()
-                  : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _filteredSessions.length,
-                    itemBuilder: (context, index) {
-                      final session = _filteredSessions[index];
-                      return _buildSessionCard(context, session);
-                    },
-                  ),
+          child: Builder(
+            builder: (context) {
+              return Consumer(
+                builder: (context, ref, child) {
+                  final sessionsState = ref.watch(
+                    studySessionsViewModelProvider,
+                  );
+                  final filteredSessions =
+                      sessionsState.sessions.where((session) {
+                        return DateUtils.isSameDay(
+                          session.startTime,
+                          _selectedDate,
+                        );
+                      }).toList();
+
+                  // Clean implementation without debug logs
+
+                  return filteredSessions.isEmpty
+                      ? _buildEmptySessionsState()
+                      : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filteredSessions.length,
+                        itemBuilder: (context, index) {
+                          final session = filteredSessions[index];
+                          return _buildSessionCard(context, session);
+                        },
+                      );
+                },
+              );
+            },
+          ),
         ),
       ],
     );
   }
 
-  List<StudySession> get _filteredSessions {
-    return _studySessions.where((session) {
-      return DateUtils.isSameDay(session.startTime, _selectedDate);
-    }).toList();
-  }
+  // Removed _filteredSessions getter - now handled in Consumer
 
   Widget _buildEmptySessionsState() {
     return Center(
@@ -339,7 +338,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     );
   }
 
-  Widget _buildSessionCard(BuildContext context, StudySession session) {
+  Widget _buildSessionCard(BuildContext context, StudySessionEntity session) {
     Color subjectColor;
     IconData subjectIcon;
 
@@ -413,7 +412,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      session.subject,
+                      session.subject ?? 'General',
                       style: TextStyle(
                         color: subjectColor,
                         fontSize: 12,
@@ -428,10 +427,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               children: [
                 IconButton(
                   icon: Icon(
-                    session.isCompleted
+                    session.status == StudySessionStatus.completed
                         ? Icons.check_circle
                         : Icons.check_circle_outline,
-                    color: session.isCompleted ? Colors.green : Colors.grey,
+                    color:
+                        session.status == StudySessionStatus.completed
+                            ? Colors.green
+                            : Colors.grey,
                     size: 28,
                   ),
                   onPressed: () {
@@ -456,7 +458,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     );
   }
 
-  void _showSessionOptions(BuildContext context, StudySession session) {
+  void _showSessionOptions(BuildContext context, StudySessionEntity session) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -514,16 +516,37 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   }
 
   Widget _buildGoalsTab() {
-    return _studyGoals.isEmpty
-        ? _buildEmptyGoalsState()
-        : ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: _studyGoals.length,
-          itemBuilder: (context, index) {
-            final goal = _studyGoals[index];
-            return _buildGoalCard(context, goal);
+    return Consumer(
+      builder: (context, ref, child) {
+        final goalsState = ref.watch(studyGoalsViewModelProvider);
+
+        if (goalsState.isLoading && goalsState.goals.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (goalsState.errorMessage != null) {
+          return _buildErrorState(goalsState.errorMessage!);
+        }
+
+        if (goalsState.goals.isEmpty) {
+          return _buildEmptyGoalsState();
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            await ref.read(studyGoalsViewModelProvider.notifier).refreshGoals();
           },
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: goalsState.goals.length,
+            itemBuilder: (context, index) {
+              final goal = goalsState.goals[index];
+              return _buildGoalCard(context, goal);
+            },
+          ),
         );
+      },
+    );
   }
 
   Widget _buildEmptyGoalsState() {
@@ -567,7 +590,49 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     );
   }
 
-  Widget _buildGoalCard(BuildContext context, StudyGoal goal) {
+  Widget _buildErrorState(String errorMessage) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: Colors.red[400]),
+          const SizedBox(height: 16),
+          Text(
+            'Oops! Something went wrong',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            errorMessage,
+            style: TextStyle(color: Colors.grey[600]),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () {
+              ref.read(studyGoalsViewModelProvider.notifier).loadGoals();
+            },
+            icon: const Icon(Icons.refresh),
+            label: const Text('Try Again'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGoalCard(BuildContext context, StudyGoalEntity goal) {
     Color subjectColor;
     IconData subjectIcon;
 
@@ -589,7 +654,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         subjectIcon = Icons.subject;
     }
 
-    final daysLeft = goal.targetDate.difference(DateTime.now()).inDays;
+    final daysLeft = goal.targetDate?.difference(DateTime.now()).inDays ?? 0;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -625,7 +690,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        goal.description,
+                        goal.description ?? 'No description',
                         style: TextStyle(color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 8),
@@ -641,7 +706,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              goal.subject,
+                              goal.subject ?? 'General',
                               style: TextStyle(
                                 color: subjectColor,
                                 fontSize: 12,
@@ -691,7 +756,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                     Text(
-                      'Target: ${DateFormat('MMM d, y').format(goal.targetDate)}',
+                      'Target: ${goal.targetDate != null ? DateFormat('MMM d, y').format(goal.targetDate!) : 'No target date'}',
                       style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
@@ -831,50 +896,335 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   }
 
   void _showAddSessionDialog(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Session creation form coming soon!')),
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final subjectController = TextEditingController();
+    DateTime selectedDate = _selectedDate;
+    TimeOfDay startTime = TimeOfDay.now();
+    TimeOfDay endTime = TimeOfDay.now().replacing(
+      hour: (TimeOfDay.now().hour + 1) % 24,
+    );
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setState) => AlertDialog(
+                  title: const Text('Add Study Session'),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: titleController,
+                          decoration: const InputDecoration(
+                            labelText: 'Session Title *',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: descriptionController,
+                          decoration: const InputDecoration(
+                            labelText: 'Description',
+                            border: OutlineInputBorder(),
+                          ),
+                          maxLines: 2,
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: subjectController,
+                          decoration: const InputDecoration(
+                            labelText: 'Subject',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ListTile(
+                          title: Text(
+                            'Date: ${DateFormat('MMM d, y').format(selectedDate)}',
+                          ),
+                          leading: const Icon(Icons.calendar_today),
+                          onTap: () async {
+                            final date = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate,
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 365),
+                              ),
+                            );
+                            if (date != null) {
+                              setState(() {
+                                selectedDate = date;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        ListTile(
+                          title: Text('Start: ${startTime.format(context)}'),
+                          leading: const Icon(Icons.schedule),
+                          onTap: () async {
+                            final time = await showTimePicker(
+                              context: context,
+                              initialTime: startTime,
+                            );
+                            if (time != null) {
+                              setState(() {
+                                startTime = time;
+                                // Ensure end time is after start time
+                                if (endTime.hour < startTime.hour ||
+                                    (endTime.hour == startTime.hour &&
+                                        endTime.minute <= startTime.minute)) {
+                                  endTime = TimeOfDay(
+                                    hour: (startTime.hour + 1) % 24,
+                                    minute: startTime.minute,
+                                  );
+                                }
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        ListTile(
+                          title: Text('End: ${endTime.format(context)}'),
+                          leading: const Icon(Icons.schedule),
+                          onTap: () async {
+                            final time = await showTimePicker(
+                              context: context,
+                              initialTime: endTime,
+                            );
+                            if (time != null) {
+                              setState(() {
+                                endTime = time;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (titleController.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please enter a session title'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        // Validate time
+                        final startDateTime = DateTime(
+                          selectedDate.year,
+                          selectedDate.month,
+                          selectedDate.day,
+                          startTime.hour,
+                          startTime.minute,
+                        );
+                        final endDateTime = DateTime(
+                          selectedDate.year,
+                          selectedDate.month,
+                          selectedDate.day,
+                          endTime.hour,
+                          endTime.minute,
+                        );
+
+                        if (endDateTime.isBefore(startDateTime) ||
+                            endDateTime.isAtSameMomentAs(startDateTime)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'End time must be after start time',
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+
+                        Navigator.pop(context);
+
+                        // Use our ViewModel to create the session
+                        final success = await ref
+                            .read(studySessionsViewModelProvider.notifier)
+                            .createSession(
+                              title: titleController.text.trim(),
+                              notes:
+                                  descriptionController.text.trim().isEmpty
+                                      ? null
+                                      : descriptionController.text.trim(),
+                              subject:
+                                  subjectController.text.trim().isEmpty
+                                      ? null
+                                      : subjectController.text.trim(),
+                              startTime: startDateTime,
+                              endTime: endDateTime,
+                            );
+
+                        if (!success) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Failed to create session'),
+                              ),
+                            );
+                          }
+                        } else {
+                          if (mounted) {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Session created successfully!'),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      child: const Text('Create'),
+                    ),
+                  ],
+                ),
+          ),
     );
   }
 
   void _showAddGoalDialog(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Goal creation form coming soon!')),
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final subjectController = TextEditingController();
+    DateTime? selectedDate;
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setState) => AlertDialog(
+                  title: const Text('Add Study Goal'),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: titleController,
+                          decoration: const InputDecoration(
+                            labelText: 'Goal Title *',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: descriptionController,
+                          decoration: const InputDecoration(
+                            labelText: 'Description',
+                            border: OutlineInputBorder(),
+                          ),
+                          maxLines: 2,
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: subjectController,
+                          decoration: const InputDecoration(
+                            labelText: 'Subject',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ListTile(
+                          title: Text(
+                            selectedDate != null
+                                ? 'Target: ${DateFormat('MMM d, y').format(selectedDate!)}'
+                                : 'Select Target Date',
+                          ),
+                          leading: const Icon(Icons.calendar_today),
+                          onTap: () async {
+                            final date = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now().add(
+                                const Duration(days: 7),
+                              ),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 365),
+                              ),
+                            );
+                            if (date != null) {
+                              setState(() {
+                                selectedDate = date;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (titleController.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please enter a goal title'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        Navigator.pop(context);
+
+                        // Use our ViewModel to create the goal
+                        final success = await ref
+                            .read(studyGoalsViewModelProvider.notifier)
+                            .createGoal(
+                              title: titleController.text.trim(),
+                              description:
+                                  descriptionController.text.trim().isEmpty
+                                      ? null
+                                      : descriptionController.text.trim(),
+                              subject:
+                                  subjectController.text.trim().isEmpty
+                                      ? null
+                                      : subjectController.text.trim(),
+                              targetDate: selectedDate,
+                            );
+
+                        if (!success) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Failed to create goal'),
+                              ),
+                            );
+                          }
+                        } else {
+                          if (mounted) {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Goal created successfully!'),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      child: const Text('Create'),
+                    ),
+                  ],
+                ),
+          ),
     );
   }
 }
 
-class StudyGoal {
-  final String id;
-  final String title;
-  final String description;
-  final String subject;
-  final DateTime targetDate;
-  final double progress; // 0.0 to 1.0
-
-  StudyGoal({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.subject,
-    required this.targetDate,
-    required this.progress,
-  });
-}
-
-class StudySession {
-  final String id;
-  final String title;
-  final String subject;
-  final DateTime startTime;
-  final DateTime endTime;
-  final bool isCompleted;
-
-  StudySession({
-    required this.id,
-    required this.title,
-    required this.subject,
-    required this.startTime,
-    required this.endTime,
-    required this.isCompleted,
-  });
-}
+// Dummy classes removed - now using real entities!
+// StudyGoalEntity and StudySessionEntity are imported from domain layer

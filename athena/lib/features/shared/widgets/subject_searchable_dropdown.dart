@@ -9,11 +9,11 @@ class SubjectSearchableDropdown extends StatefulWidget {
   final String? validator;
 
   const SubjectSearchableDropdown({
-    Key? key,
+    super.key,
     this.selectedSubject,
     required this.onChanged,
     this.validator,
-  }) : super(key: key);
+  });
 
   @override
   State<SubjectSearchableDropdown> createState() =>
@@ -148,7 +148,7 @@ class _SubjectSearchableDropdownState extends State<SubjectSearchableDropdown> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -244,10 +244,10 @@ class _SubjectSearchableDropdownState extends State<SubjectSearchableDropdown> {
                           : null,
                   onTap: () => _selectSubject(subject),
                 );
-              }).toList(),
+              }),
             ],
           );
-        }).toList(),
+        }),
       ],
     );
   }

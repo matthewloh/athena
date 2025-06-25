@@ -6,7 +6,6 @@ import 'package:athena/features/study_materials/domain/usecases/params/update_st
 import 'package:athena/features/study_materials/presentation/providers/study_material_providers.dart';
 import 'package:athena/features/study_materials/presentation/viewmodel/study_material_state.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 part 'study_material_viewmodel.g.dart';
 

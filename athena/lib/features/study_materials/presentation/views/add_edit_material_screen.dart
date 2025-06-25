@@ -28,10 +28,10 @@ class AddEditMaterialScreen extends ConsumerStatefulWidget {
   initialContentType; // Optional initial content type for new materials
 
   const AddEditMaterialScreen({
-    Key? key,
+    super.key,
     this.materialId,
     this.initialContentType,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<AddEditMaterialScreen> createState() =>
@@ -67,7 +67,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
   // Track if user has selected new files in edit mode
   bool _hasSelectedNewFile = false;
   bool _hasSelectedNewImage = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -315,7 +315,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppColors.secondary.withOpacity(0.1),
+              color: AppColors.secondary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(icon, size: 36, color: AppColors.secondary),
@@ -571,7 +571,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${_fileErrorText}'),
+            content: Text('Error: ${_fileErrorText ?? 'Unknown error'}'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Colors.red,
           ),
@@ -1103,7 +1103,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                   color: Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: AppColors.athenaPurple.withOpacity(0.3),
+                    color: AppColors.athenaPurple.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Column(
@@ -1309,12 +1309,12 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                       horizontal: 12,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.athenaPurple.withOpacity(0.1),
+                      color: AppColors.athenaPurple.withValues(alpha: 0.1),
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(12),
                       ),
                       border: Border.all(
-                        color: AppColors.athenaPurple.withOpacity(0.3),
+                        color: AppColors.athenaPurple.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -1358,10 +1358,10 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                       color: Colors.grey.shade100,
                       border: Border(
                         left: BorderSide(
-                          color: AppColors.athenaPurple.withOpacity(0.3),
+                          color: AppColors.athenaPurple.withValues(alpha: 0.3),
                         ),
                         right: BorderSide(
-                          color: AppColors.athenaPurple.withOpacity(0.3),
+                          color: AppColors.athenaPurple.withValues(alpha: 0.3),
                         ),
                       ),
                     ),
@@ -1430,11 +1430,11 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                           bottom: Radius.circular(12),
                         ),
                         border: Border.all(
-                          color: AppColors.athenaPurple.withOpacity(0.3),
+                          color: AppColors.athenaPurple.withValues(alpha: 0.3),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 2,
                             offset: const Offset(0, 1),
                           ),
@@ -1549,7 +1549,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
         Container(
           padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
           decoration: BoxDecoration(
-            color: AppColors.athenaPurple.withOpacity(0.1),
+            color: AppColors.athenaPurple.withValues(alpha: 0.1),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
           ),
           child: Row(
@@ -1664,7 +1664,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                 _quillFocusNode.hasFocus
                     ? [
                       BoxShadow(
-                        color: AppColors.secondary.withOpacity(0.3),
+                        color: AppColors.secondary.withValues(alpha: 0.3),
                         blurRadius: 4,
                         spreadRadius: 1,
                       ),
@@ -1740,11 +1740,11 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               color: Colors.grey.shade50,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: AppColors.athenaPurple.withOpacity(0.3),
+                color: AppColors.athenaPurple.withValues(alpha: 0.3),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 5,
                   spreadRadius: 1,
                 ),
@@ -1782,7 +1782,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         spreadRadius: 1,
                         blurRadius: 3,
                       ),
@@ -1927,7 +1927,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               border: Border.all(
                 color:
                     isEditing
-                        ? AppColors.secondary.withOpacity(0.5)
+                        ? AppColors.secondary.withValues(alpha: 0.5)
                         : Colors.grey.shade300,
                 width: isEditing ? 2 : 1.5,
               ),
@@ -1935,7 +1935,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                   isEditing
                       ? [
                         BoxShadow(
-                          color: AppColors.secondary.withOpacity(0.2),
+                          color: AppColors.secondary.withValues(alpha: 0.2),
                           blurRadius: 4,
                           spreadRadius: 1,
                         ),
@@ -1950,8 +1950,8 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                   decoration: BoxDecoration(
                     color:
                         isEditing
-                            ? AppColors.secondary.withOpacity(0.2)
-                            : AppColors.secondary.withOpacity(0.1),
+                            ? AppColors.secondary.withValues(alpha: 0.2)
+                            : AppColors.secondary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -2031,7 +2031,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
             decoration: BoxDecoration(
               color:
                   isNewImage
-                      ? AppColors.secondary.withOpacity(0.1)
+                      ? AppColors.secondary.withValues(alpha: 0.1)
                       : Colors.grey.shade50,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(12),
@@ -2039,7 +2039,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
               border: Border.all(
                 color:
                     isNewImage
-                        ? AppColors.secondary.withOpacity(0.5)
+                        ? AppColors.secondary.withValues(alpha: 0.5)
                         : Colors.grey.shade300,
               ),
             ),
@@ -2086,12 +2086,12 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
             border: Border.all(
               color:
                   isEditing && isNewImage
-                      ? AppColors.secondary.withOpacity(0.5)
+                      ? AppColors.secondary.withValues(alpha: 0.5)
                       : Colors.grey.shade300,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 spreadRadius: 1,
                 blurRadius: 3,
                 offset: const Offset(0, 2),
@@ -2161,7 +2161,7 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.7),
+                              color: Colors.black.withValues(alpha: 0.7),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -2240,12 +2240,12 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                   horizontal: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.athenaPurple.withOpacity(0.1),
+                  color: AppColors.athenaPurple.withValues(alpha: 0.1),
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(12),
                   ),
                   border: Border.all(
-                    color: AppColors.athenaPurple.withOpacity(0.3),
+                    color: AppColors.athenaPurple.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -2289,10 +2289,10 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                   color: Colors.grey.shade100,
                   border: Border(
                     left: BorderSide(
-                      color: AppColors.athenaPurple.withOpacity(0.3),
+                      color: AppColors.athenaPurple.withValues(alpha: 0.3),
                     ),
                     right: BorderSide(
-                      color: AppColors.athenaPurple.withOpacity(0.3),
+                      color: AppColors.athenaPurple.withValues(alpha: 0.3),
                     ),
                   ),
                 ),
@@ -2358,11 +2358,11 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
                       bottom: Radius.circular(12),
                     ),
                     border: Border.all(
-                      color: AppColors.athenaPurple.withOpacity(0.3),
+                      color: AppColors.athenaPurple.withValues(alpha: 0.3),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 2,
                         offset: const Offset(0, 1),
                       ),

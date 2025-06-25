@@ -20,8 +20,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 class MaterialDetailScreen extends ConsumerStatefulWidget {
   final String materialId;
 
-  const MaterialDetailScreen({Key? key, required this.materialId})
-    : super(key: key);
+  const MaterialDetailScreen({super.key, required this.materialId});
 
   @override
   ConsumerState<MaterialDetailScreen> createState() =>
@@ -382,7 +381,7 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -456,10 +455,10 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
   Widget _buildGeneratingSummaryUI() {
     return Card(
       elevation: 0,
-      color: Colors.blue.withOpacity(0.05),
+      color: Colors.blue.withValues(alpha: 0.05),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.blue.withOpacity(0.2)),
+        side: BorderSide(color: Colors.blue.withValues(alpha: 0.2)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
@@ -480,7 +479,7 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
             Text(
               'This may take a moment as our AI analyzes your content.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.blue.shade600.withOpacity(0.7)),
+              style: TextStyle(color: Colors.blue.shade600.withValues(alpha: 0.7)),
             ),
           ],
         ),
@@ -570,13 +569,14 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
             border: Border.all(color: Colors.grey.shade200),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
             ],
           ),
-          padding: const EdgeInsets.all(16),          child: MarkdownBody(
+          padding: const EdgeInsets.all(16),
+          child: MarkdownBody(
             data: material.summaryText!,
             styleSheet: MarkdownStyleSheet.fromTheme(
               Theme.of(context),
@@ -666,10 +666,10 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
   Widget _buildNoSummaryUI(StudyMaterialEntity material, dynamic viewModel) {
     return Card(
       elevation: 0,
-      color: Colors.grey.withOpacity(0.05),
+      color: Colors.grey.withValues(alpha: 0.05),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.withOpacity(0.2)),
+        side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -772,7 +772,7 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
                 borderRadius: BorderRadius.circular(8),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
@@ -1238,6 +1238,10 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
     String materialId,
   ) async {
     try {
+      // Capture navigator reference before async operations
+      final navigator = Navigator.of(context);
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+
       // Show processing dialog
       showDialog(
         context: context,
@@ -1257,10 +1261,12 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
       // Download image
       final response = await http.get(Uri.parse(imageUrl));
       if (response.statusCode != 200) {
-        context.pop(); // Close dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to download image')),
-        );
+        if (mounted) {
+          navigator.pop(); // Close dialog
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(content: Text('Failed to download image')),
+          );
+        }
         return;
       }
 
@@ -1272,7 +1278,9 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
       await tempImageFile.writeAsBytes(response.bodyBytes);
 
       // Close the download dialog
-      context.pop();
+      if (mounted) {
+        navigator.pop();
+      }
 
       // Process image with OCR
       setState(() {

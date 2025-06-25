@@ -90,7 +90,7 @@ class _MaterialsScreenState extends ConsumerState<MaterialsScreen> {
                               top: 0,
                               left: 0,
                               right: 0,
-                              child: Container(
+                              child: SizedBox(
                                 height: 4,
                                 child: const LinearProgressIndicator(),
                               ),
@@ -225,7 +225,7 @@ class _MaterialsScreenState extends ConsumerState<MaterialsScreen> {
               ),
             ),
           // Subject filter chips
-          Container(
+          SizedBox(
             height: 50,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,

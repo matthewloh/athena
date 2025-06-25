@@ -103,23 +103,22 @@ class OcrUtils {
             ),
           ),
           // Ensure the dialog resizes when keyboard appears
-          scrollable: true,                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey[700],
-                    ),
-                    child: const Text('CANCEL'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      textStyle: const TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                    child: Text(hasText ? 'ADD' : 'ADD TEXT FIELD'),
-                  ),
-                ],
+          scrollable: true,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              style: TextButton.styleFrom(foregroundColor: Colors.grey[700]),
+              child: const Text('CANCEL'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                textStyle: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+              child: Text(hasText ? 'ADD' : 'ADD TEXT FIELD'),
+            ),
+          ],
         );
       },
     );
@@ -166,9 +165,14 @@ class OcrUtils {
             final availableHeight =
                 screenHeight - keyboardHeight - (keyboardVisible ? 150 : 250);
 
-            return WillPopScope(
+            return PopScope(
               // Prevent Android back button from dismissing without explicit action
-              onWillPop: () async {
+              canPop: false,
+              onPopInvokedWithResult: (didPop, result) async {
+                if (didPop) return;
+
+                final navigator = Navigator.of(context);
+
                 // If user made changes, ask for confirmation
                 if (hasEdited) {
                   final shouldDiscard = await showDialog<bool>(
@@ -194,18 +198,24 @@ class OcrUtils {
                           ],
                         ),
                   );
-                  return shouldDiscard ?? false;
+                  if (shouldDiscard == true) {
+                    navigator.pop();
+                  }
+                } else {
+                  navigator.pop();
                 }
-                return true;
               },
-              child: AlertDialog(                title: Column(
+              child: AlertDialog(
+                title: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
                       'Edit OCR Text',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87, // Explicitly set color for visibility
+                        color:
+                            Colors
+                                .black87, // Explicitly set color for visibility
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -245,8 +255,8 @@ class OcrUtils {
                                 focusNode.hasFocus
                                     ? [
                                       BoxShadow(
-                                        color: AppColors.primary.withOpacity(
-                                          0.3,
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.3,
                                         ),
                                         blurRadius: 4,
                                         offset: const Offset(0, 2),
@@ -304,9 +314,9 @@ class OcrUtils {
                           builder:
                               (context) => AlertDialog(
                                 title: const Text(
-                              'Discard changes?',
-                              style: TextStyle(color: Colors.black87),
-                            ),
+                                  'Discard changes?',
+                                  style: TextStyle(color: Colors.black87),
+                                ),
                                 content: const Text(
                                   'You have made changes to the text. Are you sure you want to discard them?',
                                 ),

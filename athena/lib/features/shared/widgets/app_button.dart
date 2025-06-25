@@ -35,7 +35,7 @@ class AppButton extends StatelessWidget {
   final double borderRadius;
 
   const AppButton({
-    Key? key,
+    super.key,
     required this.label,
     this.onPressed,
     this.icon,
@@ -45,7 +45,7 @@ class AppButton extends StatelessWidget {
     this.width,
     this.height = 48.0,
     this.borderRadius = 8.0,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -66,8 +66,8 @@ class AppButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(borderRadius),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          disabledBackgroundColor: bgColor.withOpacity(0.6),
-          disabledForegroundColor: txtColor.withOpacity(0.6),
+          disabledBackgroundColor: bgColor.withValues(alpha: 0.6),
+          disabledForegroundColor: txtColor.withValues(alpha: 0.6),
           elevation: 0,
         ),
         child: _buildButtonContent(theme, txtColor),

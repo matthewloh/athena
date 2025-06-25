@@ -265,7 +265,7 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget> {
                               recognizer:
                                   TapGestureRecognizer()
                                     ..onTap = () {
-                                      // TODO: Implement navigation or dialog for Terms and Conditions
+                                      // TO DO: Implement navigation or dialog for Terms and Conditions
                                       print('Terms and Conditions tapped');
                                       // Example: showDialog(...);
                                     },
