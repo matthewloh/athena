@@ -1,10 +1,12 @@
 import 'package:athena/core/enums/subject.dart';
+import 'package:athena/features/review/domain/entities/quiz_entity.dart';
 import 'package:athena/features/review/domain/entities/quiz_item_entity.dart';
 import 'package:equatable/equatable.dart';
 
 class CreateQuizParams extends Equatable {
   final String userId;
   final String title;
+  final QuizType quizType;
   final String? studyMaterialId;
   final Subject? subject;
   final String? description;
@@ -13,6 +15,7 @@ class CreateQuizParams extends Equatable {
   const CreateQuizParams({
     required this.userId,
     required this.title,
+    required this.quizType,
     this.studyMaterialId,
     this.subject,
     this.description,
@@ -23,15 +26,16 @@ class CreateQuizParams extends Equatable {
   List<Object?> get props => [
     userId,
     title,
+    quizType,
     studyMaterialId,
     subject,
     description,
     quizItems,
   ];
-
   CreateQuizParams copyWith({
     String? userId,
     String? title,
+    QuizType? quizType,
     String? studyMaterialId,
     Subject? subject,
     String? description,
@@ -40,16 +44,18 @@ class CreateQuizParams extends Equatable {
     return CreateQuizParams(
       userId: userId ?? this.userId,
       title: title ?? this.title,
+      quizType: quizType ?? this.quizType,
       studyMaterialId: studyMaterialId ?? this.studyMaterialId,
       subject: subject ?? this.subject,
       description: description ?? this.description,
       quizItems: quizItems ?? this.quizItems,
     );
   }
-  
+
   const CreateQuizParams.fromUserInput({
     required this.userId,
     required this.title,
+    required this.quizType,
     this.studyMaterialId,
     this.subject,
     this.description,

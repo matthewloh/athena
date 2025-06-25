@@ -1,10 +1,13 @@
 import 'package:athena/core/enums/subject.dart';
 import 'package:equatable/equatable.dart';
 
-class QuizEntity extends Equatable{
+enum QuizType { flashcard, multipleChoice }
+
+class QuizEntity extends Equatable {
   final String id;
   final String userId;
   final String title;
+  final QuizType quizType;
   final String? studyMaterialId;
   final Subject? subject;
   final String? description;
@@ -15,6 +18,7 @@ class QuizEntity extends Equatable{
     required this.id,
     required this.userId,
     required this.title,
+    required this.quizType,
     this.studyMaterialId,
     this.subject,
     this.description,
@@ -27,6 +31,7 @@ class QuizEntity extends Equatable{
     id,
     userId,
     title,
+    quizType,
     studyMaterialId,
     subject,
     description,
@@ -34,10 +39,11 @@ class QuizEntity extends Equatable{
     updatedAt,
   ];
 
-QuizEntity copyWith({
+  QuizEntity copyWith({
     String? id,
     String? userId,
     String? title,
+    QuizType? quizType,
     String? studyMaterialId,
     Subject? subject,
     String? description,
@@ -48,6 +54,7 @@ QuizEntity copyWith({
       id: id ?? this.id,
       userId: userId ?? this.userId,
       title: title ?? this.title,
+      quizType: quizType ?? this.quizType,
       studyMaterialId: studyMaterialId ?? this.studyMaterialId,
       subject: subject ?? this.subject,
       description: description ?? this.description,

@@ -69,29 +69,36 @@ class QuizItemModel extends QuizItemEntity {
   factory QuizItemModel.fromJson(Map<String, dynamic> json) {
     return QuizItemModel(
       id: json['id'],
-      quizId: json['quizId'],
-      userId: json['userId'],
-      itemType: QuizItemType.values.firstWhere(
-        (e) => e.toString() == 'QuizItemType.${json['itemType']}',
-      ),
-      questionText: json['questionText'],
-      answerText: json['answerText'],
+      quizId: json['quiz_id'],
+      userId: json['user_id'],
+      itemType:
+          json['item_type'] != null
+              ? QuizItemType.values.firstWhere(
+                (e) => e.name == json['item_type'],
+                orElse: () => QuizItemType.flashcard,
+              )
+              : QuizItemType.flashcard,
+      questionText: json['question_text'],
+      answerText: json['answer_text'],
       mcqOptions:
-          json['mcqOptions'] != null
-              ? Map<String, dynamic>.from(json['mcqOptions'])
+          json['mcq_options'] != null
+              ? Map<String, dynamic>.from(json['mcq_options'])
               : null,
-      mcqCorrectOptionKey: json['mcqCorrectOptionKey'],
-      easinessFactor: (json['easinessFactor'] as num).toDouble(),
-      intervalDays: json['intervalDays'],
+      mcqCorrectOptionKey: json['mcq_correct_option_key'],
+      easinessFactor: (json['easiness_factor'] as num).toDouble(),
+      intervalDays: json['interval_days'],
       repetitions: json['repetitions'],
-      lastReviewedAt: DateTime.parse(json['lastReviewedAt']),
-      nextReviewDate: DateTime.parse(json['nextReviewDate']),
+      lastReviewedAt: DateTime.parse(json['last_reviewed_at']),
+      nextReviewDate:
+          json['next_review_date'] is String
+              ? DateTime.parse(json['next_review_date'])
+              : DateTime.parse(json['next_review_date'].toString()),
       metadata:
           json['metadata'] != null
               ? Map<String, dynamic>.from(json['metadata'])
               : null,
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
     );
   }
 
@@ -99,21 +106,22 @@ class QuizItemModel extends QuizItemEntity {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'quizId': quizId,
-      'userId': userId,
-      'itemType': itemType.toString().split('.').last,
-      'questionText': questionText,
-      'answerText': answerText,
-      'mcqOptions': mcqOptions,
-      'mcqCorrectOptionKey': mcqCorrectOptionKey,
-      'easinessFactor': easinessFactor,
-      'intervalDays': intervalDays,
+      'quiz_id': quizId,
+      'user_id': userId,
+      'item_type': itemType.name,
+      'question_text': questionText,
+      'answer_text': answerText,
+      'mcq_options': mcqOptions,
+      'mcq_correct_option_key': mcqCorrectOptionKey,
+      'easiness_factor': easinessFactor,
+      'interval_days': intervalDays,
       'repetitions': repetitions,
-      'lastReviewedAt': lastReviewedAt.toIso8601String(),
-      'nextReviewDate': nextReviewDate.toIso8601String(),
+      'last_reviewed_at': lastReviewedAt.toIso8601String(),
+      'next_review_date':
+          '${nextReviewDate.year}-${nextReviewDate.month.toString().padLeft(2, '0')}-${nextReviewDate.day.toString().padLeft(2, '0')}',
       'metadata': metadata,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
     };
   }
 
@@ -121,8 +129,8 @@ class QuizItemModel extends QuizItemEntity {
   Map<String, dynamic> toInsertJson() {
     final json = toJson();
     json.remove('id');
-    json.remove('createdAt');
-    json.remove('updatedAt');
+    json.remove('created_at');
+    json.remove('updated_at');
     return json;
   }
 
@@ -130,8 +138,8 @@ class QuizItemModel extends QuizItemEntity {
   Map<String, dynamic> toUpdateJson() {
     final json = toJson();
     json.remove('id');
-    json.remove('createdAt');
-    json.remove('updatedAt');
+    json.remove('created_at');
+    json.remove('updated_at');
     return json;
   }
 

@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-enum QuizItemType { flashCard, multipleChoice }
+enum QuizItemType { flashcard, multipleChoice }
 
 class QuizItemEntity extends Equatable {
   final String id;

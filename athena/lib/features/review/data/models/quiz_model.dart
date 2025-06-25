@@ -7,6 +7,7 @@ class QuizModel extends QuizEntity {
     required super.id,
     required super.userId,
     required super.title,
+    required super.quizType,
     super.studyMaterialId,
     super.subject,
     super.description,
@@ -20,6 +21,7 @@ class QuizModel extends QuizEntity {
       id: entity.id,
       userId: entity.userId,
       title: entity.title,
+      quizType: entity.quizType,
       studyMaterialId: entity.studyMaterialId,
       subject: entity.subject,
       description: entity.description,
@@ -34,6 +36,7 @@ class QuizModel extends QuizEntity {
       id: id,
       userId: userId,
       title: title,
+      quizType: quizType,
       studyMaterialId: studyMaterialId,
       subject: subject,
       description: description,
@@ -46,15 +49,26 @@ class QuizModel extends QuizEntity {
   factory QuizModel.fromJson(Map<String, dynamic> json) {
     return QuizModel(
       id: json['id'],
-      userId: json['userId'],
+      userId: json['user_id'],
       title: json['title'],
-      studyMaterialId: json['studyMaterialId'],
-      subject: Subject.values.firstWhere(
-        (e) => e.toString() == 'Subject.${json['subject']}',
-      ),
+      quizType:
+          json['quiz_type'] != null
+              ? QuizType.values.firstWhere(
+                (e) => e.name == json['quiz_type'],
+                orElse: () => QuizType.flashcard,
+              )
+              : QuizType.flashcard,
+      studyMaterialId: json['study_material_id'],
+      subject:
+          json['subject'] != null
+              ? Subject.values.firstWhere(
+                (e) => e.name == json['subject'],
+                orElse: () => Subject.none,
+              )
+              : null,
       description: json['description'],
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
     );
   }
 
@@ -62,13 +76,14 @@ class QuizModel extends QuizEntity {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'userId': userId,
+      'user_id': userId,
       'title': title,
-      'studyMaterialId': studyMaterialId,
-      'subject': subject?.toString().split('.').last, // Convert enum to string
+      'quiz_type': quizType.name,
+      'study_material_id': studyMaterialId,
+      'subject': subject?.name,
       'description': description,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
     };
   }
 
@@ -85,8 +100,8 @@ class QuizModel extends QuizEntity {
   Map<String, dynamic> toUpdateJson() {
     final json = toJson();
     json.remove('id');
-    json.remove('createdAt');
-    json.remove('updatedAt');
+    json.remove('created_at');
+    json.remove('updated_at');
     return json;
   }
 
@@ -95,6 +110,7 @@ class QuizModel extends QuizEntity {
     id,
     userId,
     title,
+    quizType,
     studyMaterialId,
     subject,
     description,
@@ -107,6 +123,7 @@ class QuizModel extends QuizEntity {
     String? id,
     String? userId,
     String? title,
+    QuizType? quizType,
     String? studyMaterialId,
     Subject? subject,
     String? description,
@@ -117,6 +134,7 @@ class QuizModel extends QuizEntity {
       id: id ?? this.id,
       userId: userId ?? this.userId,
       title: title ?? this.title,
+      quizType: quizType ?? this.quizType,
       studyMaterialId: studyMaterialId ?? this.studyMaterialId,
       subject: subject ?? this.subject,
       description: description ?? this.description,

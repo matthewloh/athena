@@ -143,9 +143,11 @@ class ReviewRepositoryImpl implements ReviewRepository {
   ) async {
     try {
       final quizItemModel = QuizItemModel.fromEntity(quizItem);
+
       final createdQuizItemModel = await _remoteDataSource.createQuizItem(
         quizItemModel,
       );
+
       return Right(createdQuizItemModel.toEntity());
     } on ServerException catch (e) {
       return Left(ServerFailure('Failed to create quiz item: ${e.message}'));

@@ -19,8 +19,8 @@ class ReviewSupabaseDataSourceImpl implements ReviewRemoteDataSource {
       final response = await _supabaseClient
           .from('quizzes')
           .select()
-          .eq('userId', userId)
-          .order('createdAt', ascending: false);
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
 
       return (response as List)
           .map((json) => QuizModel.fromJson(json))
@@ -53,6 +53,7 @@ class ReviewSupabaseDataSourceImpl implements ReviewRemoteDataSource {
           await _supabaseClient
               .from('quizzes')
               .insert(quiz.toInsertJson())
+              .select()
               .single();
 
       return QuizModel.fromJson(response);
@@ -69,6 +70,7 @@ class ReviewSupabaseDataSourceImpl implements ReviewRemoteDataSource {
               .from('quizzes')
               .update(quiz.toUpdateJson())
               .eq('id', quiz.id)
+              .select()
               .single();
 
       return QuizModel.fromJson(response);
@@ -109,8 +111,8 @@ class ReviewSupabaseDataSourceImpl implements ReviewRemoteDataSource {
       final response = await _supabaseClient
           .from('quiz_items')
           .select()
-          .eq('quizId', quizId)
-          .order('createdAt', ascending: false);
+          .eq('quiz_id', quizId)
+          .order('created_at', ascending: false);
 
       return (response as List)
           .map((json) => QuizItemModel.fromJson(json))
@@ -133,31 +135,33 @@ class ReviewSupabaseDataSourceImpl implements ReviewRemoteDataSource {
   }
 
   @override
-  Future<QuizItemModel> createQuizItem(QuizItemModel quizItem) {
+  Future<QuizItemModel> createQuizItem(QuizItemModel quizItem) async {
     try {
       final response =
-          _supabaseClient
+          await _supabaseClient
               .from('quiz_items')
               .insert(quizItem.toInsertJson())
+              .select()
               .single();
-
-      return response.then((json) => QuizItemModel.fromJson(json));
+              
+      return QuizItemModel.fromJson(response);
     } catch (e) {
       throw ServerException(e.toString());
     }
   }
 
   @override
-  Future<QuizItemModel> updateQuizItem(QuizItemModel quizItem) {
+  Future<QuizItemModel> updateQuizItem(QuizItemModel quizItem) async {
     try {
       final response =
-          _supabaseClient
+          await _supabaseClient
               .from('quiz_items')
               .update(quizItem.toUpdateJson())
               .eq('id', quizItem.id)
+              .select()
               .single();
 
-      return response.then((json) => QuizItemModel.fromJson(json));
+      return QuizItemModel.fromJson(response);
     } catch (e) {
       throw ServerException(e.toString());
     }
