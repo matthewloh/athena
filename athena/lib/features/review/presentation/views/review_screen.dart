@@ -277,15 +277,9 @@ class ReviewScreen extends ConsumerWidget {
                                     accuracy: stats?.accuracy ?? 0.0,
                                     isRecentlyReviewed: isRecentlyReviewed,
                                     onTap: () {
-                                      // TODO: Navigate to quiz detail/review view
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Quiz detail view coming soon!',
-                                          ),
-                                        ),
+                                      context.pushNamed(
+                                        AppRouteNames.quizDetail,
+                                        pathParameters: {'quizId': quiz.id},
                                       );
                                     },
                                     onReview: () {

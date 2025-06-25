@@ -33,12 +33,12 @@ $CreateQuizStateCopyWith<CreateQuizState> get copyWith => _$CreateQuizStateCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreateQuizState&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.selectedSubject, selectedSubject)&&(identical(other.selectedStudyMaterialId, selectedStudyMaterialId) || other.selectedStudyMaterialId == selectedStudyMaterialId)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.selectedQuizType, selectedQuizType) || other.selectedQuizType == selectedQuizType)&&const DeepCollectionEquality().equals(other.quizItems, quizItems)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isCreating, isCreating) || other.isCreating == isCreating)&&(identical(other.isGeneratingAi, isGeneratingAi) || other.isGeneratingAi == isGeneratingAi)&&(identical(other.isLoadingStudyMaterials, isLoadingStudyMaterials) || other.isLoadingStudyMaterials == isLoadingStudyMaterials)&&(identical(other.showValidationErrors, showValidationErrors) || other.showValidationErrors == showValidationErrors)&&(identical(other.currentQuizItemIndex, currentQuizItemIndex) || other.currentQuizItemIndex == currentQuizItemIndex)&&(identical(other.isExpanded, isExpanded) || other.isExpanded == isExpanded)&&const DeepCollectionEquality().equals(other.availableStudyMaterials, availableStudyMaterials)&&(identical(other.error, error) || other.error == error)&&(identical(other.fieldError, fieldError) || other.fieldError == fieldError)&&(identical(other.createdQuiz, createdQuiz) || other.createdQuiz == createdQuiz)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreateQuizState&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.selectedSubject, selectedSubject) || other.selectedSubject == selectedSubject)&&(identical(other.selectedStudyMaterialId, selectedStudyMaterialId) || other.selectedStudyMaterialId == selectedStudyMaterialId)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.selectedQuizType, selectedQuizType) || other.selectedQuizType == selectedQuizType)&&const DeepCollectionEquality().equals(other.quizItems, quizItems)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isCreating, isCreating) || other.isCreating == isCreating)&&(identical(other.isGeneratingAi, isGeneratingAi) || other.isGeneratingAi == isGeneratingAi)&&(identical(other.isLoadingStudyMaterials, isLoadingStudyMaterials) || other.isLoadingStudyMaterials == isLoadingStudyMaterials)&&(identical(other.showValidationErrors, showValidationErrors) || other.showValidationErrors == showValidationErrors)&&(identical(other.currentQuizItemIndex, currentQuizItemIndex) || other.currentQuizItemIndex == currentQuizItemIndex)&&(identical(other.isExpanded, isExpanded) || other.isExpanded == isExpanded)&&const DeepCollectionEquality().equals(other.availableStudyMaterials, availableStudyMaterials)&&(identical(other.error, error) || other.error == error)&&(identical(other.fieldError, fieldError) || other.fieldError == fieldError)&&(identical(other.createdQuiz, createdQuiz) || other.createdQuiz == createdQuiz)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,title,description,const DeepCollectionEquality().hash(selectedSubject),selectedStudyMaterialId,mode,selectedQuizType,const DeepCollectionEquality().hash(quizItems),isLoading,isCreating,isGeneratingAi,isLoadingStudyMaterials,showValidationErrors,currentQuizItemIndex,isExpanded,const DeepCollectionEquality().hash(availableStudyMaterials),error,fieldError,createdQuiz,isSuccess]);
+int get hashCode => Object.hashAll([runtimeType,title,description,selectedSubject,selectedStudyMaterialId,mode,selectedQuizType,const DeepCollectionEquality().hash(quizItems),isLoading,isCreating,isGeneratingAi,isLoadingStudyMaterials,showValidationErrors,currentQuizItemIndex,isExpanded,const DeepCollectionEquality().hash(availableStudyMaterials),error,fieldError,createdQuiz,isSuccess]);
 
 @override
 String toString() {
@@ -156,12 +156,12 @@ _$CreateQuizStateCopyWith<_CreateQuizState> get copyWith => __$CreateQuizStateCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CreateQuizState&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.selectedSubject, selectedSubject)&&(identical(other.selectedStudyMaterialId, selectedStudyMaterialId) || other.selectedStudyMaterialId == selectedStudyMaterialId)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.selectedQuizType, selectedQuizType) || other.selectedQuizType == selectedQuizType)&&const DeepCollectionEquality().equals(other._quizItems, _quizItems)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isCreating, isCreating) || other.isCreating == isCreating)&&(identical(other.isGeneratingAi, isGeneratingAi) || other.isGeneratingAi == isGeneratingAi)&&(identical(other.isLoadingStudyMaterials, isLoadingStudyMaterials) || other.isLoadingStudyMaterials == isLoadingStudyMaterials)&&(identical(other.showValidationErrors, showValidationErrors) || other.showValidationErrors == showValidationErrors)&&(identical(other.currentQuizItemIndex, currentQuizItemIndex) || other.currentQuizItemIndex == currentQuizItemIndex)&&(identical(other.isExpanded, isExpanded) || other.isExpanded == isExpanded)&&const DeepCollectionEquality().equals(other._availableStudyMaterials, _availableStudyMaterials)&&(identical(other.error, error) || other.error == error)&&(identical(other.fieldError, fieldError) || other.fieldError == fieldError)&&(identical(other.createdQuiz, createdQuiz) || other.createdQuiz == createdQuiz)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CreateQuizState&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.selectedSubject, selectedSubject) || other.selectedSubject == selectedSubject)&&(identical(other.selectedStudyMaterialId, selectedStudyMaterialId) || other.selectedStudyMaterialId == selectedStudyMaterialId)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.selectedQuizType, selectedQuizType) || other.selectedQuizType == selectedQuizType)&&const DeepCollectionEquality().equals(other._quizItems, _quizItems)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isCreating, isCreating) || other.isCreating == isCreating)&&(identical(other.isGeneratingAi, isGeneratingAi) || other.isGeneratingAi == isGeneratingAi)&&(identical(other.isLoadingStudyMaterials, isLoadingStudyMaterials) || other.isLoadingStudyMaterials == isLoadingStudyMaterials)&&(identical(other.showValidationErrors, showValidationErrors) || other.showValidationErrors == showValidationErrors)&&(identical(other.currentQuizItemIndex, currentQuizItemIndex) || other.currentQuizItemIndex == currentQuizItemIndex)&&(identical(other.isExpanded, isExpanded) || other.isExpanded == isExpanded)&&const DeepCollectionEquality().equals(other._availableStudyMaterials, _availableStudyMaterials)&&(identical(other.error, error) || other.error == error)&&(identical(other.fieldError, fieldError) || other.fieldError == fieldError)&&(identical(other.createdQuiz, createdQuiz) || other.createdQuiz == createdQuiz)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,title,description,const DeepCollectionEquality().hash(selectedSubject),selectedStudyMaterialId,mode,selectedQuizType,const DeepCollectionEquality().hash(_quizItems),isLoading,isCreating,isGeneratingAi,isLoadingStudyMaterials,showValidationErrors,currentQuizItemIndex,isExpanded,const DeepCollectionEquality().hash(_availableStudyMaterials),error,fieldError,createdQuiz,isSuccess]);
+int get hashCode => Object.hashAll([runtimeType,title,description,selectedSubject,selectedStudyMaterialId,mode,selectedQuizType,const DeepCollectionEquality().hash(_quizItems),isLoading,isCreating,isGeneratingAi,isLoadingStudyMaterials,showValidationErrors,currentQuizItemIndex,isExpanded,const DeepCollectionEquality().hash(_availableStudyMaterials),error,fieldError,createdQuiz,isSuccess]);
 
 @override
 String toString() {
@@ -386,12 +386,12 @@ $StudyMaterialOptionCopyWith<StudyMaterialOption> get copyWith => _$StudyMateria
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StudyMaterialOption&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&const DeepCollectionEquality().equals(other.subject, subject)&&(identical(other.contentType, contentType) || other.contentType == contentType));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is StudyMaterialOption&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.subject, subject) || other.subject == subject)&&(identical(other.contentType, contentType) || other.contentType == contentType));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,title,const DeepCollectionEquality().hash(subject),contentType);
+int get hashCode => Object.hash(runtimeType,id,title,subject,contentType);
 
 @override
 String toString() {
@@ -458,12 +458,12 @@ _$StudyMaterialOptionCopyWith<_StudyMaterialOption> get copyWith => __$StudyMate
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _StudyMaterialOption&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&const DeepCollectionEquality().equals(other.subject, subject)&&(identical(other.contentType, contentType) || other.contentType == contentType));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _StudyMaterialOption&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.subject, subject) || other.subject == subject)&&(identical(other.contentType, contentType) || other.contentType == contentType));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,title,const DeepCollectionEquality().hash(subject),contentType);
+int get hashCode => Object.hash(runtimeType,id,title,subject,contentType);
 
 @override
 String toString() {

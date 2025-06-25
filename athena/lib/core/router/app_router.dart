@@ -16,6 +16,7 @@ import 'package:athena/features/home/presentation/views/home_screen.dart';
 import 'package:athena/features/navigation/main_navigation_screen.dart';
 import 'package:athena/features/planner/presentation/views/planner_screen.dart';
 import 'package:athena/features/review/presentation/views/create_quiz_screen.dart';
+import 'package:athena/features/review/presentation/views/quiz_detail_screen.dart';
 import 'package:athena/features/review/presentation/views/review_screen.dart';
 import 'package:athena/features/study_materials/presentation/views/materials_screen.dart';
 import 'package:athena/features/study_materials/presentation/views/material_detail_screen.dart';
@@ -290,6 +291,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               studyMaterialId: state.uri.queryParameters['studyMaterialId'],
               initialMode: state.uri.queryParameters['mode'],
             ),
+      ),
+      GoRoute(
+        path: '/${AppRouteNames.quizDetail}/:quizId',
+        name: AppRouteNames.quizDetail,
+        builder:
+            (context, state) =>
+                QuizDetailScreen(quizId: state.pathParameters['quizId']!),
       ),
     ],
   );

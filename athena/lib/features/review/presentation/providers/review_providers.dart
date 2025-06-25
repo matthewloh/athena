@@ -7,7 +7,7 @@ import 'package:athena/features/review/domain/usecases/delete_quiz_usecase.dart'
 import 'package:athena/features/review/domain/usecases/generate_ai_quiz_usecase.dart';
 import 'package:athena/features/review/domain/usecases/get_all_quiz_items_usecase.dart';
 import 'package:athena/features/review/domain/usecases/get_all_quizzes_usecase.dart';
-import 'package:athena/features/review/domain/usecases/get_quiz_usecase.dart';
+import 'package:athena/features/review/domain/usecases/get_quiz_detail_usecase.dart';
 import 'package:athena/features/review/domain/usecases/update_quiz_usecase.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -37,9 +37,9 @@ GetAllQuizzesUseCase getAllQuizzesUseCase(Ref ref) {
 }
 
 @riverpod
-GetQuizUseCase getQuizByIdUseCase(Ref ref) {
+GetQuizDetailUseCase getQuizDetailUseCase(Ref ref) {
   final repository = ref.watch(reviewRepositoryProvider);
-  return GetQuizUseCase(repository);
+  return GetQuizDetailUseCase(repository);
 }
 
 @riverpod

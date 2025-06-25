@@ -7,9 +7,10 @@ The Adaptive Review System is a core feature of the Athena application designed 
 ## 2. Key Responsibilities
 
 - **Quiz Creation:** Allow users to create quizzes manually or generate them automatically from existing study materials using AI.
+- **Quiz Management:** Provide detailed quiz views with metadata, performance analytics, and session history for comprehensive quiz oversight.
 - **Spaced Repetition Algorithm:** Implement intelligent scheduling of review items based on user performance and spaced repetition principles (SM-2 algorithm).
 - **Review Sessions:** Provide interactive review sessions with flashcards and multiple-choice questions.
-- **Performance Tracking:** Monitor user progress, self-assessment, and learning analytics.
+- **Performance Tracking:** Monitor user progress, self-assessment, and learning analytics with detailed historical analysis.
 - **AI Integration:** Interface with backend LLM (via Supabase Edge Function) to generate relevant questions from study materials.
 - **Data Persistence:** Store quiz data, review history, and spaced repetition metadata for long-term learning tracking.
 
@@ -38,6 +39,8 @@ This feature follows the Clean Architecture principles adopted by the Athena pro
 - **Use Cases:**
   - `GetQuizzesUseCase.dart`: Fetches all quizzes for the user.
   - `CreateQuizUseCase.dart`: Creates a new quiz collection.
+  - `GetQuizDetailUseCase.dart`: Fetches detailed information for a specific quiz including metadata and review history.
+  - `GetQuizSessionHistoryUseCase.dart`: Retrieves historical review sessions and performance analytics for a quiz.
   - `GetDueItemsUseCase.dart`: Fetches quiz items due for review based on spaced repetition schedule.
   - `StartReviewSessionUseCase.dart`: Initiates a new review session.
   - `SubmitReviewResponseUseCase.dart`: Processes user responses and updates spaced repetition algorithm.
@@ -94,16 +97,26 @@ This feature follows the Clean Architecture principles adopted by the Athena pro
     - Displays session completion summary and performance analytics
     - Shows spaced repetition adjustments and next review scheduling
     - Provides navigation back to dashboard or start new session
+  
+  - `quiz_detail_viewmodel.dart` & `quiz_detail_state.dart`:
+    - Manages detailed quiz information display including metadata and analytics
+    - Handles quiz performance history and review session tracking
+    - Provides detailed insights into individual quiz item performance and learning progress
 
 - **Views (Screens):**
   - `review_screen.dart`: Main dashboard showing quiz overview, due items count, and quick access to review sessions
   - `create_quiz_screen.dart`: Interface for creating new quizzes with title, subject, description, and initial questions
   - `edit_quiz_screen.dart`: Screen for modifying existing quiz metadata and managing quiz items
+  - `quiz_detail_screen.dart`: Detailed view of a specific quiz showing metadata, performance analytics, session history, and individual item statistics
   - `review_session_screen.dart`: Interactive review session with flashcard/MCQ presentation and difficulty rating
   - `quiz_results_screen.dart`: Session summary displaying performance metrics, completion stats, and next review schedule
 
 - **Widgets:**
   - `quiz_card.dart`: Displays quiz information cards with due items count, subject, and quick action buttons
+  - `quiz_metadata_widget.dart`: Shows detailed quiz information including title, subject, description, creation date, and linked study material
+  - `quiz_analytics_widget.dart`: Displays comprehensive quiz performance metrics, learning progress, and spaced repetition statistics
+  - `session_history_widget.dart`: Shows historical review sessions with performance trends and completion rates
+  - `item_performance_widget.dart`: Detailed breakdown of individual quiz item performance and difficulty progression
   - `flashcard.dart`: Interactive flashcard component with flip animation and self-assessment controls
   - `multiple_choice_widget.dart`: Multiple-choice question interface with option selection and answer validation
   - `progress_indicator.dart`: Shows review session progress, completion percentage, and time elapsed

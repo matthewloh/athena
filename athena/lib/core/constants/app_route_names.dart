@@ -23,6 +23,7 @@ class AppRouteNames {
 
   // Review routes
   static const String createQuiz = 'create-quiz';
+  static const String quizDetail = 'quiz-detail';
   static const String editQuiz = 'edit-quiz';
   static const String reviewSession = 'review-session';
   static const String quizResults = 'quiz-results';

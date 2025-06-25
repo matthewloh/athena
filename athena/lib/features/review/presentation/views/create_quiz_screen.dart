@@ -132,7 +132,6 @@ class _CreateQuizScreenState extends ConsumerState<CreateQuizScreen> {
                     // Manual Quiz Items Section
                     if (state.mode == CreateQuizMode.manual) ...[
                       _buildQuizItemsHeader(state, viewModel),
-                      const SizedBox(height: 8),
                     ],
                   ],
                 ),
@@ -478,7 +477,7 @@ class _CreateQuizScreenState extends ConsumerState<CreateQuizScreen> {
     if (state.quizItems.isEmpty) {
       return SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.only(left: 16.0, right: 16.0),
           child: Card(
             child: Padding(
               padding: const EdgeInsets.all(32.0),

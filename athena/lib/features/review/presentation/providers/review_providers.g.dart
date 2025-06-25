@@ -65,25 +65,26 @@ final getAllQuizzesUseCaseProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef GetAllQuizzesUseCaseRef = AutoDisposeProviderRef<GetAllQuizzesUseCase>;
-String _$getQuizByIdUseCaseHash() =>
-    r'a1be9c14cdfc71003210c07b5fd6154bfd6b0c7e';
+String _$getQuizDetailUseCaseHash() =>
+    r'66ce3a068ee4228c2894be9cf065b782a160c1e4';
 
-/// See also [getQuizByIdUseCase].
-@ProviderFor(getQuizByIdUseCase)
-final getQuizByIdUseCaseProvider = AutoDisposeProvider<GetQuizUseCase>.internal(
-  getQuizByIdUseCase,
-  name: r'getQuizByIdUseCaseProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$getQuizByIdUseCaseHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+/// See also [getQuizDetailUseCase].
+@ProviderFor(getQuizDetailUseCase)
+final getQuizDetailUseCaseProvider =
+    AutoDisposeProvider<GetQuizDetailUseCase>.internal(
+      getQuizDetailUseCase,
+      name: r'getQuizDetailUseCaseProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$getQuizDetailUseCaseHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef GetQuizByIdUseCaseRef = AutoDisposeProviderRef<GetQuizUseCase>;
+typedef GetQuizDetailUseCaseRef = AutoDisposeProviderRef<GetQuizDetailUseCase>;
 String _$createQuizUseCaseHash() => r'afe372432881b40bd610714e6f28cc43fbfdc2be';
 
 /// See also [createQuizUseCase].
