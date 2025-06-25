@@ -40,14 +40,16 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
     Map<String, dynamic>? metadata,
   }) async {
     try {
-      final messageData =
-          ChatMessageModel.temporary(
-            conversationId: conversationId,
-            text: text,
-            metadata: metadata,
-          ).toInsertJson();
+      // Note: We don't save the user message here anymore because
+      // the Edge Function will handle saving it when processing the AI response.
+      // This prevents the race condition that was causing duplicate messages.
 
-      await _client.from('chat_messages').insert(messageData).select().single();
+      // The Edge Function is the single source of truth for message persistence.
+      // This method now just validates the request and returns success.
+
+      print(
+        'SendMessage called - message will be saved by Edge Function: $text',
+      );
     } on PostgrestException catch (e) {
       throw ServerException('Database error: ${e.message}');
     } catch (e) {
@@ -80,14 +82,16 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
 
       final request = http.Request(
         'POST',
-        Uri.parse('https://rbxlzltxpymgioxnhivo.supabase.co/functions/v1/chat-stream'),
+        Uri.parse(
+          'https://rbxlzltxpymgioxnhivo.supabase.co/functions/v1/chat-stream',
+        ),
       );
-      
+
       request.headers.addAll({
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $authToken',
       });
-      
+
       request.body = json.encode({
         'conversationId': conversationId,
         'message': prompt,
@@ -100,39 +104,45 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
       print('Edge function response status: ${streamedResponse.statusCode}');
 
       if (streamedResponse.statusCode != 200) {
-        throw ServerException('Edge function error: ${streamedResponse.statusCode}');
+        throw ServerException(
+          'Edge function error: ${streamedResponse.statusCode}',
+        );
       }
 
       // Handle the streaming response
       String accumulatedData = '';
-      
-      await streamedResponse.stream.listen(
-        (List<int> bytes) {
-          final chunk = utf8.decode(bytes);
-          accumulatedData += chunk;
-          
-          // Process complete lines
-          final lines = accumulatedData.split('\n');
-          accumulatedData = lines.removeLast(); // Keep incomplete line
-          
-          for (final line in lines) {
-            _processServerSentEventLine(line, controller);
-          }
-        },
-        onError: (error) {
-          print('Stream error: $error');
-          controller.addError(ServerException('Stream processing error: $error'));
-        },
-        onDone: () {
-          // Process any remaining data
-          if (accumulatedData.isNotEmpty) {
-            _processServerSentEventLine(accumulatedData, controller);
-          }
-          if (!controller.isClosed) {
-            controller.close();
-          }
-        },
-      ).asFuture();
+
+      await streamedResponse.stream
+          .listen(
+            (List<int> bytes) {
+              final chunk = utf8.decode(bytes);
+              accumulatedData += chunk;
+
+              // Process complete lines
+              final lines = accumulatedData.split('\n');
+              accumulatedData = lines.removeLast(); // Keep incomplete line
+
+              for (final line in lines) {
+                _processServerSentEventLine(line, controller);
+              }
+            },
+            onError: (error) {
+              print('Stream error: $error');
+              controller.addError(
+                ServerException('Stream processing error: $error'),
+              );
+            },
+            onDone: () {
+              // Process any remaining data
+              if (accumulatedData.isNotEmpty) {
+                _processServerSentEventLine(accumulatedData, controller);
+              }
+              if (!controller.isClosed) {
+                controller.close();
+              }
+            },
+          )
+          .asFuture();
     } catch (e) {
       print('Error in AI response stream: $e');
       controller.addError(
@@ -141,15 +151,18 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
     }
   }
 
-  void _processServerSentEventLine(String line, StreamController<String> controller) {
+  void _processServerSentEventLine(
+    String line,
+    StreamController<String> controller,
+  ) {
     if (line.startsWith('data: ')) {
       final jsonStr = line.substring(6).trim();
       if (jsonStr.isEmpty) return;
-      
+
       try {
         final data = json.decode(jsonStr) as Map<String, dynamic>;
         final type = data['type'] as String;
-        
+
         switch (type) {
           case 'chunk':
             final content = data['content'] as String;
@@ -178,7 +191,9 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
   @override
   Future<List<ConversationModel>> getConversations(String userId) async {
     try {
-      print('ChatSupabaseDataSourceImpl: Calling RPC get_conversations_with_stats for userId: $userId');
+      print(
+        'ChatSupabaseDataSourceImpl: Calling RPC get_conversations_with_stats for userId: $userId',
+      );
       final response = await _client.rpc(
         'get_conversations_with_stats',
         params: {'user_uuid': userId},
@@ -192,8 +207,12 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
       }
 
       if (response is! List) {
-        print('ChatSupabaseDataSourceImpl: RPC response is not a List. Type: ${response.runtimeType}');
-        throw ServerException('Unexpected response type from RPC: ${response.runtimeType}');
+        print(
+          'ChatSupabaseDataSourceImpl: RPC response is not a List. Type: ${response.runtimeType}',
+        );
+        throw ServerException(
+          'Unexpected response type from RPC: ${response.runtimeType}',
+        );
       }
 
       if (response.isEmpty) {
@@ -208,25 +227,36 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
             // Crucial check: Ensure user_id is present before parsing, or handle its absence
             // For now, we'll let fromJson handle it and catch, but this is where you'd know it's missing
             if (jsonItem['user_id'] == null) {
-              print('ChatSupabaseDataSourceImpl: item JSON is missing user_id: $jsonItem');
+              print(
+                'ChatSupabaseDataSourceImpl: item JSON is missing user_id: $jsonItem',
+              );
             }
             conversations.add(ConversationModel.fromJson(jsonItem));
           } else {
-            print('ChatSupabaseDataSourceImpl: Skipping non-map item in RPC response: $jsonItem');
+            print(
+              'ChatSupabaseDataSourceImpl: Skipping non-map item in RPC response: $jsonItem',
+            );
           }
         } catch (e, s) {
-          print('ChatSupabaseDataSourceImpl: Error parsing conversation JSON item: $jsonItem. Error: $e. Stacktrace: $s');
+          print(
+            'ChatSupabaseDataSourceImpl: Error parsing conversation JSON item: $jsonItem. Error: $e. Stacktrace: $s',
+          );
           // Decide if you want to skip this item or rethrow
         }
       }
-      print('ChatSupabaseDataSourceImpl: Successfully parsed ${conversations.length} conversations.');
+      print(
+        'ChatSupabaseDataSourceImpl: Successfully parsed ${conversations.length} conversations.',
+      );
       return conversations;
-
     } on PostgrestException catch (e) {
-      print('ChatSupabaseDataSourceImpl: PostgrestException: ${e.message}, details: ${e.details}, code: ${e.code}');
+      print(
+        'ChatSupabaseDataSourceImpl: PostgrestException: ${e.message}, details: ${e.details}, code: ${e.code}',
+      );
       throw ServerException('Database error: ${e.message}');
     } catch (e, s) {
-      print('ChatSupabaseDataSourceImpl: Generic error in getConversations: $e. Stacktrace: $s');
+      print(
+        'ChatSupabaseDataSourceImpl: Generic error in getConversations: $e. Stacktrace: $s',
+      );
       throw ServerException('Failed to get conversations: ${e.toString()}');
     }
   }

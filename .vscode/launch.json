@@ -20,7 +20,7 @@
       "type": "dart",
       "flutterMode": "debug",
       "program": "lib/main.dart",
-      "args": ["--dart-define-from-file=env.json", "-v"]
+      "args": ["--dart-define-from-file=env.json"]
     },
     {
       "name": "Flutter Cloud (profile)",

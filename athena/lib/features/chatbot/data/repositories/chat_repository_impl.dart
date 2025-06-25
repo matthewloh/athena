@@ -125,16 +125,8 @@ class ChatRepositoryImpl implements ChatRepository {
       final conversation = await _remoteDataSource.createConversation(
         userId,
         title: title,
-        firstMessageText:
-            firstMessageText, // This might be sent to Edge Function
+        firstMessageText: firstMessageText,
       );
-      // If there's a firstMessageText, send it after creating the conversation
-      if (firstMessageText != null && firstMessageText.isNotEmpty) {
-        await sendMessage(
-          conversationId: conversation.id,
-          text: firstMessageText,
-        );
-      }
       return Right(conversation);
     } on AuthException catch (e) {
       return Left(AuthFailure(e.message));

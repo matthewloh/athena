@@ -20,47 +20,42 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
   final ScrollController _scrollController = ScrollController();
   bool _isInitialized = false;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  
+
   // Animation controllers for ChatGPT-style animations
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  
+
   // Gesture tracking
   bool _isDrawerOpen = false;
 
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize animations
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
+
     _slideController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeInOut,
-    ));
-    
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.1),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
-    
+    ).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeChatbot();
     });
@@ -71,17 +66,13 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
     _isInitialized = true;
 
     final chatViewModel = ref.read(vm.chatViewModelProvider.notifier);
-    
+
+    // Load conversations but don't auto-select any
     await chatViewModel.loadConversations();
-    
-    final currentState = ref.read(vm.chatViewModelProvider).valueOrNull;
-    if (currentState != null && currentState.conversations.isNotEmpty) {
-      // If there's no active conversation ID in the state yet, set one.
-      if (currentState.activeConversationId == null) {
-         await chatViewModel.setActiveConversation(currentState.conversations.first.id);
-      }
-    }
-    
+
+    // Don't automatically set active conversation - always show landing screen
+    // Users can manually select a conversation from the drawer if they want
+
     // Start animations
     _fadeController.forward();
     _slideController.forward();
@@ -120,7 +111,7 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
   void _handleHorizontalDragStart(DragStartDetails details) {
     // Only respond to edge swipes
     const edgeThreshold = 20.0;
-    
+
     if (details.globalPosition.dx < edgeThreshold) {
       // Starting from left edge - prepare to open drawer
     }
@@ -129,7 +120,7 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
   void _handleHorizontalDragUpdate(DragUpdateDetails details) {
     // Handle swipe to open/close drawer
     const sensitivity = 4.0;
-    
+
     if (details.primaryDelta! > sensitivity) {
       // Swiping right - open drawer
       if (!_isDrawerOpen && details.globalPosition.dx < 100) {
@@ -174,12 +165,15 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
               child: chatStateAsync.when(
                 data: (chatState) {
                   // Show loading for initial state
-                  if (chatState.isLoading && chatState.currentMessages.isEmpty) {
+                  if (chatState.isLoading &&
+                      chatState.currentMessages.isEmpty) {
                     return _buildLoadingView();
                   }
 
-                  // Always show chat area - either with messages or empty and ready
-                  if (chatState.currentMessages.isEmpty && !chatState.isReceivingAiResponse) {
+                  // Show landing screen when no active conversation or no messages
+                  if (chatState.activeConversationId == null ||
+                      (chatState.currentMessages.isEmpty &&
+                          !chatState.isReceivingAiResponse)) {
                     return FadeTransition(
                       opacity: _fadeAnimation,
                       child: SlideTransition(
@@ -194,29 +188,37 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
                     opacity: _fadeAnimation,
                     child: ListView.builder(
                       controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12.0,
+                        vertical: 4.0,
+                      ),
                       itemCount: chatState.currentMessages.length,
                       itemBuilder: (context, index) {
                         if (index >= chatState.currentMessages.length) {
                           return const SizedBox.shrink(); // Safety check
                         }
-                        
+
                         final message = chatState.currentMessages[index];
                         return AnimatedOpacity(
                           opacity: 1.0,
                           duration: Duration(milliseconds: 200 + (index * 50)),
                           child: SlideTransition(
                             position: Tween<Offset>(
-                              begin: Offset(message.sender.name == 'user' ? 0.3 : -0.3, 0),
-                              end: Offset.zero,
-                            ).animate(CurvedAnimation(
-                              parent: _slideController,
-                              curve: Interval(
-                                (index * 0.1).clamp(0.0, 1.0),
-                                1.0,
-                                curve: Curves.easeOutCubic,
+                              begin: Offset(
+                                message.sender.name == 'user' ? 0.3 : -0.3,
+                                0,
                               ),
-                            )),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: _slideController,
+                                curve: Interval(
+                                  (index * 0.1).clamp(0.0, 1.0),
+                                  1.0,
+                                  curve: Curves.easeOutCubic,
+                                ),
+                              ),
+                            ),
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 8.0),
                               child: ChatBubble(message: message),
@@ -238,7 +240,9 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
     );
   }
 
-  PreferredSizeWidget _buildChatGPTStyleAppBar(AsyncValue<vm.ChatState> chatStateAsync) {
+  PreferredSizeWidget _buildChatGPTStyleAppBar(
+    AsyncValue<vm.ChatState> chatStateAsync,
+  ) {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
@@ -286,12 +290,15 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
                 Text(
                   chatStateAsync.maybeWhen(
                     data: (data) {
-                      if (data.activeConversationId == null || 
-                          data.conversations.where((c) => c.id == data.activeConversationId).isEmpty) {
+                      if (data.activeConversationId == null ||
+                          data.conversations
+                              .where((c) => c.id == data.activeConversationId)
+                              .isEmpty) {
                         return 'Athena'; // Default title if no active or not found
                       }
-                      final activeConversation = data.conversations
-                          .firstWhere((c) => c.id == data.activeConversationId);
+                      final activeConversation = data.conversations.firstWhere(
+                        (c) => c.id == data.activeConversationId,
+                      );
                       return activeConversation.title ?? 'Athena';
                     },
                     orElse: () => 'Athena',
@@ -329,9 +336,7 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
               size: 20,
             ),
             onPressed: () {
-              ref
-                  .read(vm.chatViewModelProvider.notifier)
-                  .startNewChat();
+              ref.read(vm.chatViewModelProvider.notifier).startNewChat();
             },
             tooltip: 'New Conversation',
           ),
@@ -371,18 +376,24 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
           child: chatStateAsync.maybeWhen(
-            data: (data) => MessageInputBar(
-              onSend: (String message) {
-                ref.read(vm.chatViewModelProvider.notifier).sendMessage(message);
-              },
-              isLoading: data.isReceivingAiResponse,
-            ),
-            orElse: () => MessageInputBar(
-              onSend: (String message) {
-                ref.read(vm.chatViewModelProvider.notifier).sendMessage(message);
-              },
-              isLoading: false,
-            ),
+            data:
+                (data) => MessageInputBar(
+                  onSend: (String message) {
+                    ref
+                        .read(vm.chatViewModelProvider.notifier)
+                        .sendMessage(message);
+                  },
+                  isLoading: data.isReceivingAiResponse,
+                ),
+            orElse:
+                () => MessageInputBar(
+                  onSend: (String message) {
+                    ref
+                        .read(vm.chatViewModelProvider.notifier)
+                        .sendMessage(message);
+                  },
+                  isLoading: false,
+                ),
           ),
         ),
       ),
@@ -415,10 +426,7 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
           const SizedBox(height: 16),
           const Text(
             'Initializing Athena...',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -436,7 +444,9 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                color: Theme.of(
+                  context,
+                ).colorScheme.error.withValues(alpha: 0.1),
               ),
               child: Icon(
                 Icons.error_outline_rounded,
@@ -447,17 +457,15 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
             const SizedBox(height: 16),
             Text(
               'Something went wrong',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
               err is vm.ChatError ? err.message : err.toString(),
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -465,7 +473,10 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
               icon: const Icon(Icons.refresh_rounded),
               label: const Text('Try Again'),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
               ),
             ),
           ],

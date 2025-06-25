@@ -76,13 +76,32 @@ Deno.serve(async (req) => {
     // Parse and validate request body
     const body = await req.json();
     const validatedRequest = ChatRequestSchema.parse(body);
-    // Save user message first
-    await saveMessage(
-      supabase,
-      validatedRequest.conversationId,
-      "user",
-      validatedRequest.message,
-    );
+    
+    // Check if user message already exists to avoid duplicates
+    // Look for messages with same content in last 10 seconds to handle race conditions
+    const tenSecondsAgo = new Date(Date.now() - 10000).toISOString();
+    const { data: existingMessages } = await supabase
+      .from("chat_messages")
+      .select("id, timestamp")
+      .eq("conversation_id", validatedRequest.conversationId)
+      .eq("sender", "user")
+      .eq("content", validatedRequest.message)
+      .gte("timestamp", tenSecondsAgo)
+      .order("timestamp", { ascending: false })
+      .limit(1);
+    
+    // Only save user message if it doesn't exist already
+    if (!existingMessages || existingMessages.length === 0) {
+      console.log("Saving user message - no duplicate found");
+      await saveMessage(
+        supabase,
+        validatedRequest.conversationId,
+        "user",
+        validatedRequest.message,
+      );
+    } else {
+      console.log("Duplicate user message detected - skipping save");
+    }
     // Prepare messages for AI
     const messages = [
       {
@@ -95,9 +114,7 @@ Deno.serve(async (req) => {
       },
     ];
     // Initialize OpenAI client
-    const model = openai("gpt-4o-mini", {
-      apiKey: Deno.env.get("OPENAI_API_KEY"),
-    });
+    const model = openai("gpt-4o-mini");
     // Stream the AI response
     const result = await streamText({
       model,

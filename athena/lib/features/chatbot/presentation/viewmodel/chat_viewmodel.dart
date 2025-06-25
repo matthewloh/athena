@@ -13,8 +13,8 @@ class ChatViewModel extends _$ChatViewModel {
   // Holds the current active conversation ID
   String? _activeConversationId;
 
-      // Stream subscription for AI responses
-    StreamSubscription<Either<Failure, String>>? _aiResponseSubscription;
+  // Stream subscription for AI responses
+  StreamSubscription<Either<Failure, String>>? _aiResponseSubscription;
 
   @override
   Future<ChatState> build() async {
@@ -59,7 +59,9 @@ class ChatViewModel extends _$ChatViewModel {
 
   Future<void> loadConversations() async {
     final previousState = state.valueOrNull ?? _initialChatState();
-    state = AsyncData(previousState.copyWith(isLoading: true, clearError: true));
+    state = AsyncData(
+      previousState.copyWith(isLoading: true, clearError: true),
+    );
 
     final getConversations = ref.read(getConversationsUseCaseProvider);
     final result = await getConversations.call();
@@ -69,7 +71,9 @@ class ChatViewModel extends _$ChatViewModel {
         state = AsyncData(
           previousState.copyWith(
             isLoading: false,
-            error: ChatError('Failed to load conversations: ${failure.message}'),
+            error: ChatError(
+              'Failed to load conversations: ${failure.message}',
+            ),
           ),
         );
       },
@@ -86,25 +90,30 @@ class ChatViewModel extends _$ChatViewModel {
 
   Future<void> deleteConversation(String conversationId) async {
     final previousState = state.valueOrNull ?? _initialChatState();
-    state = AsyncData(previousState.copyWith(isLoading: true, clearError: true));
+    state = AsyncData(
+      previousState.copyWith(isLoading: true, clearError: true),
+    );
 
     final chatRepo = ref.read(chatRepositoryProvider);
-    final result = await chatRepo.deleteConversation(conversationId); 
+    final result = await chatRepo.deleteConversation(conversationId);
 
     result.fold(
       (failure) {
         state = AsyncData(
           previousState.copyWith(
             isLoading: false,
-            error: ChatError('Failed to delete conversation: ${failure.message}'),
+            error: ChatError(
+              'Failed to delete conversation: ${failure.message}',
+            ),
           ),
         );
       },
       (_) async {
-        await loadConversations(); 
-        
+        await loadConversations();
+
         final currentState = state.valueOrNull;
-        if (currentState != null && previousState.activeConversationId == conversationId) {
+        if (currentState != null &&
+            previousState.activeConversationId == conversationId) {
           if (currentState.conversations.isNotEmpty) {
             await setActiveConversation(currentState.conversations.first.id);
           } else {
@@ -118,10 +127,15 @@ class ChatViewModel extends _$ChatViewModel {
             );
           }
         } else if (currentState != null) {
-            state = AsyncData(currentState.copyWith(isLoading: false));
+          state = AsyncData(currentState.copyWith(isLoading: false));
         } else {
           // Fallback if current state is somehow null after loading
-          state = AsyncData(previousState.copyWith(isLoading: false, error: ChatError('State error after deletion.')));
+          state = AsyncData(
+            previousState.copyWith(
+              isLoading: false,
+              error: ChatError('State error after deletion.'),
+            ),
+          );
         }
       },
     );
@@ -141,10 +155,15 @@ class ChatViewModel extends _$ChatViewModel {
     String? firstMessageText,
   }) async {
     final previousState = state.valueOrNull ?? _initialChatState();
-    state = AsyncData(previousState.copyWith(isLoading: true, clearError: true));
+    state = AsyncData(
+      previousState.copyWith(isLoading: true, clearError: true),
+    );
 
     final createUseCase = ref.read(createConversationUseCaseProvider);
-    final result = await createUseCase.call(title: title, firstMessageText: firstMessageText);
+    final result = await createUseCase.call(
+      title: title,
+      firstMessageText: firstMessageText,
+    );
 
     result.fold(
       (Failure failure) {
@@ -162,16 +181,37 @@ class ChatViewModel extends _$ChatViewModel {
           newConversation,
           ...previousState.conversations,
         ];
-        // Update state with the new conversation list first
+        // Set the active conversation ID in the backing field first
+        _activeConversationId = newConversation.id;
+
+        // Create user message if there's first message text
+        List<ChatMessageEntity> initialMessages = [];
+        if (firstMessageText != null && firstMessageText.isNotEmpty) {
+          final userMessage = ChatMessageEntity(
+            id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+            conversationId: newConversation.id,
+            text: firstMessageText,
+            sender: MessageSender.user,
+            timestamp: DateTime.now(),
+          );
+          initialMessages = [userMessage];
+        }
+
+        // Update state with the new conversation list and initial messages
         state = AsyncData(
           previousState.copyWith(
             conversations: updatedConversations,
+            currentMessages: initialMessages,
             isLoading: false, // Creation is done
-            error: null,      // Clear any previous error
+            error: null, // Clear any previous error
+            activeConversationId: newConversation.id,
           ),
         );
-        // Then set the new conversation as active (this will load its history)
-        setActiveConversation(newConversation.id);
+
+        // If there's a first message, trigger the AI response
+        if (firstMessageText != null && firstMessageText.isNotEmpty) {
+          _listenToAiResponse(newConversation.id, firstMessageText);
+        }
       },
     );
   }
@@ -181,7 +221,7 @@ class ChatViewModel extends _$ChatViewModel {
   void startNewChat() {
     final previousState = state.valueOrNull ?? _initialChatState();
     _activeConversationId = null;
-    
+
     state = AsyncData(
       previousState.copyWith(
         activeConversationId: null,
@@ -195,9 +235,9 @@ class ChatViewModel extends _$ChatViewModel {
 
   Future<void> setActiveConversation(String? conversationId) async {
     final previousState = state.valueOrNull ?? _initialChatState();
-    
+
     if (conversationId == null) {
-      _activeConversationId = null; 
+      _activeConversationId = null;
       state = AsyncData(
         previousState.copyWith(
           activeConversationId: null,
@@ -209,16 +249,18 @@ class ChatViewModel extends _$ChatViewModel {
       return;
     }
 
-    if (previousState.activeConversationId == conversationId && previousState.currentMessages.isNotEmpty && !previousState.isLoading) {
+    if (previousState.activeConversationId == conversationId &&
+        previousState.currentMessages.isNotEmpty &&
+        !previousState.isLoading) {
       return;
     }
-    
+
     _activeConversationId = conversationId;
     state = AsyncData(
       previousState.copyWith(
         activeConversationId: conversationId,
         isLoading: true,
-        currentMessages: [], 
+        currentMessages: [],
         clearError: true,
       ),
     );
@@ -228,9 +270,10 @@ class ChatViewModel extends _$ChatViewModel {
     final result = await getHistory.call(conversationId);
 
     final mostRecentState = state.valueOrNull ?? _initialChatState();
-    
-    if (mostRecentState.activeConversationId != conversationId && _activeConversationId != conversationId) {
-        return;
+
+    if (mostRecentState.activeConversationId != conversationId &&
+        _activeConversationId != conversationId) {
+      return;
     }
 
     result.fold(
@@ -238,10 +281,8 @@ class ChatViewModel extends _$ChatViewModel {
         state = AsyncData(
           mostRecentState.copyWith(
             isLoading: false,
-            activeConversationId: _activeConversationId, 
-            error: ChatError(
-              'Failed to load chat history: ${failure.message}',
-            ),
+            activeConversationId: _activeConversationId,
+            error: ChatError('Failed to load chat history: ${failure.message}'),
           ),
         );
       },
@@ -250,12 +291,13 @@ class ChatViewModel extends _$ChatViewModel {
           mostRecentState.copyWith(
             currentMessages: messages,
             isLoading: false,
-            activeConversationId: _activeConversationId, 
+            activeConversationId: _activeConversationId,
           ),
         );
         if (messages.isNotEmpty &&
             messages.last.sender == MessageSender.user &&
-            !(_activeConversationId == null || (state.valueOrNull?.isReceivingAiResponse ?? false))) {
+            !(_activeConversationId == null ||
+                (state.valueOrNull?.isReceivingAiResponse ?? false))) {
           _listenToAiResponse(_activeConversationId!, messages.last.text);
         }
       },
@@ -293,13 +335,15 @@ class ChatViewModel extends _$ChatViewModel {
       final result = await ref
           .read(sendMessageUseCaseProvider)
           .call(conversationId: _activeConversationId!, text: text);
-      
+
       result.fold(
         (failure) {
           // Revert the optimistic update on failure
-          final revertedMessages = state.valueOrNull?.currentMessages
-              .where((m) => m.id != tempId)
-              .toList() ?? [];
+          final revertedMessages =
+              state.valueOrNull?.currentMessages
+                  .where((m) => m.id != tempId)
+                  .toList() ??
+              [];
           state = AsyncData(
             (state.valueOrNull ?? _initialChatState()).copyWith(
               currentMessages: revertedMessages,
@@ -313,9 +357,11 @@ class ChatViewModel extends _$ChatViewModel {
         },
       );
     } catch (e) {
-      final revertedMessages = state.valueOrNull?.currentMessages
-          .where((m) => m.id != tempId)
-          .toList() ?? [];
+      final revertedMessages =
+          state.valueOrNull?.currentMessages
+              .where((m) => m.id != tempId)
+              .toList() ??
+          [];
       state = AsyncData(
         (state.valueOrNull ?? _initialChatState()).copyWith(
           currentMessages: revertedMessages,
