@@ -7,7 +7,7 @@ part of 'profile_providers.dart';
 // **************************************************************************
 
 String _$profileRemoteDataSourceHash() =>
-    r'122de584f61aaf8913ee3016a511f58c4ae57ca3';
+    r'a861b334ffe67d87043f6b01c5a0c15c73beae57';
 
 /// See also [profileRemoteDataSource].
 @ProviderFor(profileRemoteDataSource)
@@ -26,7 +26,7 @@ final profileRemoteDataSourceProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ProfileRemoteDataSourceRef = ProviderRef<ProfileRemoteDataSource>;
-String _$profileRepositoryHash() => r'4f561b7f3adc7fec5c962ff19bf232320b9c6e40';
+String _$profileRepositoryHash() => r'4af46ad86ace77b2e211962104fc18164a586382';
 
 /// See also [profileRepository].
 @ProviderFor(profileRepository)
@@ -45,7 +45,7 @@ final profileRepositoryProvider = Provider<ProfileRepository>.internal(
 // ignore: unused_element
 typedef ProfileRepositoryRef = ProviderRef<ProfileRepository>;
 String _$currentUserProfileHash() =>
-    r'2eaf95c2c2bf36d3d5c956f3f59461a53a270fdc';
+    r'dd1a6f26c5cdf2b694c85157958a48ad4c589b7b';
 
 /// See also [currentUserProfile].
 @ProviderFor(currentUserProfile)
