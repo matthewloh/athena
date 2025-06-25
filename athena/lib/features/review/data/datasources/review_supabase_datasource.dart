@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:athena/core/errors/exceptions.dart';
 import 'package:athena/features/review/data/datasources/review_remote_datasource.dart';

@@ -1,4 +1,4 @@
-import 'package:athena/core/enums/subject.dart';
+import 'package:athena/domain/enums/subject.dart';
 import 'package:athena/core/providers/auth_provider.dart';
 import 'package:athena/features/review/domain/entities/quiz_entity.dart';
 import 'package:athena/features/review/domain/entities/quiz_item_entity.dart';

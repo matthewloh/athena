@@ -1,4 +1,4 @@
-import 'package:athena/core/enums/subject.dart';
+import 'package:athena/domain/enums/subject.dart';
 import 'package:athena/features/review/domain/entities/quiz_entity.dart';
 
 class QuizModel extends QuizEntity {

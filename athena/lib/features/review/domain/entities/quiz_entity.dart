@@ -1,4 +1,4 @@
-import 'package:athena/core/enums/subject.dart';
+import 'package:athena/domain/enums/subject.dart';
 import 'package:equatable/equatable.dart';
 
 enum QuizType { flashcard, multipleChoice }
