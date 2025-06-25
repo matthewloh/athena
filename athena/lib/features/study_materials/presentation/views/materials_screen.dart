@@ -1,7 +1,8 @@
 import 'package:athena/core/theme/app_colors.dart';
 import 'package:athena/core/constants/app_route_names.dart';
+import 'package:athena/domain/enums/subject.dart';
 import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
-import 'package:athena/features/study_materials/presentation/utils/subject_utils.dart';
+import 'package:athena/features/shared/utils/subject_utils.dart';
 import 'package:athena/features/study_materials/presentation/widgets/add_material_bottom_sheet.dart';
 import 'package:athena/features/study_materials/presentation/widgets/material_list_item_card.dart';
 import 'package:athena/features/study_materials/presentation/viewmodel/study_material_viewmodel.dart';

@@ -1,4 +1,5 @@
 import 'package:athena/core/providers/auth_provider.dart';
+import 'package:athena/domain/enums/subject.dart';
 import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
 import 'package:athena/features/study_materials/domain/usecases/params/create_study_material_params.dart';
 import 'package:athena/features/study_materials/domain/usecases/params/update_study_material_params.dart';

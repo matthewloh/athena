@@ -1,4 +1,4 @@
-import 'package:athena/features/study_materials/presentation/utils/subject_utils.dart';
+import 'package:athena/features/shared/utils/subject_utils.dart';
 import 'package:athena/features/study_materials/presentation/widgets/material_action_button.dart';
 import 'package:flutter/material.dart';
 import 'package:athena/core/theme/app_colors.dart';

@@ -1,7 +1,7 @@
-import 'package:athena/domain/enums/subject.dart';
 import 'package:flutter/material.dart';
-import 'package:athena/features/shared/utils/subject_utils.dart';
 import 'package:athena/core/theme/app_colors.dart';
+import 'package:athena/features/shared/utils/subject_utils.dart';
+import 'package:athena/domain/enums/subject.dart';
 
 class SubjectSearchableDropdown extends StatefulWidget {
   final Subject? selectedSubject;

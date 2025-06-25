@@ -1,4 +1,4 @@
-import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
+import 'package:athena/domain/enums/subject.dart';
 import 'package:equatable/equatable.dart';
 
 class UpdateStudyMaterialParams extends Equatable {

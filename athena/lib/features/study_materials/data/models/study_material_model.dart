@@ -1,3 +1,4 @@
+import 'package:athena/domain/enums/subject.dart';
 import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
 
 class StudyMaterialModel extends StudyMaterialEntity {

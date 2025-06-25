@@ -7,7 +7,7 @@ import 'package:athena/core/theme/app_colors.dart';
 import 'package:athena/core/constants/app_route_names.dart';
 import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
 import 'package:athena/features/study_materials/presentation/viewmodel/study_material_viewmodel.dart';
-import 'package:athena/features/study_materials/presentation/utils/subject_utils.dart';
+import 'package:athena/features/shared/utils/subject_utils.dart';
 import 'package:athena/features/study_materials/presentation/utils/ocr_utils.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_quill/flutter_quill.dart';
