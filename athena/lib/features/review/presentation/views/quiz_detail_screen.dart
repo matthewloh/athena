@@ -37,10 +37,7 @@ class QuizDetailScreen extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.edit, color: Colors.black87),
               onPressed: () {
-                // TODO: Navigate to edit quiz screen
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Edit quiz - Coming soon')),
-                );
+                context.push('/edit-quiz/$quizId');
               },
             ),
             PopupMenuButton<String>(
@@ -797,7 +794,7 @@ class QuizDetailScreen extends ConsumerWidget {
                     color:
                         isFlashcard
                             ? Colors.blue.withOpacity(0.1)
-                            : Colors.purple.withOpacity(0.1),
+                            : Colors.green.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -805,7 +802,7 @@ class QuizDetailScreen extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: isFlashcard ? Colors.blue : Colors.purple,
+                      color: isFlashcard ? Colors.blue : Colors.green,
                     ),
                   ),
                 ),

@@ -134,17 +134,17 @@ class QuizCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           color:
                               quiz.quizType == QuizType.flashcard
-                                  ? Colors.purple.withValues(alpha: 0.1)
-                                  : Colors.indigo.withValues(alpha: 0.1),
+                                  ? Colors.blue.withValues(alpha: 0.1)
+                                  : Colors.green.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                           border:
                               quiz.quizType == QuizType.flashcard
                                   ? Border.all(
-                                    color: Colors.purple.withValues(alpha: 0.3),
+                                    color: Colors.blue.withValues(alpha: 0.3),
                                     width: 0.5,
                                   )
                                   : Border.all(
-                                    color: Colors.indigo.withValues(alpha: 0.3),
+                                    color: Colors.green.withValues(alpha: 0.3),
                                     width: 0.5,
                                   ),
                         ),
@@ -153,13 +153,13 @@ class QuizCard extends StatelessWidget {
                           children: [
                             Icon(
                               quiz.quizType == QuizType.flashcard
-                                  ? Icons.flip_camera_android_outlined
+                                  ? Icons.flip_to_front
                                   : Icons.quiz_outlined,
                               size: 12,
                               color:
                                   quiz.quizType == QuizType.flashcard
-                                      ? Colors.purple
-                                      : Colors.indigo,
+                                      ? Colors.blue
+                                      : Colors.green,
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -169,8 +169,8 @@ class QuizCard extends StatelessWidget {
                               style: TextStyle(
                                 color:
                                     quiz.quizType == QuizType.flashcard
-                                        ? Colors.purple
-                                        : Colors.indigo,
+                                        ? Colors.blue
+                                        : Colors.green,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
                               ),

@@ -184,5 +184,68 @@ final getAllQuizItemsUseCaseProvider =
 // ignore: unused_element
 typedef GetAllQuizItemsUseCaseRef =
     AutoDisposeProviderRef<GetAllQuizItemsUseCase>;
+String _$createQuizItemUseCaseHash() =>
+    r'994c1ab4eed02249d23b040528847bc3f5566e2f';
+
+/// See also [createQuizItemUseCase].
+@ProviderFor(createQuizItemUseCase)
+final createQuizItemUseCaseProvider =
+    AutoDisposeProvider<CreateQuizItemUseCase>.internal(
+      createQuizItemUseCase,
+      name: r'createQuizItemUseCaseProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$createQuizItemUseCaseHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateQuizItemUseCaseRef =
+    AutoDisposeProviderRef<CreateQuizItemUseCase>;
+String _$updateQuizItemUseCaseHash() =>
+    r'dfac47239b850f649b9b78b1668ec5c84d857089';
+
+/// See also [updateQuizItemUseCase].
+@ProviderFor(updateQuizItemUseCase)
+final updateQuizItemUseCaseProvider =
+    AutoDisposeProvider<UpdateQuizItemUseCase>.internal(
+      updateQuizItemUseCase,
+      name: r'updateQuizItemUseCaseProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$updateQuizItemUseCaseHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateQuizItemUseCaseRef =
+    AutoDisposeProviderRef<UpdateQuizItemUseCase>;
+String _$deleteQuizItemUseCaseHash() =>
+    r'b2b8caed0d496e4a72317048761c40541cf6ef24';
+
+/// See also [deleteQuizItemUseCase].
+@ProviderFor(deleteQuizItemUseCase)
+final deleteQuizItemUseCaseProvider =
+    AutoDisposeProvider<DeleteQuizItemUseCase>.internal(
+      deleteQuizItemUseCase,
+      name: r'deleteQuizItemUseCaseProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$deleteQuizItemUseCaseHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteQuizItemUseCaseRef =
+    AutoDisposeProviderRef<DeleteQuizItemUseCase>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -16,6 +16,7 @@ import 'package:athena/features/home/presentation/views/home_screen.dart';
 import 'package:athena/features/navigation/main_navigation_screen.dart';
 import 'package:athena/features/planner/presentation/views/planner_screen.dart';
 import 'package:athena/features/review/presentation/views/create_quiz_screen.dart';
+import 'package:athena/features/review/presentation/views/edit_quiz_screen.dart';
 import 'package:athena/features/review/presentation/views/quiz_detail_screen.dart';
 import 'package:athena/features/review/presentation/views/review_screen.dart';
 import 'package:athena/features/study_materials/presentation/views/materials_screen.dart';
@@ -298,6 +299,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder:
             (context, state) =>
                 QuizDetailScreen(quizId: state.pathParameters['quizId']!),
+      ),
+      GoRoute(
+        path: '/${AppRouteNames.editQuiz}/:quizId',
+        name: AppRouteNames.editQuiz,
+        builder:
+            (context, state) =>
+                EditQuizScreen(quizId: state.pathParameters['quizId']!),
       ),
     ],
   );
