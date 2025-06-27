@@ -247,5 +247,88 @@ final deleteQuizItemUseCaseProvider =
 // ignore: unused_element
 typedef DeleteQuizItemUseCaseRef =
     AutoDisposeProviderRef<DeleteQuizItemUseCase>;
+String _$spacedRepetitionServiceHash() =>
+    r'23369e9bac6489644a508f4a090dc60a07fd554f';
+
+/// See also [spacedRepetitionService].
+@ProviderFor(spacedRepetitionService)
+final spacedRepetitionServiceProvider =
+    AutoDisposeProvider<SpacedRepetitionService>.internal(
+      spacedRepetitionService,
+      name: r'spacedRepetitionServiceProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$spacedRepetitionServiceHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SpacedRepetitionServiceRef =
+    AutoDisposeProviderRef<SpacedRepetitionService>;
+String _$getDueItemsUseCaseHash() =>
+    r'4d1ab004c7161ba90f3f20a656e3bcc72365bd87';
+
+/// See also [getDueItemsUseCase].
+@ProviderFor(getDueItemsUseCase)
+final getDueItemsUseCaseProvider =
+    AutoDisposeProvider<GetDueItemsUseCase>.internal(
+      getDueItemsUseCase,
+      name: r'getDueItemsUseCaseProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$getDueItemsUseCaseHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef GetDueItemsUseCaseRef = AutoDisposeProviderRef<GetDueItemsUseCase>;
+String _$startReviewSessionUseCaseHash() =>
+    r'efedf450e389191533f12129e19f4487a74b5edb';
+
+/// See also [startReviewSessionUseCase].
+@ProviderFor(startReviewSessionUseCase)
+final startReviewSessionUseCaseProvider =
+    AutoDisposeProvider<StartReviewSessionUseCase>.internal(
+      startReviewSessionUseCase,
+      name: r'startReviewSessionUseCaseProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$startReviewSessionUseCaseHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef StartReviewSessionUseCaseRef =
+    AutoDisposeProviderRef<StartReviewSessionUseCase>;
+String _$submitReviewResponseUseCaseHash() =>
+    r'c4897c8ed1aa8a72e15930c9f435657193112785';
+
+/// See also [submitReviewResponseUseCase].
+@ProviderFor(submitReviewResponseUseCase)
+final submitReviewResponseUseCaseProvider =
+    AutoDisposeProvider<SubmitReviewResponseUseCase>.internal(
+      submitReviewResponseUseCase,
+      name: r'submitReviewResponseUseCaseProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$submitReviewResponseUseCaseHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SubmitReviewResponseUseCaseRef =
+    AutoDisposeProviderRef<SubmitReviewResponseUseCase>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

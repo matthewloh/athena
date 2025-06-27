@@ -7,10 +7,69 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class ReviewScreen extends ConsumerWidget {
+class ReviewScreen extends ConsumerStatefulWidget {
   const ReviewScreen({super.key});
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ReviewScreen> createState() => _ReviewScreenState();
+}
+
+class _ReviewScreenState extends ConsumerState<ReviewScreen>
+    with WidgetsBindingObserver, RouteAware {
+  static final RouteObserver<PageRoute> _routeObserver = RouteObserver<PageRoute>();
+  
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Load initial data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(reviewViewModelProvider.notifier).loadQuizzes();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      _routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // Called when the user comes back to this screen
+    // This handles returning from quiz detail, edit, or create screens
+    debugPrint('ReviewScreen: didPopNext called - refreshing quizzes');
+    if (mounted) {
+      ref.read(reviewViewModelProvider.notifier).refreshQuizzes();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Refresh data when app comes back to foreground
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('ReviewScreen: app resumed - refreshing quizzes');
+      // Add a small delay to ensure the navigation is complete
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          ref.read(reviewViewModelProvider.notifier).refreshQuizzes();
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final reviewState = ref.watch(reviewViewModelProvider);
 
     return Scaffold(
@@ -99,12 +158,15 @@ class ReviewScreen extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.all(16),
                         child: ElevatedButton(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Quick review coming soon!'),
-                              ),
+                          onPressed: () async {
+                            // Navigate to a mixed review session with all due items
+                            await context.push(
+                              '/review-session/all?sessionType=dueOnly&maxItems=20',
                             );
+                            // Refresh the quiz data to update due items count
+                            ref
+                                .read(reviewViewModelProvider.notifier)
+                                .refreshQuizzes();
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.athenaSupportiveGreen,
@@ -264,9 +326,6 @@ class ReviewScreen extends ConsumerWidget {
                                   final dueCount = reviewState.getQuizDueCount(
                                     quiz.id,
                                   );
-                                  final stats = reviewState.getQuizStats(
-                                    quiz.id,
-                                  );
                                   final isRecentlyReviewed = reviewState
                                       .isQuizRecentlyReviewed(quiz.id);
 
@@ -274,13 +333,20 @@ class ReviewScreen extends ConsumerWidget {
                                     quiz: quiz,
                                     itemCount: itemCount,
                                     dueCount: dueCount,
-                                    accuracy: stats?.accuracy ?? 0.0,
+                                    accuracy: reviewState
+                                        .getQuizFormattedAccuracy(quiz.id),
                                     isRecentlyReviewed: isRecentlyReviewed,
-                                    onTap: () {
-                                      context.pushNamed(
+                                    onTap: () async {
+                                      debugPrint('ReviewScreen: navigating to quiz detail: ${quiz.id}');
+                                      await context.pushNamed(
                                         AppRouteNames.quizDetail,
                                         pathParameters: {'quizId': quiz.id},
                                       );
+                                      // Refresh data when returning from quiz detail
+                                      debugPrint('ReviewScreen: returned from quiz detail - refreshing quizzes');
+                                      if (mounted) {
+                                        ref.read(reviewViewModelProvider.notifier).refreshQuizzes();
+                                      }
                                     },
                                     onReview: () {
                                       ScaffoldMessenger.of(
@@ -423,12 +489,18 @@ class ReviewScreen extends ConsumerWidget {
                       title: 'Manual Entry',
                       description: 'Create questions & answers yourself',
                       color: AppColors.athenaSupportiveGreen,
-                      onTap: () {
+                      onTap: () async {
                         context.pop();
-                        context.pushNamed(
+                        debugPrint('ReviewScreen: navigating to create quiz (manual)');
+                        await context.pushNamed(
                           AppRouteNames.createQuiz,
                           queryParameters: {'mode': 'manual'},
                         );
+                        // Refresh data when returning from create quiz
+                        debugPrint('ReviewScreen: returned from create quiz (manual) - refreshing quizzes');
+                        if (mounted) {
+                          ref.read(reviewViewModelProvider.notifier).refreshQuizzes();
+                        }
                       },
                     ),
                   ),
@@ -440,12 +512,18 @@ class ReviewScreen extends ConsumerWidget {
                       title: 'AI Generated',
                       description: 'Generate from your study materials',
                       color: AppColors.athenaPurple,
-                      onTap: () {
+                      onTap: () async {
                         context.pop();
-                        context.pushNamed(
+                        debugPrint('ReviewScreen: navigating to create quiz (AI)');
+                        await context.pushNamed(
                           AppRouteNames.createQuiz,
                           queryParameters: {'mode': 'ai'},
                         );
+                        // Refresh data when returning from create quiz
+                        debugPrint('ReviewScreen: returned from create quiz (AI) - refreshing quizzes');
+                        if (mounted) {
+                          ref.read(reviewViewModelProvider.notifier).refreshQuizzes();
+                        }
                       },
                     ),
                   ),

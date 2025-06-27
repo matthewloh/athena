@@ -85,7 +85,7 @@ CREATE TABLE public.quiz_items (
 CREATE TABLE public.review_sessions (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    quiz_id UUID REFERENCES public.quizzes(id) ON DELETE SET NULL,
+    quiz_id UUID REFERENCES public.quizzes(id) ON DELETE CASCADE,
       -- Session metadata
     session_type session_type DEFAULT 'mixed' NOT NULL,
     total_items INTEGER DEFAULT 0 NOT NULL,

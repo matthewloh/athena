@@ -57,7 +57,17 @@ abstract class QuizDetailState with _$QuizDetailState {
   }
 
   // Get formatted accuracy
-  String get formattedAccuracy => '${(accuracy * 100).toInt()}%';
+  String get formattedAccuracy {
+    if (!hasReviewedItems) return 'N/A';
+    return '${(accuracy * 100).toInt()}%';
+  }
+
+  // Check if any items have been reviewed
+  bool get hasReviewedItems => quizItems.any((item) => item.repetitions > 0);
+
+  // Get count of reviewed items
+  int get reviewedItemsCount =>
+      quizItems.where((item) => item.repetitions > 0).length;
 
   // Get items by difficulty level
   List<QuizItemEntity> get easyItems =>
@@ -76,13 +86,11 @@ abstract class QuizDetailState with _$QuizDetailState {
     final today = DateTime.now();
     final todayDateOnly = DateTime(today.year, today.month, today.day);
     final futureReviews =
-        quizItems
-            .map((item) => item.nextReviewDate)
-            .where((date) {
-              final dateOnly = DateTime(date.year, date.month, date.day);
-              return dateOnly.isAfter(todayDateOnly) || dateOnly.isAtSameMomentAs(todayDateOnly);
-            })
-            .toList();
+        quizItems.map((item) => item.nextReviewDate).where((date) {
+          final dateOnly = DateTime(date.year, date.month, date.day);
+          return dateOnly.isAfter(todayDateOnly) ||
+              dateOnly.isAtSameMomentAs(todayDateOnly);
+        }).toList();
 
     if (futureReviews.isEmpty) return null;
 

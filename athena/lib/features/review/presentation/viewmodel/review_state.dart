@@ -52,7 +52,17 @@ abstract class ReviewState with _$ReviewState {
   bool get hasAnyLoading => isLoading || isRefreshing || isLoadingQuizItems;
 
   // Get formatted accuracy as percentage string
-  String get formattedAccuracy => '${(overallAccuracy * 100).toInt()}%';
+  String get formattedAccuracy {
+    if (!hasAnyReviewedItems) return 'N/A';
+    return '${(overallAccuracy * 100).toInt()}%';
+  }
+
+  // Check if any items across all quizzes have been reviewed
+  bool get hasAnyReviewedItems {
+    return quizItems.values.any(
+      (items) => items.any((item) => item.repetitions > 0),
+    );
+  }
 
   // Get quizzes sorted by the current criteria
   List<QuizEntity> get sortedQuizzes {
@@ -126,15 +136,38 @@ abstract class ReviewState with _$ReviewState {
     final oneDayAgo = DateTime.now().subtract(const Duration(days: 1));
     return items.any((item) => item.lastReviewedAt.isAfter(oneDayAgo));
   }
+
+  // Check if a specific quiz has any reviewed items
+  bool hasQuizReviewedItems(String quizId) {
+    final items = quizItems[quizId];
+    if (items == null || items.isEmpty) return false;
+    return items.any((item) => item.repetitions > 0);
+  }
+
+  // Get formatted accuracy for a specific quiz
+  String getQuizFormattedAccuracy(String quizId) {
+    if (!hasQuizReviewedItems(quizId)) return 'N/A';
+    final stats = getQuizStats(quizId);
+    if (stats == null) return 'N/A';
+    return '${(stats.accuracy * 100).toInt()}%';
+  }
 }
 
 // Helper class for quiz statistics
 @freezed
 abstract class QuizStats with _$QuizStats {
+  const QuizStats._();
+
   const factory QuizStats({
     @Default(0) int totalItems,
     @Default(0) int dueItems,
     @Default(0.0) double accuracy,
     DateTime? lastReviewed,
   }) = _QuizStats;
+
+  // Get formatted accuracy string
+  String get formattedAccuracy {
+    if (accuracy == 0.0) return 'No data yet';
+    return '${(accuracy * 100).toInt()}%';
+  }
 }

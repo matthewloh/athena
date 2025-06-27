@@ -4,6 +4,8 @@ import 'package:athena/core/errors/exceptions.dart';
 import 'package:athena/features/review/data/datasources/review_remote_datasource.dart';
 import 'package:athena/features/review/data/models/quiz_item_model.dart';
 import 'package:athena/features/review/data/models/quiz_model.dart';
+import 'package:athena/features/review/data/models/review_response_model.dart';
+import 'package:athena/features/review/data/models/review_session_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ReviewSupabaseDataSourceImpl implements ReviewRemoteDataSource {
@@ -142,7 +144,7 @@ class ReviewSupabaseDataSourceImpl implements ReviewRemoteDataSource {
               .insert(quizItem.toInsertJson())
               .select()
               .single();
-              
+
       return QuizItemModel.fromJson(response);
     } catch (e) {
       throw ServerException(e.toString());
@@ -170,6 +172,172 @@ class ReviewSupabaseDataSourceImpl implements ReviewRemoteDataSource {
   Future<void> deleteQuizItem(String itemId) async {
     try {
       await _supabaseClient.from('quiz_items').delete().eq('id', itemId);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  // Review session operations
+  @override
+  Future<List<ReviewSessionModel>> getAllReviewSessions(String quizId) async {
+    try {
+      final response = await _supabaseClient
+          .from('review_sessions')
+          .select()
+          .eq('quiz_id', quizId)
+          .order('created_at', ascending: false);
+
+      return (response as List)
+          .map((json) => ReviewSessionModel.fromJson(json))
+          .toList();
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<ReviewSessionModel> getReviewSessionById(String sessionId) async {
+    try {
+      final response =
+          await _supabaseClient
+              .from('review_sessions')
+              .select()
+              .eq('id', sessionId)
+              .single();
+
+      return ReviewSessionModel.fromJson(response);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<ReviewSessionModel> createReviewSession(
+    ReviewSessionModel session,
+  ) async {
+    try {
+      final response =
+          await _supabaseClient
+              .from('review_sessions')
+              .insert(session.toInsertJson())
+              .select()
+              .single();
+
+      return ReviewSessionModel.fromJson(response);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<ReviewSessionModel> updateReviewSession(
+    ReviewSessionModel session,
+  ) async {
+    try {
+      final response =
+          await _supabaseClient
+              .from('review_sessions')
+              .update(session.toUpdateJson())
+              .eq('id', session.id)
+              .select()
+              .single();
+
+      return ReviewSessionModel.fromJson(response);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<void> deleteReviewSession(String sessionId) async {
+    try {
+      await _supabaseClient
+          .from('review_sessions')
+          .delete()
+          .eq('id', sessionId);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  // Review response operations
+  @override
+  Future<List<ReviewResponseModel>> getAllReviewResponses(String quizId) async {
+    try {
+      final response = await _supabaseClient
+          .from('review_responses')
+          .select()
+          .eq('quiz_id', quizId)
+          .order('created_at', ascending: false);
+
+      return (response as List)
+          .map((json) => ReviewResponseModel.fromJson(json))
+          .toList();
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<ReviewResponseModel> getReviewResponseById(String responseId) async {
+    try {
+      final response =
+          await _supabaseClient
+              .from('review_responses')
+              .select()
+              .eq('id', responseId)
+              .single();
+
+      return ReviewResponseModel.fromJson(response);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<ReviewResponseModel> createReviewResponse(
+    ReviewResponseModel response,
+  ) async {
+    try {
+      final responseJson =
+          await _supabaseClient
+              .from('review_responses')
+              .insert(response.toInsertJson())
+              .select()
+              .single();
+
+      return ReviewResponseModel.fromJson(responseJson);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<ReviewResponseModel> updateReviewResponse(
+    ReviewResponseModel response,
+  ) async {
+    try {
+      final responseJson =
+          await _supabaseClient
+              .from('review_responses')
+              .update(response.toUpdateJson())
+              .eq('id', response.id)
+              .select()
+              .single();
+
+      return ReviewResponseModel.fromJson(responseJson);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<void> deleteReviewResponse(String responseId) async {
+    try {
+      await _supabaseClient
+          .from('review_responses')
+          .delete()
+          .eq('id', responseId);
     } catch (e) {
       throw ServerException(e.toString());
     }

@@ -7,7 +7,7 @@ class QuizCard extends StatelessWidget {
   final QuizEntity quiz;
   final int itemCount;
   final int dueCount;
-  final double accuracy;
+  final String accuracy;
   final bool isRecentlyReviewed;
   final VoidCallback? onTap;
   final VoidCallback? onReview;
@@ -17,7 +17,7 @@ class QuizCard extends StatelessWidget {
     required this.quiz,
     required this.itemCount,
     this.dueCount = 0,
-    this.accuracy = 0.0,
+    this.accuracy = 'N/A',
     this.isRecentlyReviewed = false,
     this.onTap,
     this.onReview,
@@ -259,14 +259,14 @@ class QuizCard extends StatelessWidget {
                           label: 'items',
                         ),
                         _buildCompactStat(
-                          icon: Icons.schedule_outlined,
+                          icon: Icons.update,
                           value: _formatDate(quiz.updatedAt),
                           label: '',
                         ),
                         _buildCompactStat(
                           icon: Icons.check_circle_outline,
-                          value: '${(accuracy * 100).toInt()}%',
-                          label: 'accuracy',
+                          value: accuracy,
+                          label: '',
                         ),
                       ],
                     ),

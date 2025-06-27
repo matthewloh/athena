@@ -6,15 +6,50 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class QuizDetailScreen extends ConsumerWidget {
+class QuizDetailScreen extends ConsumerStatefulWidget {
   final String quizId;
 
   const QuizDetailScreen({super.key, required this.quizId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(quizDetailViewModelProvider(quizId));
-    final viewModel = ref.read(quizDetailViewModelProvider(quizId).notifier);
+  ConsumerState<QuizDetailScreen> createState() => _QuizDetailScreenState();
+}
+
+class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Refresh data when app comes back to foreground
+    if (state == AppLifecycleState.resumed) {
+      // Add a small delay to ensure the navigation is complete
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          ref
+              .read(quizDetailViewModelProvider(widget.quizId).notifier)
+              .refreshQuizData(widget.quizId);
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(quizDetailViewModelProvider(widget.quizId));
+    final viewModel = ref.read(
+      quizDetailViewModelProvider(widget.quizId).notifier,
+    );
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -36,8 +71,16 @@ class QuizDetailScreen extends ConsumerWidget {
           if (state.hasQuiz) ...[
             IconButton(
               icon: const Icon(Icons.edit, color: Colors.black87),
-              onPressed: () {
-                context.push('/edit-quiz/$quizId');
+              onPressed: () async {
+                debugPrint('QuizDetailScreen: navigating to edit quiz: ${widget.quizId}');
+                await context.push('/edit-quiz/${widget.quizId}');
+                // Refresh quiz data when returning from edit
+                debugPrint('QuizDetailScreen: returned from edit quiz - refreshing data');
+                if (mounted) {
+                  ref
+                      .read(quizDetailViewModelProvider(widget.quizId).notifier)
+                      .refreshQuizData(widget.quizId);
+                }
               },
             ),
             PopupMenuButton<String>(
@@ -84,18 +127,20 @@ class QuizDetailScreen extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => viewModel.refreshQuizData(quizId),
+        onRefresh: () => viewModel.refreshQuizData(widget.quizId),
         child: _buildBody(context, state, viewModel),
       ),
       floatingActionButton:
           state.isReadyForReview
               ? FloatingActionButton.extended(
                 backgroundColor: AppColors.athenaSupportiveGreen,
-                onPressed: () {
-                  // TODO: Navigate to review session
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Start review - Coming soon')),
+                onPressed: () async {
+                  // Navigate to review session and refresh data when returning
+                  await context.push(
+                    '/review-session/${widget.quizId}?sessionType=mixed&maxItems=20',
                   );
+                  // Refresh the quiz data to update due items count
+                  viewModel.refreshQuizData(widget.quizId);
                 },
                 icon: const Icon(Icons.play_arrow, color: Colors.white),
                 label: const Text(
@@ -176,7 +221,7 @@ class QuizDetailScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () => viewModel.refreshQuizData(quizId),
+              onPressed: () => viewModel.refreshQuizData(widget.quizId),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.athenaSupportiveGreen,
                 foregroundColor: Colors.white,
@@ -262,12 +307,21 @@ class QuizDetailScreen extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: 16),
-          Row(
+          Wrap(
             children: [
+              // Created
               Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
               const SizedBox(width: 6),
               Text(
                 'Created ${_formatTimestamp(quiz.createdAt)}',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+              const SizedBox(width: 16),
+              // Updated
+              Icon(Icons.update, size: 16, color: Colors.grey[600]),
+              const SizedBox(width: 6),
+              Text(
+                'Updated ${_formatTimestamp(quiz.updatedAt)}',
                 style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
               const SizedBox(width: 16),
@@ -304,7 +358,7 @@ class QuizDetailScreen extends ConsumerWidget {
             child: _buildStatCard(
               'Due',
               state.dueItems.toString(),
-              Icons.schedule,
+              Icons.timer,
               state.hasDueItems ? Colors.orange : Colors.green,
             ),
           ),
@@ -313,7 +367,7 @@ class QuizDetailScreen extends ConsumerWidget {
             child: _buildStatCard(
               'Accuracy',
               state.formattedAccuracy,
-              Icons.trending_up,
+              Icons.check_circle_outline,
               AppColors.athenaSupportiveGreen,
             ),
           ),
@@ -837,11 +891,32 @@ class QuizDetailScreen extends ConsumerWidget {
                 color: Colors.black87,
               ),
             ),
+            const SizedBox(height: 8),
             if (isFlashcard) ...[
-              const SizedBox(height: 8),
               Text(
                 item.answerText,
                 style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+            ] else ...[
+              // For MCQ items, show the correct answer from mcqOptions
+              Builder(
+                builder: (context) {
+                  // Find the correct answer text from mcqOptions using mcqCorrectOptionKey
+                  String correctAnswerText = 'Answer not found';
+                  if (item.mcqOptions != null && item.mcqCorrectOptionKey != null) {
+                    final correctOption = item.mcqOptions!.entries
+                        .where((entry) => entry.key == item.mcqCorrectOptionKey)
+                        .toList();
+                    if (correctOption.isNotEmpty) {
+                      correctAnswerText = '${correctOption.first.value}';
+                    }
+                  }
+                  
+                  return Text(
+                    correctAnswerText,
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  );
+                },
               ),
             ],
             const SizedBox(height: 12),
@@ -968,12 +1043,86 @@ class QuizDetailScreen extends ConsumerWidget {
                 child: const Text('Cancel'),
               ),
               TextButton(
-                onPressed: () {
-                  context.pop();
-                  // TODO: Implement delete functionality
+                onPressed: () async {
+                  Navigator.of(context).pop(); // Close dialog
+
+                  // Show loading indicator
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Delete quiz - Coming soon')),
+                    const SnackBar(
+                      content: Row(
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Text('Deleting quiz...'),
+                        ],
+                      ),
+                      duration: Duration(
+                        seconds: 30,
+                      ), // Long duration, will be dismissed manually
+                    ),
                   );
+
+                  // Perform deletion
+                  await ref
+                      .read(quizDetailViewModelProvider(widget.quizId).notifier)
+                      .deleteQuiz(widget.quizId);
+
+                  // Check if deletion was successful
+                  final currentState = ref.read(
+                    quizDetailViewModelProvider(widget.quizId),
+                  );
+
+                  if (mounted) {
+                    // Dismiss the loading snackbar
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+                    if (currentState.hasError) {
+                      // Show error message
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(currentState.error!),
+                          backgroundColor: Colors.red,
+                          action: SnackBarAction(
+                            label: 'Dismiss',
+                            textColor: Colors.white,
+                            onPressed: () {
+                              ref
+                                  .read(
+                                    quizDetailViewModelProvider(
+                                      widget.quizId,
+                                    ).notifier,
+                                  )
+                                  .clearError();
+                            },
+                          ),
+                        ),
+                      );
+                    } else {
+                      // Success - navigate back and show success message
+                      context.pop(); // Navigate back to previous screen
+
+                      // Show success message on the previous screen
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Quiz deleted successfully'),
+                              backgroundColor: AppColors.athenaSupportiveGreen,
+                            ),
+                          );
+                        }
+                      });
+                    }
+                  }
                 },
                 style: TextButton.styleFrom(foregroundColor: Colors.red),
                 child: const Text('Delete'),

@@ -150,12 +150,24 @@ class QuizDetailViewModel extends _$QuizDetailViewModel {
             .length;
 
     // Calculate overall accuracy based on easiness factors
-    final avgEasinessFactor =
-        items.fold<double>(0, (sum, item) => sum + item.easinessFactor) /
-        items.length;
+    // Only consider items that have been reviewed at least once (repetitions > 0)
+    // Uses SM-2 algorithm range (1.3-4.0) mapped to accuracy percentage (0-100%)
+    // Higher easiness factor indicates better performance/accuracy
+    final reviewedItems = items.where((item) => item.repetitions > 0).toList();
 
-    // Convert easiness factor to accuracy percentage (1.3-4.0 range mapped to 0-100%)
-    final accuracy = ((avgEasinessFactor - 1.3) / (4.0 - 1.3)).clamp(0.0, 1.0);
+    double accuracy = 0.0;
+    if (reviewedItems.isNotEmpty) {
+      final avgEasinessFactor =
+          reviewedItems.fold<double>(
+            0,
+            (sum, item) => sum + item.easinessFactor,
+          ) /
+          reviewedItems.length;
+
+      // Convert easiness factor to accuracy percentage (1.3-4.0 range mapped to 0-100%)
+      accuracy = ((avgEasinessFactor - 1.3) / (4.0 - 1.3)).clamp(0.0, 1.0);
+    }
+    // If no items have been reviewed, accuracy remains 0.0
 
     // Calculate total reviews (sum of all repetitions)
     final totalReviews = items.fold<int>(
@@ -198,29 +210,38 @@ class QuizDetailViewModel extends _$QuizDetailViewModel {
     state = state.copyWith(error: null);
   }
 
-  // Get items by type
-  List<QuizItemEntity> getItemsByType(String itemType) {
-    final QuizItemType? enumType =
-        itemType.toLowerCase() == 'flashcard'
-            ? QuizItemType.flashcard
-            : itemType.toLowerCase() == 'multiplechoice'
-            ? QuizItemType.multipleChoice
-            : null;
+  // Delete quiz and handle navigation
+  Future<void> deleteQuiz(String quizId) async {
+    final userId = _getCurrentUserId();
+    if (userId == null) {
+      state = state.copyWith(error: 'User not authenticated');
+      return;
+    }
 
-    if (enumType == null) return [];
+    state = state.copyWith(isLoading: true, error: null);
 
-    return state.quizItems.where((item) => item.itemType == enumType).toList();
-  }
+    try {
+      final deleteQuizUseCase = ref.read(deleteQuizUseCaseProvider);
+      final result = await deleteQuizUseCase.call(quizId);
 
-  // Get items by difficulty
-  List<QuizItemEntity> getItemsByDifficulty(String difficulty) {
-    switch (difficulty.toLowerCase()) {
-      case 'easy':
-        return state.easyItems;
-      case 'hard':
-        return state.hardItems;
-      default:
-        return state.quizItems;
+      result.fold(
+        (failure) {
+          state = state.copyWith(
+            isLoading: false,
+            error: 'Failed to delete quiz: ${failure.message}',
+          );
+        },
+        (_) {
+          // Quiz deleted successfully
+          // The state will be disposed when navigating away, so no need to update it
+          debugPrint('Quiz $quizId deleted successfully');
+        },
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Failed to delete quiz: ${e.toString()}',
+      );
     }
   }
 }

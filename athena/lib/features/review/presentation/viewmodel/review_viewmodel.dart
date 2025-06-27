@@ -46,6 +46,7 @@ class ReviewViewModel extends _$ReviewViewModel {
 
   // Refresh quizzes
   Future<void> refreshQuizzes() async {
+    debugPrint('ReviewViewModel: refreshQuizzes called');
     state = state.copyWith(isRefreshing: true, error: null);
     await _loadQuizzes();
   }
@@ -82,6 +83,7 @@ class ReviewViewModel extends _$ReviewViewModel {
           );
         },
         (quizzes) async {
+          debugPrint('ReviewViewModel: loaded ${quizzes.length} quizzes');
           // Update quizzes first
           state = state.copyWith(
             isLoading: false,
@@ -177,11 +179,22 @@ class ReviewViewModel extends _$ReviewViewModel {
         items.where((item) => item.nextReviewDate.isBefore(now)).length;
 
     // Calculate accuracy based on easiness factor (rough approximation)
-    // Higher easiness factor means better performance
-    final avgEasinessFactor =
-        items.fold<double>(0, (sum, item) => sum + item.easinessFactor) /
-        items.length;
-    final accuracy = ((avgEasinessFactor - 1.3) / (2.5 - 1.3)).clamp(0.0, 1.0);
+    // Only consider items that have been reviewed at least once (repetitions > 0)
+    // Uses SM-2 algorithm range (1.3-4.0) mapped to accuracy percentage (0-100%)
+    // Higher easiness factor indicates better performance/accuracy
+    final reviewedItems = items.where((item) => item.repetitions > 0).toList();
+
+    double accuracy = 0.0;
+    if (reviewedItems.isNotEmpty) {
+      final avgEasinessFactor =
+          reviewedItems.fold<double>(
+            0,
+            (sum, item) => sum + item.easinessFactor,
+          ) /
+          reviewedItems.length;
+      accuracy = ((avgEasinessFactor - 1.3) / (4.0 - 1.3)).clamp(0.0, 1.0);
+    }
+    // If no items have been reviewed, accuracy remains 0.0
 
     // Find most recent review
     DateTime? lastReviewed;

@@ -19,6 +19,8 @@ import 'package:athena/features/review/presentation/views/create_quiz_screen.dar
 import 'package:athena/features/review/presentation/views/edit_quiz_screen.dart';
 import 'package:athena/features/review/presentation/views/quiz_detail_screen.dart';
 import 'package:athena/features/review/presentation/views/review_screen.dart';
+import 'package:athena/features/review/presentation/views/review_session_screen.dart';
+import 'package:athena/features/review/domain/entities/review_session_entity.dart';
 import 'package:athena/features/study_materials/presentation/views/materials_screen.dart';
 import 'package:athena/features/study_materials/presentation/views/material_detail_screen.dart';
 import 'package:athena/features/study_materials/presentation/views/add_edit_material_screen.dart';
@@ -306,6 +308,39 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder:
             (context, state) =>
                 EditQuizScreen(quizId: state.pathParameters['quizId']!),
+      ),
+      GoRoute(
+        path: '/${AppRouteNames.reviewSession}/:quizId',
+        name: AppRouteNames.reviewSession,
+        builder: (context, state) {
+          final quizId = state.pathParameters['quizId']!;
+          final sessionType = state.uri.queryParameters['sessionType'];
+          final maxItems = state.uri.queryParameters['maxItems'];
+
+          SessionType? parsedSessionType;
+          if (sessionType != null) {
+            switch (sessionType.toLowerCase()) {
+              case 'due':
+              case 'dueonly':
+                parsedSessionType = SessionType.dueOnly;
+                break;
+              case 'new':
+              case 'newonly':
+                parsedSessionType = SessionType.newOnly;
+                break;
+              case 'mixed':
+              default:
+                parsedSessionType = SessionType.mixed;
+                break;
+            }
+          }
+
+          return ReviewSessionScreen(
+            quizId: quizId,
+            sessionType: parsedSessionType,
+            maxItems: maxItems != null ? int.tryParse(maxItems) : null,
+          );
+        },
       ),
     ],
   );

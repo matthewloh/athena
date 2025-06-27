@@ -16,7 +16,7 @@ class ReviewResponseEntity extends Equatable {
   final DifficultyRating difficultyRating;
   final int? responseTimeSeconds;
   final String? userAnswer; // For MCQ: the selected option key, for flashcards: can be null
-  final String? isCorrect; // For MCQ: automatic, for flashcards: based on self-assessment
+  final bool? isCorrect; // For MCQ: automatic, for flashcards: based on self-assessment
   // Previous spaced repetition values (for history/analytics)
   final double? previousEasinessFactor;
   final int? previousIntervalDays;
@@ -76,7 +76,7 @@ class ReviewResponseEntity extends Equatable {
     DifficultyRating? difficultyRating,
     int? responseTimeSeconds,
     String? userAnswer,
-    String? isCorrect,
+    bool? isCorrect,
     double? previousEasinessFactor,
     int? previousIntervalDays,
     int? previousRepetitions,
