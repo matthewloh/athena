@@ -23,7 +23,6 @@ mixin _$ReviewSessionState {
  bool get isLoadingSession; bool get isSubmittingResponse; String? get error;// Session completion
  bool get isSessionCompleted; bool get isSessionAbandoned;// Multiple choice specific state
  String? get selectedMcqOption; bool get hasMcqAnswered;// Statistics
- int get totalTimeSpent;// in seconds
  int get averageResponseTime;
 /// Create a copy of ReviewSessionState
 /// with the given fields replaced by the non-null parameter values.
@@ -35,16 +34,16 @@ $ReviewSessionStateCopyWith<ReviewSessionState> get copyWith => _$ReviewSessionS
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReviewSessionState&&(identical(other.session, session) || other.session == session)&&const DeepCollectionEquality().equals(other.items, items)&&const DeepCollectionEquality().equals(other.responses, responses)&&(identical(other.currentItemIndex, currentItemIndex) || other.currentItemIndex == currentItemIndex)&&(identical(other.currentItem, currentItem) || other.currentItem == currentItem)&&(identical(other.isShowingAnswer, isShowingAnswer) || other.isShowingAnswer == isShowingAnswer)&&(identical(other.responseStartTime, responseStartTime) || other.responseStartTime == responseStartTime)&&(identical(other.completedItems, completedItems) || other.completedItems == completedItems)&&(identical(other.correctResponses, correctResponses) || other.correctResponses == correctResponses)&&(identical(other.averageDifficulty, averageDifficulty) || other.averageDifficulty == averageDifficulty)&&(identical(other.isLoadingSession, isLoadingSession) || other.isLoadingSession == isLoadingSession)&&(identical(other.isSubmittingResponse, isSubmittingResponse) || other.isSubmittingResponse == isSubmittingResponse)&&(identical(other.error, error) || other.error == error)&&(identical(other.isSessionCompleted, isSessionCompleted) || other.isSessionCompleted == isSessionCompleted)&&(identical(other.isSessionAbandoned, isSessionAbandoned) || other.isSessionAbandoned == isSessionAbandoned)&&(identical(other.selectedMcqOption, selectedMcqOption) || other.selectedMcqOption == selectedMcqOption)&&(identical(other.hasMcqAnswered, hasMcqAnswered) || other.hasMcqAnswered == hasMcqAnswered)&&(identical(other.totalTimeSpent, totalTimeSpent) || other.totalTimeSpent == totalTimeSpent)&&(identical(other.averageResponseTime, averageResponseTime) || other.averageResponseTime == averageResponseTime));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReviewSessionState&&(identical(other.session, session) || other.session == session)&&const DeepCollectionEquality().equals(other.items, items)&&const DeepCollectionEquality().equals(other.responses, responses)&&(identical(other.currentItemIndex, currentItemIndex) || other.currentItemIndex == currentItemIndex)&&(identical(other.currentItem, currentItem) || other.currentItem == currentItem)&&(identical(other.isShowingAnswer, isShowingAnswer) || other.isShowingAnswer == isShowingAnswer)&&(identical(other.responseStartTime, responseStartTime) || other.responseStartTime == responseStartTime)&&(identical(other.completedItems, completedItems) || other.completedItems == completedItems)&&(identical(other.correctResponses, correctResponses) || other.correctResponses == correctResponses)&&(identical(other.averageDifficulty, averageDifficulty) || other.averageDifficulty == averageDifficulty)&&(identical(other.isLoadingSession, isLoadingSession) || other.isLoadingSession == isLoadingSession)&&(identical(other.isSubmittingResponse, isSubmittingResponse) || other.isSubmittingResponse == isSubmittingResponse)&&(identical(other.error, error) || other.error == error)&&(identical(other.isSessionCompleted, isSessionCompleted) || other.isSessionCompleted == isSessionCompleted)&&(identical(other.isSessionAbandoned, isSessionAbandoned) || other.isSessionAbandoned == isSessionAbandoned)&&(identical(other.selectedMcqOption, selectedMcqOption) || other.selectedMcqOption == selectedMcqOption)&&(identical(other.hasMcqAnswered, hasMcqAnswered) || other.hasMcqAnswered == hasMcqAnswered)&&(identical(other.averageResponseTime, averageResponseTime) || other.averageResponseTime == averageResponseTime));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,session,const DeepCollectionEquality().hash(items),const DeepCollectionEquality().hash(responses),currentItemIndex,currentItem,isShowingAnswer,responseStartTime,completedItems,correctResponses,averageDifficulty,isLoadingSession,isSubmittingResponse,error,isSessionCompleted,isSessionAbandoned,selectedMcqOption,hasMcqAnswered,totalTimeSpent,averageResponseTime]);
+int get hashCode => Object.hash(runtimeType,session,const DeepCollectionEquality().hash(items),const DeepCollectionEquality().hash(responses),currentItemIndex,currentItem,isShowingAnswer,responseStartTime,completedItems,correctResponses,averageDifficulty,isLoadingSession,isSubmittingResponse,error,isSessionCompleted,isSessionAbandoned,selectedMcqOption,hasMcqAnswered,averageResponseTime);
 
 @override
 String toString() {
-  return 'ReviewSessionState(session: $session, items: $items, responses: $responses, currentItemIndex: $currentItemIndex, currentItem: $currentItem, isShowingAnswer: $isShowingAnswer, responseStartTime: $responseStartTime, completedItems: $completedItems, correctResponses: $correctResponses, averageDifficulty: $averageDifficulty, isLoadingSession: $isLoadingSession, isSubmittingResponse: $isSubmittingResponse, error: $error, isSessionCompleted: $isSessionCompleted, isSessionAbandoned: $isSessionAbandoned, selectedMcqOption: $selectedMcqOption, hasMcqAnswered: $hasMcqAnswered, totalTimeSpent: $totalTimeSpent, averageResponseTime: $averageResponseTime)';
+  return 'ReviewSessionState(session: $session, items: $items, responses: $responses, currentItemIndex: $currentItemIndex, currentItem: $currentItem, isShowingAnswer: $isShowingAnswer, responseStartTime: $responseStartTime, completedItems: $completedItems, correctResponses: $correctResponses, averageDifficulty: $averageDifficulty, isLoadingSession: $isLoadingSession, isSubmittingResponse: $isSubmittingResponse, error: $error, isSessionCompleted: $isSessionCompleted, isSessionAbandoned: $isSessionAbandoned, selectedMcqOption: $selectedMcqOption, hasMcqAnswered: $hasMcqAnswered, averageResponseTime: $averageResponseTime)';
 }
 
 
@@ -55,7 +54,7 @@ abstract mixin class $ReviewSessionStateCopyWith<$Res>  {
   factory $ReviewSessionStateCopyWith(ReviewSessionState value, $Res Function(ReviewSessionState) _then) = _$ReviewSessionStateCopyWithImpl;
 @useResult
 $Res call({
- ReviewSessionEntity? session, List<QuizItemEntity> items, List<ReviewResponseEntity> responses, int currentItemIndex, QuizItemEntity? currentItem, bool isShowingAnswer, DateTime? responseStartTime, int completedItems, int correctResponses, double averageDifficulty, bool isLoadingSession, bool isSubmittingResponse, String? error, bool isSessionCompleted, bool isSessionAbandoned, String? selectedMcqOption, bool hasMcqAnswered, int totalTimeSpent, int averageResponseTime
+ ReviewSessionEntity? session, List<QuizItemEntity> items, List<ReviewResponseEntity> responses, int currentItemIndex, QuizItemEntity? currentItem, bool isShowingAnswer, DateTime? responseStartTime, int completedItems, int correctResponses, double averageDifficulty, bool isLoadingSession, bool isSubmittingResponse, String? error, bool isSessionCompleted, bool isSessionAbandoned, String? selectedMcqOption, bool hasMcqAnswered, int averageResponseTime
 });
 
 
@@ -72,7 +71,7 @@ class _$ReviewSessionStateCopyWithImpl<$Res>
 
 /// Create a copy of ReviewSessionState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? session = freezed,Object? items = null,Object? responses = null,Object? currentItemIndex = null,Object? currentItem = freezed,Object? isShowingAnswer = null,Object? responseStartTime = freezed,Object? completedItems = null,Object? correctResponses = null,Object? averageDifficulty = null,Object? isLoadingSession = null,Object? isSubmittingResponse = null,Object? error = freezed,Object? isSessionCompleted = null,Object? isSessionAbandoned = null,Object? selectedMcqOption = freezed,Object? hasMcqAnswered = null,Object? totalTimeSpent = null,Object? averageResponseTime = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? session = freezed,Object? items = null,Object? responses = null,Object? currentItemIndex = null,Object? currentItem = freezed,Object? isShowingAnswer = null,Object? responseStartTime = freezed,Object? completedItems = null,Object? correctResponses = null,Object? averageDifficulty = null,Object? isLoadingSession = null,Object? isSubmittingResponse = null,Object? error = freezed,Object? isSessionCompleted = null,Object? isSessionAbandoned = null,Object? selectedMcqOption = freezed,Object? hasMcqAnswered = null,Object? averageResponseTime = null,}) {
   return _then(_self.copyWith(
 session: freezed == session ? _self.session : session // ignore: cast_nullable_to_non_nullable
 as ReviewSessionEntity?,items: null == items ? _self.items : items // ignore: cast_nullable_to_non_nullable
@@ -91,8 +90,7 @@ as String?,isSessionCompleted: null == isSessionCompleted ? _self.isSessionCompl
 as bool,isSessionAbandoned: null == isSessionAbandoned ? _self.isSessionAbandoned : isSessionAbandoned // ignore: cast_nullable_to_non_nullable
 as bool,selectedMcqOption: freezed == selectedMcqOption ? _self.selectedMcqOption : selectedMcqOption // ignore: cast_nullable_to_non_nullable
 as String?,hasMcqAnswered: null == hasMcqAnswered ? _self.hasMcqAnswered : hasMcqAnswered // ignore: cast_nullable_to_non_nullable
-as bool,totalTimeSpent: null == totalTimeSpent ? _self.totalTimeSpent : totalTimeSpent // ignore: cast_nullable_to_non_nullable
-as int,averageResponseTime: null == averageResponseTime ? _self.averageResponseTime : averageResponseTime // ignore: cast_nullable_to_non_nullable
+as bool,averageResponseTime: null == averageResponseTime ? _self.averageResponseTime : averageResponseTime // ignore: cast_nullable_to_non_nullable
 as int,
   ));
 }
@@ -104,7 +102,7 @@ as int,
 
 
 class _ReviewSessionState extends ReviewSessionState {
-  const _ReviewSessionState({this.session, final  List<QuizItemEntity> items = const [], final  List<ReviewResponseEntity> responses = const [], this.currentItemIndex = 0, this.currentItem, this.isShowingAnswer = false, this.responseStartTime, this.completedItems = 0, this.correctResponses = 0, this.averageDifficulty = 0.0, this.isLoadingSession = false, this.isSubmittingResponse = false, this.error, this.isSessionCompleted = false, this.isSessionAbandoned = false, this.selectedMcqOption, this.hasMcqAnswered = false, this.totalTimeSpent = 0, this.averageResponseTime = 0}): _items = items,_responses = responses,super._();
+  const _ReviewSessionState({this.session, final  List<QuizItemEntity> items = const [], final  List<ReviewResponseEntity> responses = const [], this.currentItemIndex = 0, this.currentItem, this.isShowingAnswer = false, this.responseStartTime, this.completedItems = 0, this.correctResponses = 0, this.averageDifficulty = 0.0, this.isLoadingSession = false, this.isSubmittingResponse = false, this.error, this.isSessionCompleted = false, this.isSessionAbandoned = false, this.selectedMcqOption, this.hasMcqAnswered = false, this.averageResponseTime = 0}): _items = items,_responses = responses,super._();
   
 
 // Session data
@@ -144,8 +142,6 @@ class _ReviewSessionState extends ReviewSessionState {
 @override final  String? selectedMcqOption;
 @override@JsonKey() final  bool hasMcqAnswered;
 // Statistics
-@override@JsonKey() final  int totalTimeSpent;
-// in seconds
 @override@JsonKey() final  int averageResponseTime;
 
 /// Create a copy of ReviewSessionState
@@ -158,16 +154,16 @@ _$ReviewSessionStateCopyWith<_ReviewSessionState> get copyWith => __$ReviewSessi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReviewSessionState&&(identical(other.session, session) || other.session == session)&&const DeepCollectionEquality().equals(other._items, _items)&&const DeepCollectionEquality().equals(other._responses, _responses)&&(identical(other.currentItemIndex, currentItemIndex) || other.currentItemIndex == currentItemIndex)&&(identical(other.currentItem, currentItem) || other.currentItem == currentItem)&&(identical(other.isShowingAnswer, isShowingAnswer) || other.isShowingAnswer == isShowingAnswer)&&(identical(other.responseStartTime, responseStartTime) || other.responseStartTime == responseStartTime)&&(identical(other.completedItems, completedItems) || other.completedItems == completedItems)&&(identical(other.correctResponses, correctResponses) || other.correctResponses == correctResponses)&&(identical(other.averageDifficulty, averageDifficulty) || other.averageDifficulty == averageDifficulty)&&(identical(other.isLoadingSession, isLoadingSession) || other.isLoadingSession == isLoadingSession)&&(identical(other.isSubmittingResponse, isSubmittingResponse) || other.isSubmittingResponse == isSubmittingResponse)&&(identical(other.error, error) || other.error == error)&&(identical(other.isSessionCompleted, isSessionCompleted) || other.isSessionCompleted == isSessionCompleted)&&(identical(other.isSessionAbandoned, isSessionAbandoned) || other.isSessionAbandoned == isSessionAbandoned)&&(identical(other.selectedMcqOption, selectedMcqOption) || other.selectedMcqOption == selectedMcqOption)&&(identical(other.hasMcqAnswered, hasMcqAnswered) || other.hasMcqAnswered == hasMcqAnswered)&&(identical(other.totalTimeSpent, totalTimeSpent) || other.totalTimeSpent == totalTimeSpent)&&(identical(other.averageResponseTime, averageResponseTime) || other.averageResponseTime == averageResponseTime));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReviewSessionState&&(identical(other.session, session) || other.session == session)&&const DeepCollectionEquality().equals(other._items, _items)&&const DeepCollectionEquality().equals(other._responses, _responses)&&(identical(other.currentItemIndex, currentItemIndex) || other.currentItemIndex == currentItemIndex)&&(identical(other.currentItem, currentItem) || other.currentItem == currentItem)&&(identical(other.isShowingAnswer, isShowingAnswer) || other.isShowingAnswer == isShowingAnswer)&&(identical(other.responseStartTime, responseStartTime) || other.responseStartTime == responseStartTime)&&(identical(other.completedItems, completedItems) || other.completedItems == completedItems)&&(identical(other.correctResponses, correctResponses) || other.correctResponses == correctResponses)&&(identical(other.averageDifficulty, averageDifficulty) || other.averageDifficulty == averageDifficulty)&&(identical(other.isLoadingSession, isLoadingSession) || other.isLoadingSession == isLoadingSession)&&(identical(other.isSubmittingResponse, isSubmittingResponse) || other.isSubmittingResponse == isSubmittingResponse)&&(identical(other.error, error) || other.error == error)&&(identical(other.isSessionCompleted, isSessionCompleted) || other.isSessionCompleted == isSessionCompleted)&&(identical(other.isSessionAbandoned, isSessionAbandoned) || other.isSessionAbandoned == isSessionAbandoned)&&(identical(other.selectedMcqOption, selectedMcqOption) || other.selectedMcqOption == selectedMcqOption)&&(identical(other.hasMcqAnswered, hasMcqAnswered) || other.hasMcqAnswered == hasMcqAnswered)&&(identical(other.averageResponseTime, averageResponseTime) || other.averageResponseTime == averageResponseTime));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,session,const DeepCollectionEquality().hash(_items),const DeepCollectionEquality().hash(_responses),currentItemIndex,currentItem,isShowingAnswer,responseStartTime,completedItems,correctResponses,averageDifficulty,isLoadingSession,isSubmittingResponse,error,isSessionCompleted,isSessionAbandoned,selectedMcqOption,hasMcqAnswered,totalTimeSpent,averageResponseTime]);
+int get hashCode => Object.hash(runtimeType,session,const DeepCollectionEquality().hash(_items),const DeepCollectionEquality().hash(_responses),currentItemIndex,currentItem,isShowingAnswer,responseStartTime,completedItems,correctResponses,averageDifficulty,isLoadingSession,isSubmittingResponse,error,isSessionCompleted,isSessionAbandoned,selectedMcqOption,hasMcqAnswered,averageResponseTime);
 
 @override
 String toString() {
-  return 'ReviewSessionState(session: $session, items: $items, responses: $responses, currentItemIndex: $currentItemIndex, currentItem: $currentItem, isShowingAnswer: $isShowingAnswer, responseStartTime: $responseStartTime, completedItems: $completedItems, correctResponses: $correctResponses, averageDifficulty: $averageDifficulty, isLoadingSession: $isLoadingSession, isSubmittingResponse: $isSubmittingResponse, error: $error, isSessionCompleted: $isSessionCompleted, isSessionAbandoned: $isSessionAbandoned, selectedMcqOption: $selectedMcqOption, hasMcqAnswered: $hasMcqAnswered, totalTimeSpent: $totalTimeSpent, averageResponseTime: $averageResponseTime)';
+  return 'ReviewSessionState(session: $session, items: $items, responses: $responses, currentItemIndex: $currentItemIndex, currentItem: $currentItem, isShowingAnswer: $isShowingAnswer, responseStartTime: $responseStartTime, completedItems: $completedItems, correctResponses: $correctResponses, averageDifficulty: $averageDifficulty, isLoadingSession: $isLoadingSession, isSubmittingResponse: $isSubmittingResponse, error: $error, isSessionCompleted: $isSessionCompleted, isSessionAbandoned: $isSessionAbandoned, selectedMcqOption: $selectedMcqOption, hasMcqAnswered: $hasMcqAnswered, averageResponseTime: $averageResponseTime)';
 }
 
 
@@ -178,7 +174,7 @@ abstract mixin class _$ReviewSessionStateCopyWith<$Res> implements $ReviewSessio
   factory _$ReviewSessionStateCopyWith(_ReviewSessionState value, $Res Function(_ReviewSessionState) _then) = __$ReviewSessionStateCopyWithImpl;
 @override @useResult
 $Res call({
- ReviewSessionEntity? session, List<QuizItemEntity> items, List<ReviewResponseEntity> responses, int currentItemIndex, QuizItemEntity? currentItem, bool isShowingAnswer, DateTime? responseStartTime, int completedItems, int correctResponses, double averageDifficulty, bool isLoadingSession, bool isSubmittingResponse, String? error, bool isSessionCompleted, bool isSessionAbandoned, String? selectedMcqOption, bool hasMcqAnswered, int totalTimeSpent, int averageResponseTime
+ ReviewSessionEntity? session, List<QuizItemEntity> items, List<ReviewResponseEntity> responses, int currentItemIndex, QuizItemEntity? currentItem, bool isShowingAnswer, DateTime? responseStartTime, int completedItems, int correctResponses, double averageDifficulty, bool isLoadingSession, bool isSubmittingResponse, String? error, bool isSessionCompleted, bool isSessionAbandoned, String? selectedMcqOption, bool hasMcqAnswered, int averageResponseTime
 });
 
 
@@ -195,7 +191,7 @@ class __$ReviewSessionStateCopyWithImpl<$Res>
 
 /// Create a copy of ReviewSessionState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? session = freezed,Object? items = null,Object? responses = null,Object? currentItemIndex = null,Object? currentItem = freezed,Object? isShowingAnswer = null,Object? responseStartTime = freezed,Object? completedItems = null,Object? correctResponses = null,Object? averageDifficulty = null,Object? isLoadingSession = null,Object? isSubmittingResponse = null,Object? error = freezed,Object? isSessionCompleted = null,Object? isSessionAbandoned = null,Object? selectedMcqOption = freezed,Object? hasMcqAnswered = null,Object? totalTimeSpent = null,Object? averageResponseTime = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? session = freezed,Object? items = null,Object? responses = null,Object? currentItemIndex = null,Object? currentItem = freezed,Object? isShowingAnswer = null,Object? responseStartTime = freezed,Object? completedItems = null,Object? correctResponses = null,Object? averageDifficulty = null,Object? isLoadingSession = null,Object? isSubmittingResponse = null,Object? error = freezed,Object? isSessionCompleted = null,Object? isSessionAbandoned = null,Object? selectedMcqOption = freezed,Object? hasMcqAnswered = null,Object? averageResponseTime = null,}) {
   return _then(_ReviewSessionState(
 session: freezed == session ? _self.session : session // ignore: cast_nullable_to_non_nullable
 as ReviewSessionEntity?,items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
@@ -214,8 +210,7 @@ as String?,isSessionCompleted: null == isSessionCompleted ? _self.isSessionCompl
 as bool,isSessionAbandoned: null == isSessionAbandoned ? _self.isSessionAbandoned : isSessionAbandoned // ignore: cast_nullable_to_non_nullable
 as bool,selectedMcqOption: freezed == selectedMcqOption ? _self.selectedMcqOption : selectedMcqOption // ignore: cast_nullable_to_non_nullable
 as String?,hasMcqAnswered: null == hasMcqAnswered ? _self.hasMcqAnswered : hasMcqAnswered // ignore: cast_nullable_to_non_nullable
-as bool,totalTimeSpent: null == totalTimeSpent ? _self.totalTimeSpent : totalTimeSpent // ignore: cast_nullable_to_non_nullable
-as int,averageResponseTime: null == averageResponseTime ? _self.averageResponseTime : averageResponseTime // ignore: cast_nullable_to_non_nullable
+as bool,averageResponseTime: null == averageResponseTime ? _self.averageResponseTime : averageResponseTime // ignore: cast_nullable_to_non_nullable
 as int,
   ));
 }

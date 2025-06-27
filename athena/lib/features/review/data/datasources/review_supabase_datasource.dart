@@ -185,7 +185,7 @@ class ReviewSupabaseDataSourceImpl implements ReviewRemoteDataSource {
           .from('review_sessions')
           .select()
           .eq('quiz_id', quizId)
-          .order('created_at', ascending: false);
+          .order('started_at', ascending: false);
 
       return (response as List)
           .map((json) => ReviewSessionModel.fromJson(json))
@@ -268,7 +268,7 @@ class ReviewSupabaseDataSourceImpl implements ReviewRemoteDataSource {
           .from('review_responses')
           .select()
           .eq('quiz_id', quizId)
-          .order('created_at', ascending: false);
+          .order('responded_at', ascending: false);
 
       return (response as List)
           .map((json) => ReviewResponseModel.fromJson(json))

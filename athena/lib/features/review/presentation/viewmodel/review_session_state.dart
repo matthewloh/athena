@@ -47,7 +47,6 @@ abstract class ReviewSessionState with _$ReviewSessionState {
     @Default(false) bool hasMcqAnswered,
 
     // Statistics
-    @Default(0) int totalTimeSpent, // in seconds
     @Default(0) int averageResponseTime, // in seconds
   }) = _ReviewSessionState;
 

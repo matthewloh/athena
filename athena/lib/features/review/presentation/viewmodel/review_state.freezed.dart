@@ -281,8 +281,8 @@ as DateTime?,
 /// @nodoc
 
 
-class _QuizStats implements QuizStats {
-  const _QuizStats({this.totalItems = 0, this.dueItems = 0, this.accuracy = 0.0, this.lastReviewed});
+class _QuizStats extends QuizStats {
+  const _QuizStats({this.totalItems = 0, this.dueItems = 0, this.accuracy = 0.0, this.lastReviewed}): super._();
   
 
 @override@JsonKey() final  int totalItems;

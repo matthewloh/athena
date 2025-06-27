@@ -1,5 +1,6 @@
 import 'package:athena/features/review/domain/entities/quiz_entity.dart';
 import 'package:athena/features/review/domain/entities/quiz_item_entity.dart';
+import 'package:athena/features/review/domain/entities/review_session_entity.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'quiz_detail_state.freezed.dart';
@@ -12,10 +13,12 @@ abstract class QuizDetailState with _$QuizDetailState {
     // Core data
     QuizEntity? quiz,
     @Default([]) List<QuizItemEntity> quizItems,
+    @Default([]) List<ReviewSessionEntity> sessionHistory,
 
     // Loading states
     @Default(false) bool isLoading,
     @Default(false) bool isLoadingItems,
+    @Default(false) bool isLoadingHistory,
     @Default(false) bool isRefreshing,
 
     // Error handling
@@ -29,9 +32,6 @@ abstract class QuizDetailState with _$QuizDetailState {
     @Default(0) int totalReviews,
     @Default(0) int streak,
 
-    // TODO: Review session history (when available)
-    // @Default([]) List<ReviewSessionEntity> sessionHistory,
-
     // UI states
     @Default(0) int selectedTabIndex,
   }) = _QuizDetailState;
@@ -40,8 +40,9 @@ abstract class QuizDetailState with _$QuizDetailState {
   bool get hasError => error != null;
   bool get hasQuiz => quiz != null;
   bool get hasItems => quizItems.isNotEmpty;
+  bool get hasSessionHistory => sessionHistory.isNotEmpty;
   bool get hasDueItems => dueItems > 0;
-  bool get hasAnyLoading => isLoading || isLoadingItems || isRefreshing;
+  bool get hasAnyLoading => isLoading || isLoadingItems || isLoadingHistory || isRefreshing;
 
   // Get completion percentage
   double get completionPercentage {

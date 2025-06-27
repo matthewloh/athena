@@ -274,9 +274,11 @@ class QuizCard extends StatelessWidget {
                   const SizedBox(width: 12),
                   // Action button
                   ElevatedButton(
-                    onPressed: onReview,
+                    onPressed: dueCount > 0 ? onReview : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.athenaSupportiveGreen,
+                      backgroundColor: dueCount > 0 
+                          ? AppColors.athenaSupportiveGreen 
+                          : Colors.grey[300],
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -287,11 +289,12 @@ class QuizCard extends StatelessWidget {
                       ),
                       minimumSize: const Size(0, 0),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Review',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
+                        color: dueCount > 0 ? Colors.white : Colors.grey[600],
                       ),
                     ),
                   ),

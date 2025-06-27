@@ -247,6 +247,48 @@ final deleteQuizItemUseCaseProvider =
 // ignore: unused_element
 typedef DeleteQuizItemUseCaseRef =
     AutoDisposeProviderRef<DeleteQuizItemUseCase>;
+String _$getReviewSessionsUseCaseHash() =>
+    r'59e34f0a32cdabef0537eb8e2714c711d916d091';
+
+/// See also [getReviewSessionsUseCase].
+@ProviderFor(getReviewSessionsUseCase)
+final getReviewSessionsUseCaseProvider =
+    AutoDisposeProvider<GetReviewSessionsUseCase>.internal(
+      getReviewSessionsUseCase,
+      name: r'getReviewSessionsUseCaseProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$getReviewSessionsUseCaseHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef GetReviewSessionsUseCaseRef =
+    AutoDisposeProviderRef<GetReviewSessionsUseCase>;
+String _$updateReviewSessionUseCaseHash() =>
+    r'564e5c30b45961bae56e30e4eda4aa648efe18ea';
+
+/// See also [updateReviewSessionUseCase].
+@ProviderFor(updateReviewSessionUseCase)
+final updateReviewSessionUseCaseProvider =
+    AutoDisposeProvider<UpdateReviewSessionUseCase>.internal(
+      updateReviewSessionUseCase,
+      name: r'updateReviewSessionUseCaseProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$updateReviewSessionUseCaseHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateReviewSessionUseCaseRef =
+    AutoDisposeProviderRef<UpdateReviewSessionUseCase>;
 String _$spacedRepetitionServiceHash() =>
     r'23369e9bac6489644a508f4a090dc60a07fd554f';
 

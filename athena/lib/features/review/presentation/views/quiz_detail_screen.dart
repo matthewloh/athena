@@ -72,10 +72,14 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
             IconButton(
               icon: const Icon(Icons.edit, color: Colors.black87),
               onPressed: () async {
-                debugPrint('QuizDetailScreen: navigating to edit quiz: ${widget.quizId}');
+                debugPrint(
+                  'QuizDetailScreen: navigating to edit quiz: ${widget.quizId}',
+                );
                 await context.push('/edit-quiz/${widget.quizId}');
                 // Refresh quiz data when returning from edit
-                debugPrint('QuizDetailScreen: returned from edit quiz - refreshing data');
+                debugPrint(
+                  'QuizDetailScreen: returned from edit quiz - refreshing data',
+                );
                 if (mounted) {
                   ref
                       .read(quizDetailViewModelProvider(widget.quizId).notifier)
@@ -365,7 +369,7 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatCard(
-              'Accuracy',
+              'Mastery',
               state.formattedAccuracy,
               Icons.check_circle_outline,
               AppColors.athenaSupportiveGreen,
@@ -510,7 +514,7 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
             children: [
               Expanded(
                 child: _buildProgressStat(
-                  'Total Reviews',
+                  'Study Sessions',
                   state.totalReviews.toString(),
                   Icons.refresh,
                 ),
@@ -618,13 +622,16 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
                   Icons.play_arrow,
                   AppColors.athenaSupportiveGreen,
                   state.isReadyForReview,
-                  () {
-                    // TODO: Navigate to review session
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Start review - Coming soon'),
-                      ),
+                  () async {
+                    await context.push(
+                      '/review-session/${widget.quizId}?sessionType=mixed&maxItems=20',
                     );
+                    // Refresh the quiz data to update due items count
+                    ref
+                        .read(
+                          quizDetailViewModelProvider(widget.quizId).notifier,
+                        )
+                        .refreshQuizData(widget.quizId);
                   },
                 ),
               ),
@@ -636,10 +643,8 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
                   AppColors.athenaSupportiveGreen,
                   true,
                   () {
-                    // TODO: Navigate to add items screen
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Add items - Coming soon')),
-                    );
+                    // Navigate to edit quiz screen where users can add items
+                    context.push('/edit-quiz/${widget.quizId}');
                   },
                 ),
               ),
@@ -792,10 +797,8 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
-                  // TODO: Navigate to add items screen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Add items - Coming soon')),
-                  );
+                  // Navigate to edit quiz screen where users can add items
+                  context.push('/edit-quiz/${widget.quizId}');
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.athenaSupportiveGreen,
@@ -903,15 +906,19 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
                 builder: (context) {
                   // Find the correct answer text from mcqOptions using mcqCorrectOptionKey
                   String correctAnswerText = 'Answer not found';
-                  if (item.mcqOptions != null && item.mcqCorrectOptionKey != null) {
-                    final correctOption = item.mcqOptions!.entries
-                        .where((entry) => entry.key == item.mcqCorrectOptionKey)
-                        .toList();
+                  if (item.mcqOptions != null &&
+                      item.mcqCorrectOptionKey != null) {
+                    final correctOption =
+                        item.mcqOptions!.entries
+                            .where(
+                              (entry) => entry.key == item.mcqCorrectOptionKey,
+                            )
+                            .toList();
                     if (correctOption.isNotEmpty) {
                       correctAnswerText = '${correctOption.first.value}';
                     }
                   }
-                  
+
                   return Text(
                     correctAnswerText,
                     style: const TextStyle(fontSize: 14, color: Colors.grey),
@@ -971,61 +978,208 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
   }
 
   Widget _buildHistoryTab(BuildContext context, state) {
-    // TODO: Implement when review session data is available
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: 24 + MediaQuery.of(context).padding.bottom,
+    if (state.isLoadingHistory) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: AppColors.athenaSupportiveGreen,
         ),
+      );
+    }
+
+    if (!state.hasSessionHistory) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: 24 + MediaQuery.of(context).padding.bottom,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.history, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                'No Review History',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Review session history will appear here once you start reviewing this quiz.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed:
+                    state.isReadyForReview
+                        ? () async {
+                          await context.push(
+                            '/review-session/${widget.quizId}?sessionType=mixed&maxItems=20',
+                          );
+                          // Refresh the quiz data to update due items count
+                          ref
+                              .read(
+                                quizDetailViewModelProvider(
+                                  widget.quizId,
+                                ).notifier,
+                              )
+                              .refreshQuizData(widget.quizId);
+                        }
+                        : null,
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Start First Review'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.athenaSupportiveGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: 16 + MediaQuery.of(context).padding.bottom,
+      ),
+      itemCount: state.sessionHistory.length,
+      itemBuilder: (context, index) {
+        final session = state.sessionHistory[index];
+        return _buildSessionHistoryCard(context, session);
+      },
+    );
+  }
+
+  Widget _buildSessionHistoryCard(BuildContext context, session) {
+    // Calculate accuracy from correct responses ratio for consistency
+    int accuracy = 0;
+    if (session.totalItems > 0) {
+      accuracy = (session.correctResponses / session.totalItems * 100).round();
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.history, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'Review History',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Review session history will be available once you start reviewing this quiz.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blue, size: 20),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'TODO: Review session tracking and analytics will be implemented here.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.blue,
-                        fontWeight: FontWeight.w500,
-                      ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.athenaSupportiveGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    session.sessionType
+                        .toString()
+                        .split('.')
+                        .last
+                        .toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.athenaSupportiveGreen,
                     ),
                   ),
-                ],
-              ),
+                ),
+                const Spacer(),
+                Text(
+                  _formatTimestamp(session.startedAt),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSessionStat(
+                    Icons.quiz,
+                    session.totalItems.toString(),
+                    'Items Reviewed',
+                  ),
+                ),
+                Expanded(
+                  child: _buildSessionStat(
+                    Icons.check_circle,
+                    '$accuracy%',
+                    'Correct Rate',
+                  ),
+                ),
+                Expanded(
+                  child: _buildSessionStat(
+                    Icons.timer,
+                    _formatDuration(
+                      session.sessionDurationSeconds != null 
+                          ? Duration(seconds: session.sessionDurationSeconds!)
+                          : null,
+                    ),
+                    'Duration',
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildSessionStat(IconData icon, String value, String label) {
+    return Column(
+      children: [
+        Icon(icon, size: 16, color: Colors.grey[600]),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  String _formatDuration(Duration? duration) {
+    if (duration == null) return 'N/A';
+
+    if (duration.inMinutes < 1) {
+      return '${duration.inSeconds}s';
+    } else {
+      return '${duration.inMinutes}m ${duration.inSeconds % 60}s';
+    }
   }
 
   void _showDeleteConfirmation(BuildContext context) {
@@ -1167,7 +1321,7 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
   }
 
   String _formatTimestamp(DateTime timestamp) {
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     final difference = now.difference(timestamp);
 
     // Handle very recent timestamps

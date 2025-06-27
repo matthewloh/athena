@@ -96,8 +96,7 @@ class ReviewSessionModel extends ReviewSessionEntity {
   Map<String, dynamic> toInsertJson() {
     final json = toJson();
     json.remove('id');
-    json.remove('created_at');
-    json.remove('updated_at');
+    json.remove('started_at');
     return json;
   }
 
@@ -105,8 +104,7 @@ class ReviewSessionModel extends ReviewSessionEntity {
   Map<String, dynamic> toUpdateJson() {
     final json = toJson();
     json.remove('id');
-    json.remove('created_at');
-    json.remove('updated_at');
+    json.remove('started_at');
     return json;
   }
 
@@ -150,19 +148,19 @@ class ReviewSessionModel extends ReviewSessionEntity {
 
   @override
   List<Object?> get props => [
-        id,
-        userId,
-        quizId,
-        sessionType,
-        totalItems,
-        completedItems,
-        correctResponses,
-        averageDifficulty,
-        sessionDurationSeconds,
-        status,
-        startedAt,
-        completedAt,
-      ];
+    id,
+    userId,
+    quizId,
+    sessionType,
+    totalItems,
+    completedItems,
+    correctResponses,
+    averageDifficulty,
+    sessionDurationSeconds,
+    status,
+    startedAt,
+    completedAt,
+  ];
 
   @override
   ReviewSessionModel copyWith({

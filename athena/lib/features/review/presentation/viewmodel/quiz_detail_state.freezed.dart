@@ -16,12 +16,10 @@ T _$identity<T>(T value) => value;
 mixin _$QuizDetailState {
 
 // Core data
- QuizEntity? get quiz; List<QuizItemEntity> get quizItems;// Loading states
- bool get isLoading; bool get isLoadingItems; bool get isRefreshing;// Error handling
+ QuizEntity? get quiz; List<QuizItemEntity> get quizItems; List<ReviewSessionEntity> get sessionHistory;// Loading states
+ bool get isLoading; bool get isLoadingItems; bool get isLoadingHistory; bool get isRefreshing;// Error handling
  String? get error;// Statistics
- int get totalItems; int get dueItems; int get masteredItems; double get accuracy; int get totalReviews; int get streak;// TODO: Review session history (when available)
-// @Default([]) List<ReviewSessionEntity> sessionHistory,
-// UI states
+ int get totalItems; int get dueItems; int get masteredItems; double get accuracy; int get totalReviews; int get streak;// UI states
  int get selectedTabIndex;
 /// Create a copy of QuizDetailState
 /// with the given fields replaced by the non-null parameter values.
@@ -33,16 +31,16 @@ $QuizDetailStateCopyWith<QuizDetailState> get copyWith => _$QuizDetailStateCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is QuizDetailState&&(identical(other.quiz, quiz) || other.quiz == quiz)&&const DeepCollectionEquality().equals(other.quizItems, quizItems)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isLoadingItems, isLoadingItems) || other.isLoadingItems == isLoadingItems)&&(identical(other.isRefreshing, isRefreshing) || other.isRefreshing == isRefreshing)&&(identical(other.error, error) || other.error == error)&&(identical(other.totalItems, totalItems) || other.totalItems == totalItems)&&(identical(other.dueItems, dueItems) || other.dueItems == dueItems)&&(identical(other.masteredItems, masteredItems) || other.masteredItems == masteredItems)&&(identical(other.accuracy, accuracy) || other.accuracy == accuracy)&&(identical(other.totalReviews, totalReviews) || other.totalReviews == totalReviews)&&(identical(other.streak, streak) || other.streak == streak)&&(identical(other.selectedTabIndex, selectedTabIndex) || other.selectedTabIndex == selectedTabIndex));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is QuizDetailState&&(identical(other.quiz, quiz) || other.quiz == quiz)&&const DeepCollectionEquality().equals(other.quizItems, quizItems)&&const DeepCollectionEquality().equals(other.sessionHistory, sessionHistory)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isLoadingItems, isLoadingItems) || other.isLoadingItems == isLoadingItems)&&(identical(other.isLoadingHistory, isLoadingHistory) || other.isLoadingHistory == isLoadingHistory)&&(identical(other.isRefreshing, isRefreshing) || other.isRefreshing == isRefreshing)&&(identical(other.error, error) || other.error == error)&&(identical(other.totalItems, totalItems) || other.totalItems == totalItems)&&(identical(other.dueItems, dueItems) || other.dueItems == dueItems)&&(identical(other.masteredItems, masteredItems) || other.masteredItems == masteredItems)&&(identical(other.accuracy, accuracy) || other.accuracy == accuracy)&&(identical(other.totalReviews, totalReviews) || other.totalReviews == totalReviews)&&(identical(other.streak, streak) || other.streak == streak)&&(identical(other.selectedTabIndex, selectedTabIndex) || other.selectedTabIndex == selectedTabIndex));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,quiz,const DeepCollectionEquality().hash(quizItems),isLoading,isLoadingItems,isRefreshing,error,totalItems,dueItems,masteredItems,accuracy,totalReviews,streak,selectedTabIndex);
+int get hashCode => Object.hash(runtimeType,quiz,const DeepCollectionEquality().hash(quizItems),const DeepCollectionEquality().hash(sessionHistory),isLoading,isLoadingItems,isLoadingHistory,isRefreshing,error,totalItems,dueItems,masteredItems,accuracy,totalReviews,streak,selectedTabIndex);
 
 @override
 String toString() {
-  return 'QuizDetailState(quiz: $quiz, quizItems: $quizItems, isLoading: $isLoading, isLoadingItems: $isLoadingItems, isRefreshing: $isRefreshing, error: $error, totalItems: $totalItems, dueItems: $dueItems, masteredItems: $masteredItems, accuracy: $accuracy, totalReviews: $totalReviews, streak: $streak, selectedTabIndex: $selectedTabIndex)';
+  return 'QuizDetailState(quiz: $quiz, quizItems: $quizItems, sessionHistory: $sessionHistory, isLoading: $isLoading, isLoadingItems: $isLoadingItems, isLoadingHistory: $isLoadingHistory, isRefreshing: $isRefreshing, error: $error, totalItems: $totalItems, dueItems: $dueItems, masteredItems: $masteredItems, accuracy: $accuracy, totalReviews: $totalReviews, streak: $streak, selectedTabIndex: $selectedTabIndex)';
 }
 
 
@@ -53,7 +51,7 @@ abstract mixin class $QuizDetailStateCopyWith<$Res>  {
   factory $QuizDetailStateCopyWith(QuizDetailState value, $Res Function(QuizDetailState) _then) = _$QuizDetailStateCopyWithImpl;
 @useResult
 $Res call({
- QuizEntity? quiz, List<QuizItemEntity> quizItems, bool isLoading, bool isLoadingItems, bool isRefreshing, String? error, int totalItems, int dueItems, int masteredItems, double accuracy, int totalReviews, int streak, int selectedTabIndex
+ QuizEntity? quiz, List<QuizItemEntity> quizItems, List<ReviewSessionEntity> sessionHistory, bool isLoading, bool isLoadingItems, bool isLoadingHistory, bool isRefreshing, String? error, int totalItems, int dueItems, int masteredItems, double accuracy, int totalReviews, int streak, int selectedTabIndex
 });
 
 
@@ -70,12 +68,14 @@ class _$QuizDetailStateCopyWithImpl<$Res>
 
 /// Create a copy of QuizDetailState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? quiz = freezed,Object? quizItems = null,Object? isLoading = null,Object? isLoadingItems = null,Object? isRefreshing = null,Object? error = freezed,Object? totalItems = null,Object? dueItems = null,Object? masteredItems = null,Object? accuracy = null,Object? totalReviews = null,Object? streak = null,Object? selectedTabIndex = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? quiz = freezed,Object? quizItems = null,Object? sessionHistory = null,Object? isLoading = null,Object? isLoadingItems = null,Object? isLoadingHistory = null,Object? isRefreshing = null,Object? error = freezed,Object? totalItems = null,Object? dueItems = null,Object? masteredItems = null,Object? accuracy = null,Object? totalReviews = null,Object? streak = null,Object? selectedTabIndex = null,}) {
   return _then(_self.copyWith(
 quiz: freezed == quiz ? _self.quiz : quiz // ignore: cast_nullable_to_non_nullable
 as QuizEntity?,quizItems: null == quizItems ? _self.quizItems : quizItems // ignore: cast_nullable_to_non_nullable
-as List<QuizItemEntity>,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
+as List<QuizItemEntity>,sessionHistory: null == sessionHistory ? _self.sessionHistory : sessionHistory // ignore: cast_nullable_to_non_nullable
+as List<ReviewSessionEntity>,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
 as bool,isLoadingItems: null == isLoadingItems ? _self.isLoadingItems : isLoadingItems // ignore: cast_nullable_to_non_nullable
+as bool,isLoadingHistory: null == isLoadingHistory ? _self.isLoadingHistory : isLoadingHistory // ignore: cast_nullable_to_non_nullable
 as bool,isRefreshing: null == isRefreshing ? _self.isRefreshing : isRefreshing // ignore: cast_nullable_to_non_nullable
 as bool,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
 as String?,totalItems: null == totalItems ? _self.totalItems : totalItems // ignore: cast_nullable_to_non_nullable
@@ -96,7 +96,7 @@ as int,
 
 
 class _QuizDetailState extends QuizDetailState {
-  const _QuizDetailState({this.quiz, final  List<QuizItemEntity> quizItems = const [], this.isLoading = false, this.isLoadingItems = false, this.isRefreshing = false, this.error, this.totalItems = 0, this.dueItems = 0, this.masteredItems = 0, this.accuracy = 0.0, this.totalReviews = 0, this.streak = 0, this.selectedTabIndex = 0}): _quizItems = quizItems,super._();
+  const _QuizDetailState({this.quiz, final  List<QuizItemEntity> quizItems = const [], final  List<ReviewSessionEntity> sessionHistory = const [], this.isLoading = false, this.isLoadingItems = false, this.isLoadingHistory = false, this.isRefreshing = false, this.error, this.totalItems = 0, this.dueItems = 0, this.masteredItems = 0, this.accuracy = 0.0, this.totalReviews = 0, this.streak = 0, this.selectedTabIndex = 0}): _quizItems = quizItems,_sessionHistory = sessionHistory,super._();
   
 
 // Core data
@@ -108,9 +108,17 @@ class _QuizDetailState extends QuizDetailState {
   return EqualUnmodifiableListView(_quizItems);
 }
 
+ final  List<ReviewSessionEntity> _sessionHistory;
+@override@JsonKey() List<ReviewSessionEntity> get sessionHistory {
+  if (_sessionHistory is EqualUnmodifiableListView) return _sessionHistory;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_sessionHistory);
+}
+
 // Loading states
 @override@JsonKey() final  bool isLoading;
 @override@JsonKey() final  bool isLoadingItems;
+@override@JsonKey() final  bool isLoadingHistory;
 @override@JsonKey() final  bool isRefreshing;
 // Error handling
 @override final  String? error;
@@ -121,8 +129,6 @@ class _QuizDetailState extends QuizDetailState {
 @override@JsonKey() final  double accuracy;
 @override@JsonKey() final  int totalReviews;
 @override@JsonKey() final  int streak;
-// TODO: Review session history (when available)
-// @Default([]) List<ReviewSessionEntity> sessionHistory,
 // UI states
 @override@JsonKey() final  int selectedTabIndex;
 
@@ -136,16 +142,16 @@ _$QuizDetailStateCopyWith<_QuizDetailState> get copyWith => __$QuizDetailStateCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _QuizDetailState&&(identical(other.quiz, quiz) || other.quiz == quiz)&&const DeepCollectionEquality().equals(other._quizItems, _quizItems)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isLoadingItems, isLoadingItems) || other.isLoadingItems == isLoadingItems)&&(identical(other.isRefreshing, isRefreshing) || other.isRefreshing == isRefreshing)&&(identical(other.error, error) || other.error == error)&&(identical(other.totalItems, totalItems) || other.totalItems == totalItems)&&(identical(other.dueItems, dueItems) || other.dueItems == dueItems)&&(identical(other.masteredItems, masteredItems) || other.masteredItems == masteredItems)&&(identical(other.accuracy, accuracy) || other.accuracy == accuracy)&&(identical(other.totalReviews, totalReviews) || other.totalReviews == totalReviews)&&(identical(other.streak, streak) || other.streak == streak)&&(identical(other.selectedTabIndex, selectedTabIndex) || other.selectedTabIndex == selectedTabIndex));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _QuizDetailState&&(identical(other.quiz, quiz) || other.quiz == quiz)&&const DeepCollectionEquality().equals(other._quizItems, _quizItems)&&const DeepCollectionEquality().equals(other._sessionHistory, _sessionHistory)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isLoadingItems, isLoadingItems) || other.isLoadingItems == isLoadingItems)&&(identical(other.isLoadingHistory, isLoadingHistory) || other.isLoadingHistory == isLoadingHistory)&&(identical(other.isRefreshing, isRefreshing) || other.isRefreshing == isRefreshing)&&(identical(other.error, error) || other.error == error)&&(identical(other.totalItems, totalItems) || other.totalItems == totalItems)&&(identical(other.dueItems, dueItems) || other.dueItems == dueItems)&&(identical(other.masteredItems, masteredItems) || other.masteredItems == masteredItems)&&(identical(other.accuracy, accuracy) || other.accuracy == accuracy)&&(identical(other.totalReviews, totalReviews) || other.totalReviews == totalReviews)&&(identical(other.streak, streak) || other.streak == streak)&&(identical(other.selectedTabIndex, selectedTabIndex) || other.selectedTabIndex == selectedTabIndex));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,quiz,const DeepCollectionEquality().hash(_quizItems),isLoading,isLoadingItems,isRefreshing,error,totalItems,dueItems,masteredItems,accuracy,totalReviews,streak,selectedTabIndex);
+int get hashCode => Object.hash(runtimeType,quiz,const DeepCollectionEquality().hash(_quizItems),const DeepCollectionEquality().hash(_sessionHistory),isLoading,isLoadingItems,isLoadingHistory,isRefreshing,error,totalItems,dueItems,masteredItems,accuracy,totalReviews,streak,selectedTabIndex);
 
 @override
 String toString() {
-  return 'QuizDetailState(quiz: $quiz, quizItems: $quizItems, isLoading: $isLoading, isLoadingItems: $isLoadingItems, isRefreshing: $isRefreshing, error: $error, totalItems: $totalItems, dueItems: $dueItems, masteredItems: $masteredItems, accuracy: $accuracy, totalReviews: $totalReviews, streak: $streak, selectedTabIndex: $selectedTabIndex)';
+  return 'QuizDetailState(quiz: $quiz, quizItems: $quizItems, sessionHistory: $sessionHistory, isLoading: $isLoading, isLoadingItems: $isLoadingItems, isLoadingHistory: $isLoadingHistory, isRefreshing: $isRefreshing, error: $error, totalItems: $totalItems, dueItems: $dueItems, masteredItems: $masteredItems, accuracy: $accuracy, totalReviews: $totalReviews, streak: $streak, selectedTabIndex: $selectedTabIndex)';
 }
 
 
@@ -156,7 +162,7 @@ abstract mixin class _$QuizDetailStateCopyWith<$Res> implements $QuizDetailState
   factory _$QuizDetailStateCopyWith(_QuizDetailState value, $Res Function(_QuizDetailState) _then) = __$QuizDetailStateCopyWithImpl;
 @override @useResult
 $Res call({
- QuizEntity? quiz, List<QuizItemEntity> quizItems, bool isLoading, bool isLoadingItems, bool isRefreshing, String? error, int totalItems, int dueItems, int masteredItems, double accuracy, int totalReviews, int streak, int selectedTabIndex
+ QuizEntity? quiz, List<QuizItemEntity> quizItems, List<ReviewSessionEntity> sessionHistory, bool isLoading, bool isLoadingItems, bool isLoadingHistory, bool isRefreshing, String? error, int totalItems, int dueItems, int masteredItems, double accuracy, int totalReviews, int streak, int selectedTabIndex
 });
 
 
@@ -173,12 +179,14 @@ class __$QuizDetailStateCopyWithImpl<$Res>
 
 /// Create a copy of QuizDetailState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? quiz = freezed,Object? quizItems = null,Object? isLoading = null,Object? isLoadingItems = null,Object? isRefreshing = null,Object? error = freezed,Object? totalItems = null,Object? dueItems = null,Object? masteredItems = null,Object? accuracy = null,Object? totalReviews = null,Object? streak = null,Object? selectedTabIndex = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? quiz = freezed,Object? quizItems = null,Object? sessionHistory = null,Object? isLoading = null,Object? isLoadingItems = null,Object? isLoadingHistory = null,Object? isRefreshing = null,Object? error = freezed,Object? totalItems = null,Object? dueItems = null,Object? masteredItems = null,Object? accuracy = null,Object? totalReviews = null,Object? streak = null,Object? selectedTabIndex = null,}) {
   return _then(_QuizDetailState(
 quiz: freezed == quiz ? _self.quiz : quiz // ignore: cast_nullable_to_non_nullable
 as QuizEntity?,quizItems: null == quizItems ? _self._quizItems : quizItems // ignore: cast_nullable_to_non_nullable
-as List<QuizItemEntity>,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
+as List<QuizItemEntity>,sessionHistory: null == sessionHistory ? _self._sessionHistory : sessionHistory // ignore: cast_nullable_to_non_nullable
+as List<ReviewSessionEntity>,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
 as bool,isLoadingItems: null == isLoadingItems ? _self.isLoadingItems : isLoadingItems // ignore: cast_nullable_to_non_nullable
+as bool,isLoadingHistory: null == isLoadingHistory ? _self.isLoadingHistory : isLoadingHistory // ignore: cast_nullable_to_non_nullable
 as bool,isRefreshing: null == isRefreshing ? _self.isRefreshing : isRefreshing // ignore: cast_nullable_to_non_nullable
 as bool,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
 as String?,totalItems: null == totalItems ? _self.totalItems : totalItems // ignore: cast_nullable_to_non_nullable

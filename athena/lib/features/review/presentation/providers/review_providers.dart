@@ -12,10 +12,12 @@ import 'package:athena/features/review/domain/usecases/get_all_quiz_items_usecas
 import 'package:athena/features/review/domain/usecases/get_all_quizzes_usecase.dart';
 import 'package:athena/features/review/domain/usecases/get_due_items_usecase.dart';
 import 'package:athena/features/review/domain/usecases/get_quiz_detail_usecase.dart';
+import 'package:athena/features/review/domain/usecases/get_review_sessions_usecase.dart';
 import 'package:athena/features/review/domain/usecases/start_review_session_usecase.dart';
 import 'package:athena/features/review/domain/usecases/submit_review_response_usecase.dart';
 import 'package:athena/features/review/domain/usecases/update_quiz_usecase.dart';
 import 'package:athena/features/review/domain/usecases/update_quiz_item_usecase.dart';
+import 'package:athena/features/review/domain/usecases/update_review_session_usecase.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -96,6 +98,18 @@ UpdateQuizItemUseCase updateQuizItemUseCase(Ref ref) {
 DeleteQuizItemUseCase deleteQuizItemUseCase(Ref ref) {
   final repository = ref.watch(reviewRepositoryProvider);
   return DeleteQuizItemUseCase(repository);
+}
+
+@riverpod
+GetReviewSessionsUseCase getReviewSessionsUseCase(Ref ref) {
+  final repository = ref.watch(reviewRepositoryProvider);
+  return GetReviewSessionsUseCase(repository);
+}
+
+@riverpod
+UpdateReviewSessionUseCase updateReviewSessionUseCase(Ref ref) {
+  final repository = ref.watch(reviewRepositoryProvider);
+  return UpdateReviewSessionUseCase(repository);
 }
 
 // Services

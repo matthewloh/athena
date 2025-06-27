@@ -16,8 +16,9 @@ class ReviewScreen extends ConsumerStatefulWidget {
 
 class _ReviewScreenState extends ConsumerState<ReviewScreen>
     with WidgetsBindingObserver, RouteAware {
-  static final RouteObserver<PageRoute> _routeObserver = RouteObserver<PageRoute>();
-  
+  static final RouteObserver<PageRoute> _routeObserver =
+      RouteObserver<PageRoute>();
+
   @override
   void initState() {
     super.initState();
@@ -337,27 +338,46 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen>
                                         .getQuizFormattedAccuracy(quiz.id),
                                     isRecentlyReviewed: isRecentlyReviewed,
                                     onTap: () async {
-                                      debugPrint('ReviewScreen: navigating to quiz detail: ${quiz.id}');
+                                      debugPrint(
+                                        'ReviewScreen: navigating to quiz detail: ${quiz.id}',
+                                      );
                                       await context.pushNamed(
                                         AppRouteNames.quizDetail,
                                         pathParameters: {'quizId': quiz.id},
                                       );
                                       // Refresh data when returning from quiz detail
-                                      debugPrint('ReviewScreen: returned from quiz detail - refreshing quizzes');
+                                      debugPrint(
+                                        'ReviewScreen: returned from quiz detail - refreshing quizzes',
+                                      );
                                       if (mounted) {
-                                        ref.read(reviewViewModelProvider.notifier).refreshQuizzes();
+                                        ref
+                                            .read(
+                                              reviewViewModelProvider.notifier,
+                                            )
+                                            .refreshQuizzes();
                                       }
                                     },
-                                    onReview: () {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Review mode coming soon!',
-                                          ),
-                                        ),
-                                      );
+                                    onReview: () async {
+                                      if (dueCount > 0) {
+                                        debugPrint(
+                                          'ReviewScreen: starting review session for quiz: ${quiz.id}',
+                                        );
+                                        await context.push(
+                                          '/review-session/${quiz.id}?sessionType=mixed&maxItems=20',
+                                        );
+                                        // Refresh data when returning from review session
+                                        debugPrint(
+                                          'ReviewScreen: returned from review session - refreshing quizzes',
+                                        );
+                                        if (mounted) {
+                                          ref
+                                              .read(
+                                                reviewViewModelProvider
+                                                    .notifier,
+                                              )
+                                              .refreshQuizzes();
+                                        }
+                                      }
                                     },
                                   );
                                 },
@@ -491,15 +511,21 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen>
                       color: AppColors.athenaSupportiveGreen,
                       onTap: () async {
                         context.pop();
-                        debugPrint('ReviewScreen: navigating to create quiz (manual)');
+                        debugPrint(
+                          'ReviewScreen: navigating to create quiz (manual)',
+                        );
                         await context.pushNamed(
                           AppRouteNames.createQuiz,
                           queryParameters: {'mode': 'manual'},
                         );
                         // Refresh data when returning from create quiz
-                        debugPrint('ReviewScreen: returned from create quiz (manual) - refreshing quizzes');
+                        debugPrint(
+                          'ReviewScreen: returned from create quiz (manual) - refreshing quizzes',
+                        );
                         if (mounted) {
-                          ref.read(reviewViewModelProvider.notifier).refreshQuizzes();
+                          ref
+                              .read(reviewViewModelProvider.notifier)
+                              .refreshQuizzes();
                         }
                       },
                     ),
@@ -514,15 +540,21 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen>
                       color: AppColors.athenaPurple,
                       onTap: () async {
                         context.pop();
-                        debugPrint('ReviewScreen: navigating to create quiz (AI)');
+                        debugPrint(
+                          'ReviewScreen: navigating to create quiz (AI)',
+                        );
                         await context.pushNamed(
                           AppRouteNames.createQuiz,
                           queryParameters: {'mode': 'ai'},
                         );
                         // Refresh data when returning from create quiz
-                        debugPrint('ReviewScreen: returned from create quiz (AI) - refreshing quizzes');
+                        debugPrint(
+                          'ReviewScreen: returned from create quiz (AI) - refreshing quizzes',
+                        );
                         if (mounted) {
-                          ref.read(reviewViewModelProvider.notifier).refreshQuizzes();
+                          ref
+                              .read(reviewViewModelProvider.notifier)
+                              .refreshQuizzes();
                         }
                       },
                     ),

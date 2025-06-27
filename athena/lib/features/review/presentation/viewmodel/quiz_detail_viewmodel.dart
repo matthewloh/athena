@@ -96,12 +96,15 @@ class QuizDetailViewModel extends _$QuizDetailViewModel {
             error: 'Failed to load quiz items: ${failure.message}',
           );
         },
-        (items) {
+        (items) async {
+          // Load session history first to get correct totalReviews count
+          await _loadSessionHistory(quiz.id);
+
           final stats = _calculateQuizStatistics(items);
 
           debugPrint('Quiz ${quiz.id}: loaded ${items.length} items');
           debugPrint(
-            'Stats: ${stats.totalItems} total, ${stats.dueItems} due, ${stats.accuracy}% accuracy',
+            'Stats: ${stats.totalItems} total, ${stats.dueItems} due, ${stats.accuracy}% accuracy, ${stats.totalReviews} reviews',
           );
 
           state = state.copyWith(
@@ -125,6 +128,43 @@ class QuizDetailViewModel extends _$QuizDetailViewModel {
         isRefreshing: false,
         isLoadingItems: false,
         error: 'Failed to load quiz items: ${e.toString()}',
+      );
+    }
+  }
+
+  // Load session history for the quiz
+  Future<void> _loadSessionHistory(String quizId) async {
+    state = state.copyWith(isLoadingHistory: true);
+
+    try {
+      final getReviewSessionsUseCase = ref.read(
+        getReviewSessionsUseCaseProvider,
+      );
+      final sessionsResult = await getReviewSessionsUseCase.call(quizId);
+
+      sessionsResult.fold(
+        (failure) {
+          debugPrint('Failed to load session history: ${failure.message}');
+          state = state.copyWith(
+            isLoadingHistory: false,
+            // Don't set error here as it's not critical for the main functionality
+          );
+        },
+        (sessions) {
+          debugPrint(
+            'Loaded ${sessions.length} review sessions for quiz $quizId',
+          );
+          state = state.copyWith(
+            isLoadingHistory: false,
+            sessionHistory: sessions,
+          );
+        },
+      );
+    } catch (e) {
+      debugPrint('Error loading session history: $e');
+      state = state.copyWith(
+        isLoadingHistory: false,
+        // Don't set error here as it's not critical for the main functionality
       );
     }
   }
@@ -169,11 +209,8 @@ class QuizDetailViewModel extends _$QuizDetailViewModel {
     }
     // If no items have been reviewed, accuracy remains 0.0
 
-    // Calculate total reviews (sum of all repetitions)
-    final totalReviews = items.fold<int>(
-      0,
-      (sum, item) => sum + item.repetitions,
-    );
+    // Calculate total reviews (count of review sessions)
+    final totalReviews = state.sessionHistory.length;
 
     // Calculate current streak (consecutive days with reviews)
     // TODO: This should be calculated from actual review session data when available

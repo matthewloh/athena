@@ -117,16 +117,12 @@ class ReviewResponseModel extends ReviewResponseEntity {
   Map<String, dynamic> toInsertJson() {
     final json = toJson();
     json.remove('id');
-    json.remove('created_at');
-    json.remove('updated_at');
     return json;
   }
 
   Map<String, dynamic> toUpdateJson() {
     final json = toJson();
     json.remove('id');
-    json.remove('created_at');
-    json.remove('updated_at');
     return json;
   }
 

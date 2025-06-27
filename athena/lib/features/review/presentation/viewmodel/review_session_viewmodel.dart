@@ -130,7 +130,9 @@ class ReviewSessionViewModel extends _$ReviewSessionViewModel {
 
     // Validate option count (2-4 options allowed)
     if (currentOptions.length < 2 || currentOptions.length > 4) {
-      debugPrint('Warning: MCQ has invalid number of options: ${currentOptions.length}');
+      debugPrint(
+        'Warning: MCQ has invalid number of options: ${currentOptions.length}',
+      );
       return;
     }
 
@@ -190,50 +192,50 @@ class ReviewSessionViewModel extends _$ReviewSessionViewModel {
 
       final result = await submitResponseUseCase.call(params);
 
-      result.fold(
-        (failure) {
-          state = state.copyWith(
-            isSubmittingResponse: false,
-            error: 'Failed to submit response: ${failure.message}',
-          );
-        },
-        (responseResult) {
-          // Update responses list
-          final updatedResponses = [
-            ...state.responses,
-            responseResult.reviewResponse,
-          ];
+      if (result.isLeft()) {
+        final failure = result.fold((l) => l, (r) => null)!;
+        state = state.copyWith(
+          isSubmittingResponse: false,
+          error: 'Failed to submit response: ${failure.message}',
+        );
+      } else {
+        final responseResult = result.fold((l) => null, (r) => r)!;
 
-          // Update progress
-          final newCompletedItems = state.completedItems + 1;
-          final newCorrectResponses =
-              state.correctResponses + (isCorrect == true ? 1 : 0);
+        // Update responses list
+        final updatedResponses = [
+          ...state.responses,
+          responseResult.reviewResponse,
+        ];
 
-          // Calculate new average difficulty
-          final difficultyValue =
-              difficultyRating.index + 1; // Convert 0-3 to 1-4
-          final newAverageDifficulty =
-              state.completedItems == 0
-                  ? difficultyValue.toDouble()
-                  : ((state.averageDifficulty * state.completedItems) +
-                          difficultyValue) /
-                      newCompletedItems;
+        // Update progress
+        final newCompletedItems = state.completedItems + 1;
+        final newCorrectResponses =
+            state.correctResponses + (isCorrect == true ? 1 : 0);
 
-          state = state.copyWith(
-            isSubmittingResponse: false,
-            responses: updatedResponses,
-            completedItems: newCompletedItems,
-            correctResponses: newCorrectResponses,
-            averageDifficulty: newAverageDifficulty,
-            error: null,
-          );
+        // Calculate new average difficulty
+        final difficultyValue =
+            difficultyRating.index + 1; // Convert 0-3 to 1-4
+        final newAverageDifficulty =
+            state.completedItems == 0
+                ? difficultyValue.toDouble()
+                : ((state.averageDifficulty * state.completedItems) +
+                        difficultyValue) /
+                    newCompletedItems;
 
-          debugPrint('Response submitted for item ${state.currentItem!.id}');
+        state = state.copyWith(
+          isSubmittingResponse: false,
+          responses: updatedResponses,
+          completedItems: newCompletedItems,
+          correctResponses: newCorrectResponses,
+          averageDifficulty: newAverageDifficulty,
+          error: null,
+        );
 
-          // Move to next item or complete session
-          _moveToNextItem();
-        },
-      );
+        debugPrint('Response submitted for item ${state.currentItem!.id}');
+
+        // Move to next item or complete session
+        await _moveToNextItem();
+      }
     } catch (e) {
       state = state.copyWith(
         isSubmittingResponse: false,
@@ -243,7 +245,7 @@ class ReviewSessionViewModel extends _$ReviewSessionViewModel {
   }
 
   /// Moves to the next item in the review session.
-  void _moveToNextItem() {
+  Future<void> _moveToNextItem() async {
     if (state.hasNextItem) {
       final nextIndex = state.currentItemIndex + 1;
       state = state.copyWith(
@@ -256,16 +258,75 @@ class ReviewSessionViewModel extends _$ReviewSessionViewModel {
       );
     } else {
       // Session completed
-      _completeSession();
+      await _completeSession();
     }
   }
 
-  /// Marks the session as completed.
-  void _completeSession() {
-    state = state.copyWith(isSessionCompleted: true, responseStartTime: null);
+  /// Marks the session as completed and updates it in the database.
+  Future<void> _completeSession() async {
+    final currentSession = state.session;
+    if (currentSession == null) {
+      debugPrint('Cannot complete session: no active session found');
+      return;
+    }
+
+    final now = DateTime.now();
+    final sessionDurationSeconds =
+        now.difference(currentSession.startedAt).inSeconds;
+
+    // Update session with completion data
+    final updatedSession = ReviewSessionEntity(
+      id: currentSession.id,
+      userId: currentSession.userId,
+      quizId: currentSession.quizId,
+      sessionType: currentSession.sessionType,
+      totalItems: currentSession.totalItems,
+      completedItems: state.completedItems,
+      correctResponses: state.correctResponses,
+      averageDifficulty:
+          state.averageDifficulty > 0 ? state.averageDifficulty : null,
+      sessionDurationSeconds: sessionDurationSeconds,
+      status: SessionStatus.completed,
+      startedAt: currentSession.startedAt,
+      completedAt: now,
+    );
+
+    // Update session in database
+    try {
+      final updateUseCase = ref.read(updateReviewSessionUseCaseProvider);
+      final result = await updateUseCase.call(updatedSession);
+
+      result.fold(
+        (failure) {
+          debugPrint('Failed to update completed session: ${failure.message}');
+          // Still mark as completed locally even if database update fails
+          state = state.copyWith(
+            isSessionCompleted: true,
+            responseStartTime: null,
+            session: updatedSession,
+          );
+        },
+        (session) {
+          debugPrint('Session completed and saved: ${session.id}');
+          state = state.copyWith(
+            isSessionCompleted: true,
+            responseStartTime: null,
+            session: session,
+          );
+        },
+      );
+    } catch (e) {
+      debugPrint('Error completing session: $e');
+      // Still mark as completed locally even if database update fails
+      state = state.copyWith(
+        isSessionCompleted: true,
+        responseStartTime: null,
+        session: updatedSession,
+      );
+    }
 
     debugPrint(
-      'Review session completed: ${state.completedItems} items reviewed',
+      'Review session completed: ${state.completedItems} items reviewed in ${sessionDurationSeconds}s',
     );
   }
 
