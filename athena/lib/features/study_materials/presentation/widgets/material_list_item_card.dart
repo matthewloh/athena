@@ -1,5 +1,4 @@
 import 'package:athena/features/shared/utils/subject_utils.dart';
-import 'package:athena/features/study_materials/presentation/widgets/material_action_button.dart';
 import 'package:flutter/material.dart';
 import 'package:athena/core/theme/app_colors.dart';
 import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
@@ -172,31 +171,59 @@ class MaterialListItemCard extends StatelessWidget {
 
   Widget _buildActionButtons(BuildContext context) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        Expanded(
-          child: MaterialActionButton(
-            icon: Icons.summarize_outlined,
-            label: 'Summarize',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('AI summarization coming soon!')),
-              );
-            },
-          ),
+        _buildCompactActionButton(
+          icon: Icons.summarize_outlined,
+          label: 'Summary',
+          color: AppColors.athenaPurple,
+          onPressed: onSummarize,
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: MaterialActionButton(
-            icon: Icons.quiz_outlined,
-            label: 'Quiz Me',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Quiz generation coming soon!')),
-              );
-            },
-          ),
+        const SizedBox(width: 8),
+        _buildCompactActionButton(
+          icon: Icons.quiz_outlined,
+          label: 'Quiz',
+          color: AppColors.athenaSupportiveGreen,
+          onPressed: onQuiz,
         ),
       ],
+    );
+  }
+
+  Widget _buildCompactActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onPressed,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: color.withValues(alpha: 0.75)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

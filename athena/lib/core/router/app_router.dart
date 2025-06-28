@@ -262,7 +262,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: AppRouteNames.materialDetail,
         builder: (context, state) {
           final materialId = state.pathParameters['materialId']!;
-          return MaterialDetailScreen(materialId: materialId);
+          final tabParam = state.uri.queryParameters['tab'];
+          final initialTab = tabParam == 'summary' ? 1 : 0;
+          return MaterialDetailScreen(
+            materialId: materialId,
+            initialTabIndex: initialTab,
+          );
         },
       ),
       GoRoute(
