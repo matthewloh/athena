@@ -112,7 +112,8 @@ class ReviewSessionViewModel extends _$ReviewSessionViewModel {
   /// Selects an option for a multiple choice question.
   ///
   /// [optionKey] - The key of the selected option (e.g., "A", "B", "C", "D")
-  /// For MCQ questions, this will automatically submit the response with auto-determined difficulty.
+  /// For MCQ questions, this will automatically submit the response with auto-determined difficulty
+  /// after showing the correct answer feedback for a brief moment.
   Future<void> selectMcqOption(String optionKey) async {
     if (!state.isCurrentItemMcq) return;
 
@@ -137,10 +138,22 @@ class ReviewSessionViewModel extends _$ReviewSessionViewModel {
       return;
     }
 
-    state = state.copyWith(selectedMcqOption: optionKey, hasMcqAnswered: true);
+    // Update state to show the selected option and reveal the answer
+    state = state.copyWith(
+      selectedMcqOption: optionKey, 
+      hasMcqAnswered: true,
+      isShowingAnswer: true, // Show the correct answer feedback
+    );
 
-    // Auto-submit the MCQ response with auto-determined difficulty
-    await _submitMcqResponse();
+    // Wait a moment for the user to see the feedback before auto-submitting
+    await Future.delayed(const Duration(milliseconds: 2000));
+
+    // Check if we're still on the same item and the answer is still selected
+    // (user might have navigated away or session might have been reset)
+    if (state.selectedMcqOption == optionKey && state.hasMcqAnswered) {
+      // Auto-submit the MCQ response with auto-determined difficulty
+      await _submitMcqResponse();
+    }
   }
 
   /// Automatically submits the MCQ response with difficulty rating based on correctness.
