@@ -167,7 +167,7 @@ class SubmitReviewResponseUseCase {
       final newCorrectResponses =
           currentSession.correctResponses + (isCorrect == true ? 1 : 0);
 
-      // Calculate average difficulty (1-4 scale where 1=again, 4=easy)
+      // Calculate average confidence/performance (1-4 scale where 1=forgot, 4=easy)
       final difficultyValue = difficultyRating.index + 1; // Convert 0-3 to 1-4
       final currentTotal = currentSession.averageDifficulty ?? 0.0;
       final currentCount = currentSession.completedItems;

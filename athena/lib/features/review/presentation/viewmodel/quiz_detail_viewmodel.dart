@@ -213,8 +213,7 @@ class QuizDetailViewModel extends _$QuizDetailViewModel {
     final totalReviews = state.sessionHistory.length;
 
     // Calculate current streak (consecutive days with reviews)
-    // TODO: This should be calculated from actual review session data when available
-    final streak = _calculateStreakFromItems(items);
+    final streak = _calculateStreakFromSessions();
 
     return QuizStatistics(
       totalItems: items.length,
@@ -226,15 +225,75 @@ class QuizDetailViewModel extends _$QuizDetailViewModel {
     );
   }
 
-  // Calculate streak from items (simplified version)
-  int _calculateStreakFromItems(List<QuizItemEntity> items) {
-    // TODO: Replace with actual review session data when available
-    // For now, return a simple calculation based on recent reviews
-    final oneDayAgo = DateTime.now().subtract(const Duration(days: 1));
-    final recentlyReviewed =
-        items.where((item) => item.lastReviewedAt.isAfter(oneDayAgo)).length;
+  // Calculate streak from review sessions
+  /// Calculates the current review streak (consecutive days with completed review sessions)
+  /// 
+  /// The streak counts consecutive days going backwards from today (or yesterday if no review today).
+  /// A day counts if it has at least one completed review session for this quiz.
+  /// 
+  /// Examples:
+  /// - Reviewed today and yesterday: streak = 2
+  /// - Reviewed yesterday but not today: streak = 1  
+  /// - Reviewed today but skipped yesterday: streak = 1
+  /// - No reviews in recent days: streak = 0
+  int _calculateStreakFromSessions() {
+    final sessions = state.sessionHistory;
+    if (sessions.isEmpty) return 0;
 
-    return recentlyReviewed > 0 ? 1 : 0;
+    // Get completed sessions and sort by completion date (most recent first)
+    final completedSessions = sessions
+        .where((session) => session.completedAt != null)
+        .toList()
+      ..sort((a, b) => b.completedAt!.compareTo(a.completedAt!));
+
+    if (completedSessions.isEmpty) return 0;
+
+    // Group sessions by date (ignoring time)
+    final Map<DateTime, List<dynamic>> sessionsByDate = {};
+    for (final session in completedSessions) {
+      final dateOnly = DateTime(
+        session.completedAt!.year,
+        session.completedAt!.month,
+        session.completedAt!.day,
+      );
+      sessionsByDate.putIfAbsent(dateOnly, () => []).add(session);
+    }
+
+    // Get unique review dates sorted descending
+    final reviewDates = sessionsByDate.keys.toList()
+      ..sort((a, b) => b.compareTo(a));
+
+    if (reviewDates.isEmpty) return 0;
+
+    // Calculate consecutive days starting from today or most recent review
+    final today = DateTime.now();
+    final todayOnly = DateTime(today.year, today.month, today.day);
+    
+    int streak = 0;
+    DateTime checkDate = todayOnly;
+    
+    // Check if there was a review today, if not start from yesterday
+    if (!reviewDates.contains(todayOnly)) {
+      checkDate = todayOnly.subtract(const Duration(days: 1));
+    }
+
+    // Count consecutive days with reviews going backwards
+    for (int i = 0; i < reviewDates.length; i++) {
+      final reviewDate = reviewDates[i];
+      
+      // If this review date matches our check date, increment streak
+      if (reviewDate.isAtSameMomentAs(checkDate)) {
+        streak++;
+        checkDate = checkDate.subtract(const Duration(days: 1));
+      } else if (reviewDate.isBefore(checkDate)) {
+        // There's a gap in the streak, stop counting
+        break;
+      }
+      // If reviewDate is after checkDate, continue to next review date
+    }
+
+    debugPrint('Streak calculation: ${reviewDates.length} unique review dates, current streak: $streak');
+    return streak;
   }
 
   // UI interaction methods

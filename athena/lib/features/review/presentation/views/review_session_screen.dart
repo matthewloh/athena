@@ -1,7 +1,9 @@
 import 'package:athena/core/theme/app_colors.dart';
+import 'package:athena/core/constants/app_route_names.dart';
 import 'package:athena/features/review/domain/entities/review_response_entity.dart';
 import 'package:athena/features/review/domain/entities/review_session_entity.dart';
 import 'package:athena/features/review/presentation/viewmodel/review_session_viewmodel.dart';
+import 'package:athena/features/review/presentation/viewmodel/review_session_state.dart';
 import 'package:athena/features/review/presentation/widgets/flashcard_widget.dart';
 import 'package:athena/features/review/presentation/widgets/multiple_choice_widget.dart';
 import 'package:athena/features/review/presentation/widgets/session_progress_widget.dart';
@@ -63,6 +65,18 @@ class _ReviewSessionScreenState extends ConsumerState<ReviewSessionScreen> {
   Widget build(BuildContext context) {
     final sessionState = ref.watch(reviewSessionViewModelProvider);
 
+    // Listen for session completion and navigate to results
+    ref.listen<ReviewSessionState>(reviewSessionViewModelProvider, (previous, current) {
+      if (previous?.isSessionCompleted != true && current.isSessionCompleted && current.session != null) {
+        // Navigate to quiz results screen with session data, replacing current route
+        // This prevents users from going back to the completed session
+        context.pushReplacementNamed(
+          AppRouteNames.quizResults,
+          extra: current.session,
+        );
+      }
+    });
+
     return Scaffold(
       backgroundColor: AppColors.athenaOffWhite,
       appBar: _buildAppBar(context, sessionState),
@@ -99,10 +113,6 @@ class _ReviewSessionScreenState extends ConsumerState<ReviewSessionScreen> {
 
     if (state.error != null) {
       return _buildErrorState(context, state.error!);
-    }
-
-    if (state.isSessionCompleted) {
-      return _buildCompletionState(context, state);
     }
 
     if (state.isSessionAbandoned) {
@@ -236,174 +246,6 @@ class _ReviewSessionScreenState extends ConsumerState<ReviewSessionScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildCompletionState(BuildContext context, state) {
-    return SafeArea(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: AppColors.athenaSupportiveGreen.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.celebration,
-                  size: 64,
-                  color: AppColors.athenaSupportiveGreen,
-                ),
-              ),
-              const SizedBox(height: 32),
-              Text(
-                'Session Complete!',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.athenaDarkGrey,
-                ),
-              ),
-              const SizedBox(height: 24),
-              _buildStatsCard(state),
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => context.pop(),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: AppColors.athenaSupportiveGreen,
-                        ),
-                        foregroundColor: AppColors.athenaSupportiveGreen,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: const Text('Back to Review'),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _startReviewSession,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.athenaSupportiveGreen,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: const Text('Review Again'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatsCard(state) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildStatItem(
-                'Items Reviewed',
-                '${state.completedItems}',
-                Icons.quiz_outlined,
-                AppColors.athenaBlue,
-              ),
-              _buildStatItem(
-                'Accuracy',
-                '${state.accuracyPercentage.toStringAsFixed(0)}%',
-                Icons.track_changes,
-                AppColors.athenaSupportiveGreen,
-              ),
-              _buildStatItem(
-                'Duration',
-                _formatDuration(state.sessionDurationSeconds),
-                Icons.timer_outlined,
-                AppColors.athenaPurple,
-              ),
-            ],
-          ),
-          if (state.averageDifficulty > 0) ...[
-            const SizedBox(height: 20),
-            const Divider(),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.psychology,
-                  color: AppColors.athenaMediumGrey,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Average Difficulty: ${state.averageDifficulty.toStringAsFixed(1)}/4.0',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.athenaMediumGrey,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppColors.athenaDarkGrey,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: AppColors.athenaMediumGrey),
-        ),
-      ],
     );
   }
 
@@ -637,16 +479,5 @@ class _ReviewSessionScreenState extends ConsumerState<ReviewSessionScreen> {
             ],
           ),
     );
-  }
-
-  String _formatDuration(int seconds) {
-    final minutes = seconds ~/ 60;
-    final remainingSeconds = seconds % 60;
-
-    if (minutes > 0) {
-      return '${minutes}m ${remainingSeconds}s';
-    } else {
-      return '${remainingSeconds}s';
-    }
   }
 }

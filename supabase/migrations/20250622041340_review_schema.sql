@@ -5,7 +5,7 @@
 -- Create enum types for quiz system
 CREATE TYPE quiz_type AS ENUM ('flashcard', 'multipleChoice');
 CREATE TYPE quiz_item_type AS ENUM ('flashcard', 'multipleChoice');
-CREATE TYPE difficulty_rating AS ENUM ('again', 'hard', 'good', 'easy');
+CREATE TYPE difficulty_rating AS ENUM ('forgot', 'hard', 'good', 'easy');
 CREATE TYPE session_type AS ENUM ('mixed', 'dueOnly', 'newOnly');
 CREATE TYPE session_status AS ENUM ('active', 'completed', 'abandoned');
 
@@ -93,7 +93,7 @@ CREATE TABLE public.review_sessions (
     correct_responses INTEGER DEFAULT 0 NOT NULL,
     
     -- Performance metrics
-    average_difficulty NUMERIC(2,1), -- Average difficulty rating (1-4 scale)
+    average_difficulty NUMERIC(2,1), -- Average confidence/performance rating (1-4 scale: 1=forgot, 4=easy)
     session_duration_seconds INTEGER,
     
     -- Session status and timestamps

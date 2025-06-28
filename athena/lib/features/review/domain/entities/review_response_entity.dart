@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 enum DifficultyRating {
-  again,
+  forgot,
   hard,
   good,
   easy,

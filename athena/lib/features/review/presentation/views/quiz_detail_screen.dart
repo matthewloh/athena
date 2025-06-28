@@ -1,6 +1,7 @@
 import 'package:athena/core/theme/app_colors.dart';
 import 'package:athena/features/review/domain/entities/quiz_item_entity.dart';
 import 'package:athena/features/review/presentation/viewmodel/quiz_detail_viewmodel.dart';
+import 'package:athena/features/review/presentation/viewmodel/review_viewmodel.dart';
 import 'package:athena/features/shared/utils/subject_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +22,17 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // Check for refresh parameter and trigger data refresh if present
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final route = GoRouterState.of(context);
+      final refreshParam = route.uri.queryParameters['refresh'];
+      if (refreshParam != null && mounted) {
+        ref
+            .read(quizDetailViewModelProvider(widget.quizId).notifier)
+            .refreshQuizData(widget.quizId);
+      }
+    });
   }
 
   @override
@@ -65,7 +77,20 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            // Navigate back with proper refresh handling
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              // If there's nowhere to pop to, go to review home and refresh
+              context.go('/review');
+              Future.delayed(const Duration(milliseconds: 100), () {
+                if (mounted) {
+                  ref.read(reviewViewModelProvider.notifier).refreshQuizzes();
+                }
+              });
+            }
+          },
         ),
         actions: [
           if (state.hasQuiz) ...[
@@ -1134,7 +1159,7 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
                   child: _buildSessionStat(
                     Icons.timer,
                     _formatDuration(
-                      session.sessionDurationSeconds != null 
+                      session.sessionDurationSeconds != null
                           ? Duration(seconds: session.sessionDurationSeconds!)
                           : null,
                     ),

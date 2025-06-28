@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 /// Widget for collecting difficulty ratings from users after they've answered a question.
 ///
 /// This widget presents the 4-point spaced repetition difficulty scale:
-/// - Again (0): Complete failure, didn't remember at all
+/// - Forgot (0): Complete failure, didn't remember at all
 /// - Hard (1): Remembered with serious difficulty
 /// - Good (2): Remembered with some difficulty
 /// - Easy (3): Remembered easily
@@ -109,8 +109,8 @@ class _DifficultyRatingWidgetState extends State<DifficultyRatingWidget> {
       children: [
         Expanded(
           child: _buildCompactRatingButton(
-            rating: DifficultyRating.again,
-            label: 'Again',
+            rating: DifficultyRating.forgot,
+            label: 'Forgot',
             color: Colors.red,
             icon: Icons.refresh,
           ),

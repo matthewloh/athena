@@ -20,6 +20,7 @@ import 'package:athena/features/review/presentation/views/edit_quiz_screen.dart'
 import 'package:athena/features/review/presentation/views/quiz_detail_screen.dart';
 import 'package:athena/features/review/presentation/views/review_screen.dart';
 import 'package:athena/features/review/presentation/views/review_session_screen.dart';
+import 'package:athena/features/review/presentation/views/quiz_results_screen.dart';
 import 'package:athena/features/review/domain/entities/review_session_entity.dart';
 import 'package:athena/features/study_materials/presentation/views/materials_screen.dart';
 import 'package:athena/features/study_materials/presentation/views/material_detail_screen.dart';
@@ -340,6 +341,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             sessionType: parsedSessionType,
             maxItems: maxItems != null ? int.tryParse(maxItems) : null,
           );
+        },
+      ),
+      GoRoute(
+        path: '/${AppRouteNames.quizResults}',
+        name: AppRouteNames.quizResults,
+        builder: (context, state) {
+          final session = state.extra as ReviewSessionEntity;
+          return QuizResultsScreen(session: session);
         },
       ),
     ],

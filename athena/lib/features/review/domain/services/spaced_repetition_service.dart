@@ -25,14 +25,14 @@ import 'package:athena/features/review/domain/entities/review_response_entity.da
 /// ## Difficulty Rating Scale
 ///
 /// Users rate their performance on a 4-point scale:
-/// - **Again (0)**: Complete failure, didn't remember at all
+/// - **Forgot (0)**: Complete failure, didn't remember at all
 /// - **Hard (1)**: Remembered with serious difficulty
 /// - **Good (2)**: Remembered with some difficulty
 /// - **Easy (3)**: Remembered easily
 ///
 /// ## Algorithm Logic
 ///
-/// ### For ratings < 2 (Again/Hard):
+/// ### For ratings < 2 (Forgot/Hard):
 /// - Reset repetitions to 0
 /// - Reset interval to 1 day
 /// - Slightly decrease EF (but keep it >= 1.3)
@@ -105,7 +105,7 @@ class SpacedRepetitionService {
 
     // Apply SM-2 algorithm logic
     if (rating < 2) {
-      // Poor performance (Again = 0, Hard = 1)
+      // Poor performance (Forgot = 0, Hard = 1)
       // Reset the learning process
       newRepetitions = 0;
       newInterval = initialInterval;
@@ -158,7 +158,7 @@ class SpacedRepetitionService {
   /// EF' = EF + (0.1 - (5-q) * (0.08 + (5-q) * 0.02))
   ///
   /// Where q is the quality rating (0-5 in original, we map 0-3 to 0-5):
-  /// - Again (0) → 0 in SM-2 scale
+  /// - Forgot (0) → 0 in SM-2 scale
   /// - Hard (1) → 2 in SM-2 scale
   /// - Good (2) → 4 in SM-2 scale
   /// - Easy (3) → 5 in SM-2 scale
@@ -166,7 +166,7 @@ class SpacedRepetitionService {
     // Map our 0-3 scale to SM-2's 0-5 scale
     int sm2Rating;
     switch (rating) {
-      case 0: // Again
+      case 0: // Forgot
         sm2Rating = 0;
         break;
       case 1: // Hard
@@ -291,7 +291,7 @@ class SpacedRepetitionService {
   /// Adjusts difficulty rating for MCQ responses based on objective correctness.
   ///
   /// For MCQs, we combine objective correctness with subjective difficulty:
-  /// - If answer is WRONG: Automatically set to "Again" (0) regardless of user rating
+  /// - If answer is WRONG: Automatically set to "Forgot" (0) regardless of user rating
   /// - If answer is CORRECT: Use user's subjective difficulty rating, but ensure minimum of "Hard" (1)
   ///   This prevents gaming the system by selecting "Easy" on lucky guesses
   ///
@@ -312,15 +312,15 @@ class SpacedRepetitionService {
 
     // For MCQs, adjust based on objective correctness
     if (!isCorrect) {
-      // Wrong answer always maps to "Again" to reset learning progress
-      return DifficultyRating.again;
+      // Wrong answer always maps to "Forgot" to reset learning progress
+      return DifficultyRating.forgot;
     }
 
     // Correct answer: ensure minimum difficulty of "Hard" to prevent gaming
     // This accounts for lucky guesses while still allowing subjective assessment
     switch (userRating) {
-      case DifficultyRating.again:
-        return DifficultyRating.hard; // Upgrade from Again to Hard if correct
+      case DifficultyRating.forgot:
+        return DifficultyRating.hard; // Upgrade from Forgot to Hard if correct
       case DifficultyRating.hard:
       case DifficultyRating.good:
       case DifficultyRating.easy:

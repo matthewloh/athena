@@ -14,7 +14,7 @@ class ReviewSessionEntity extends Equatable {
   final int completedItems;
   final int correctResponses;
   // Performance metrics
-  final double? averageDifficulty;
+  final double? averageDifficulty; // Actually measures confidence/performance (1-4 scale)
   final int? sessionDurationSeconds;
   // Session status and timestamps
   final SessionStatus status;

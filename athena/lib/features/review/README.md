@@ -26,7 +26,7 @@ This feature follows the Clean Architecture principles adopted by the Athena pro
   - `ReviewSessionEntity.dart`: Represents a review session with performance metrics and session progress.
   - `ReviewResponseEntity.dart`: Represents individual responses during review sessions with spaced repetition data.
   - `QuizType` enum: Defines types of quiz items (`flashcard`, `multipleChoice`).
-  - `DifficultyRating` enum: User self-assessment ratings (`again`, `hard`, `good`, `easy`).
+  - `DifficultyRating` enum: User self-assessment ratings (`forgot`, `hard`, `good`, `easy`).
   - `SessionType` enum: Types of review sessions (`mixed`, `dueOnly`, `newOnly`).
   - `SessionStatus` enum: Review session states (`active`, `completed`, `abandoned`).
 - **Repositories:**
@@ -120,7 +120,7 @@ This feature follows the Clean Architecture principles adopted by the Athena pro
   - `flashcard.dart`: Interactive flashcard component with flip animation and self-assessment controls
   - `multiple_choice_widget.dart`: Multiple-choice question interface with option selection and answer validation
   - `progress_indicator.dart`: Shows review session progress, completion percentage, and time elapsed
-  - `difficulty_buttons.dart`: Self-assessment buttons for spaced repetition feedback (Again, Hard, Good, Easy)
+  - `difficulty_buttons.dart`: Self-assessment buttons for spaced repetition feedback (Forgot, Hard, Good, Easy)
   - `review_stats_widget.dart`: Displays learning analytics, streak information, and progress metrics
 
 ### 3.4. Backend Integration (Supabase)
@@ -158,7 +158,7 @@ The system implements a simplified version of the SM-2 (SuperMemo 2) algorithm:
   - `next_review_date`: Calculated next review date
 
 - **Algorithm Logic:**
-  - **Rating < 3 (Again/Hard):** Reset interval to 1 day, reset repetitions to 0
+  - **Rating < 3 (Forgot/Hard):** Reset interval to 1 day, reset repetitions to 0
   - **Rating ≥ 3 (Good/Easy):**
     - Increment repetitions
     - Calculate new interval:

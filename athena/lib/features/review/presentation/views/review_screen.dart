@@ -154,47 +154,6 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen>
                       ),
                     ),
 
-                    // Quick review button
-                    if (reviewState.hasDueItems)
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            // Navigate to a mixed review session with all due items
-                            await context.push(
-                              '/review-session/all?sessionType=dueOnly&maxItems=20',
-                            );
-                            // Refresh the quiz data to update due items count
-                            ref
-                                .read(reviewViewModelProvider.notifier)
-                                .refreshQuizzes();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.athenaSupportiveGreen,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            minimumSize: const Size(double.infinity, 0),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.play_arrow_rounded),
-                              SizedBox(width: 8),
-                              Text(
-                                'Start Quick Review',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
                     const SizedBox(height: 8),
 
                     // Section title with sort button
