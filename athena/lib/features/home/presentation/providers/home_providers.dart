@@ -1,8 +1,11 @@
+import 'package:athena/core/providers/auth_provider.dart';
 import 'package:athena/core/providers/supabase_providers.dart';
 import 'package:athena/features/home/data/repositories/dashboard_repository_impl.dart';
 import 'package:athena/features/home/domain/entities/dashboard_data.dart';
 import 'package:athena/features/home/domain/repositories/dashboard_repository.dart';
 import 'package:athena/features/home/domain/usecases/get_dashboard_data_usecase.dart';
+import 'package:athena/features/study_materials/presentation/providers/study_material_providers.dart';
+import 'package:athena/features/review/presentation/providers/review_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -35,32 +38,94 @@ bool isDashboardLoading(Ref ref) {
   return dashboardDataValue.isLoading;
 }
 
-/// Provider for dashboard material count
+/// Provider for dashboard material count (using real study materials data)
 @riverpod
 Future<int> materialCount(Ref ref) async {
-  final repository = ref.watch(dashboardRepositoryProvider);
-  return await repository.getMaterialCount();
+  final authState = ref.watch(appAuthProvider);
+  final userId = authState.value?.id;
+  
+  if (userId == null) return 0;
+  
+  final getAllStudyMaterialsUseCase = ref.watch(getAllStudyMaterialsUseCaseProvider);
+  final result = await getAllStudyMaterialsUseCase(userId);
+  
+  return result.fold(
+    (failure) => 0, // Return 0 on failure
+    (materials) => materials.length,
+  );
 }
 
-/// Provider for dashboard quiz items count
+/// Provider for dashboard quiz count (using real quiz data)
 @riverpod
 Future<int> quizItemCount(Ref ref) async {
-  final repository = ref.watch(dashboardRepositoryProvider);
-  return await repository.getQuizItemCount();
+  final authState = ref.watch(appAuthProvider);
+  final userId = authState.value?.id;
+  
+  if (userId == null) return 0;
+  
+  final getAllQuizzesUseCase = ref.watch(getAllQuizzesUseCaseProvider);
+  final result = await getAllQuizzesUseCase(userId);
+  
+  return result.fold(
+    (failure) => 0, // Return 0 on failure
+    (quizzes) => quizzes.length,
+  );
 }
 
-/// Provider for upcoming sessions
+/// Provider for upcoming sessions (TODO: Replace with real planner data when available)
 @riverpod
 Future<List<UpcomingSession>> upcomingSessions(Ref ref) async {
-  final repository = ref.watch(dashboardRepositoryProvider);
-  return await repository.getUpcomingSessions();
+  // TODO: Replace with real planner data when planner feature is implemented
+  // For now, return empty list as planner is still WIP
+  return [];
 }
 
-/// Provider for review items
+/// Provider for review items due (using real review data)
 @riverpod
 Future<List<ReviewItem>> reviewItems(Ref ref) async {
-  final repository = ref.watch(dashboardRepositoryProvider);
-  return await repository.getReviewItems();
+  final authState = ref.watch(appAuthProvider);
+  final userId = authState.value?.id;
+  
+  if (userId == null) return [];
+  
+  // Get all quizzes to find due items across all quizzes
+  final getAllQuizzesUseCase = ref.watch(getAllQuizzesUseCaseProvider);
+  final quizzesResult = await getAllQuizzesUseCase(userId);
+  
+  return await quizzesResult.fold(
+    (failure) async => [], // Return empty list on failure
+    (quizzes) async {
+      final List<ReviewItem> allReviewItems = [];
+      
+      // For each quiz, get due items
+      final getDueItemsUseCase = ref.watch(getDueItemsUseCaseProvider);
+      
+      for (final quiz in quizzes) {
+        final dueItemsResult = await getDueItemsUseCase(
+          quiz.id,
+          userId,
+          includeNew: true,
+          limit: null,
+        );
+        
+        dueItemsResult.fold(
+          (failure) {}, // Ignore failures for individual quizzes
+          (dueItems) {
+            if (dueItems.isNotEmpty) {
+              // Create a review item representing this quiz's due items
+              allReviewItems.add(ReviewItem(
+                title: quiz.title,
+                count: dueItems.length,
+                subject: quiz.subject,
+              ));
+            }
+          },
+        );
+      }
+      
+      return allReviewItems;
+    },
+  );
 }
 
 /// Provider for calling the hello-name edge function
