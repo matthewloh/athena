@@ -1,4 +1,5 @@
 import 'package:athena/features/review/presentation/viewmodel/create_quiz_state.dart';
+import 'package:athena/features/shared/utils/subject_utils.dart';
 import 'package:flutter/material.dart';
 
 class StudyMaterialSelector extends StatelessWidget {
@@ -84,10 +85,6 @@ class StudyMaterialSelector extends StatelessWidget {
             prefixIcon: const Icon(Icons.library_books),
           ),
           items: [
-            const DropdownMenuItem<String>(
-              value: null,
-              child: Text('Select a study material...'),
-            ),
             ...availableMaterials.map((material) {
               return DropdownMenuItem<String>(
                 value: material.id,
@@ -127,7 +124,7 @@ class StudyMaterialSelector extends StatelessWidget {
               if (material.subject != null) ...[
                 const SizedBox(height: 2),
                 Text(
-                  _getSubjectDisplayName(material.subject!),
+                  SubjectUtils.getDisplayName(material.subject),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -184,7 +181,7 @@ class StudyMaterialSelector extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Selected: ${selectedMaterial.title}',
+                  selectedMaterial.title,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w500,
                     color: Theme.of(context).colorScheme.onSurface,
@@ -192,7 +189,7 @@ class StudyMaterialSelector extends StatelessWidget {
                 ),
                 if (selectedMaterial.subject != null)
                   Text(
-                    _getSubjectDisplayName(selectedMaterial.subject!),
+                    SubjectUtils.getDisplayName(selectedMaterial.subject),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -207,15 +204,5 @@ class StudyMaterialSelector extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _getSubjectDisplayName(subject) {
-    // Simple implementation - you can expand this based on your Subject enum
-    return subject
-        .toString()
-        .split('.')
-        .last
-        .replaceAllMapped(RegExp(r'([A-Z])'), (match) => ' ${match.group(1)}')
-        .trim();
   }
 }

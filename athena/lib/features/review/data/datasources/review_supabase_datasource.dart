@@ -92,14 +92,46 @@ class ReviewSupabaseDataSourceImpl implements ReviewRemoteDataSource {
   @override
   Future<QuizModel> generateAiQuiz(String? studyMaterialId) async {
     try {
+      throw UnimplementedError('Use generateAiQuestions instead');
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  /// Generates AI questions from study material
+  @override
+  Future<Map<String, dynamic>> generateAiQuestions({
+    required String studyMaterialId,
+    required String quizType,
+    int maxQuestions = 10, // Changed from numQuestions to maxQuestions
+    String difficultyLevel = 'medium',
+  }) async {
+    try {
       final response = await _supabaseClient.functions.invoke(
         'generate-quiz-questions',
-        body: {'studyMaterialId': studyMaterialId},
+        body: {
+          'material_id': studyMaterialId,
+          'quiz_type': quizType,
+          'max_questions': maxQuestions, // Updated parameter name
+          'difficulty_level': difficultyLevel,
+        },
       );
 
-      return response.data['quiz'] != null
-          ? QuizModel.fromJson(response.data['quiz'])
-          : throw ServerException('No quiz generated');
+      if (response.data == null || response.data['success'] != true) {
+        throw ServerException(
+          response.data?['message'] ?? 'Failed to generate AI questions',
+        );
+      }
+
+      return {
+        'questions': response.data['questions'],
+        'material_title': response.data['material_title'],
+        'generated_count': response.data['generated_count'],
+        'optimal_count':
+            response.data['optimal_count'], // Include AI's optimal count
+        'max_requested':
+            response.data['max_requested'], // Include requested max
+      };
     } catch (e) {
       throw ServerException(e.toString());
     }

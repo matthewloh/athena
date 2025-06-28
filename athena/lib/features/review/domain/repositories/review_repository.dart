@@ -14,6 +14,15 @@ abstract class ReviewRepository {
   Future<Either<Failure, QuizEntity>> updateQuiz(QuizEntity quiz);
   Future<Either<Failure, void>> deleteQuiz(String quizId);
   Future<Either<Failure, QuizEntity>> generateAiQuiz(String? studyMaterialId);
+  
+  /// Generates AI questions from study material
+  Future<Either<Failure, List<Map<String, dynamic>>>> generateAiQuestions({
+    required String studyMaterialId,
+    required String quizType,
+    int maxQuestions = 10, // Changed from numQuestions to maxQuestions
+    String difficultyLevel = 'medium',
+  });
+
   // Quiz item operations
   Future<Either<Failure, List<QuizItemEntity>>> getAllQuizItems(String quizId);
   Future<Either<Failure, QuizItemEntity>> getQuizItemById(String itemId);

@@ -145,7 +145,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen>
                             _buildStatItem(
                               context,
                               value: reviewState.formattedAccuracy,
-                              label: 'Accuracy',
+                              label: 'Mastery',
                               icon: Icons.check_circle_outline,
                               color: AppColors.athenaBlue,
                             ),

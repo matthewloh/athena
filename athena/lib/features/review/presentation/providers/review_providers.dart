@@ -8,6 +8,7 @@ import 'package:athena/features/review/domain/usecases/create_quiz_item_usecase.
 import 'package:athena/features/review/domain/usecases/delete_quiz_usecase.dart';
 import 'package:athena/features/review/domain/usecases/delete_quiz_item_usecase.dart';
 import 'package:athena/features/review/domain/usecases/generate_ai_quiz_usecase.dart';
+import 'package:athena/features/review/domain/usecases/generate_ai_questions_usecase.dart';
 import 'package:athena/features/review/domain/usecases/get_all_quiz_items_usecase.dart';
 import 'package:athena/features/review/domain/usecases/get_all_quizzes_usecase.dart';
 import 'package:athena/features/review/domain/usecases/get_due_items_usecase.dart';
@@ -73,6 +74,12 @@ DeleteQuizUseCase deleteQuizUseCase(Ref ref) {
 GenerateAiQuizUseCase generateAiQuizUseCase(Ref ref) {
   final repository = ref.watch(reviewRepositoryProvider);
   return GenerateAiQuizUseCase(repository);
+}
+
+@riverpod
+GenerateAiQuestionsUseCase generateAiQuestionsUseCase(Ref ref) {
+  final repository = ref.watch(reviewRepositoryProvider);
+  return GenerateAiQuestionsUseCase(repository);
 }
 
 // QuizItem UseCases

@@ -353,12 +353,16 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
                 'Updated ${_formatTimestamp(quiz.updatedAt)}',
                 style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
-              const SizedBox(width: 16),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            children: [
               if (quiz.studyMaterialId != null) ...[
-                Icon(Icons.library_books, size: 16, color: Colors.grey[600]),
+                Icon(Icons.auto_awesome, size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 6),
                 Text(
-                  'Linked to material',
+                  'AI-generated from material',
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
@@ -793,46 +797,39 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
     }
 
     if (!state.hasItems) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: 24 + MediaQuery.of(context).padding.bottom,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.quiz_outlined, size: 64, color: Colors.grey[400]),
-              const SizedBox(height: 16),
-              Text(
-                'No Items Yet',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w600,
-                ),
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.quiz_outlined, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No Items Yet',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Add some flashcards or questions to get started with this quiz.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Add some flashcards or questions to get started with this quiz.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                // Navigate to edit quiz screen where users can add items
+                context.push('/edit-quiz/${widget.quizId}');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.athenaSupportiveGreen,
+                foregroundColor: Colors.white,
               ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  // Navigate to edit quiz screen where users can add items
-                  context.push('/edit-quiz/${widget.quizId}');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.athenaSupportiveGreen,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Add Items'),
-              ),
-            ],
-          ),
+              child: const Text('Add Items'),
+            ),
+          ],
         ),
       );
     }
@@ -1012,66 +1009,59 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
     }
 
     if (!state.hasSessionHistory) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: 24 + MediaQuery.of(context).padding.bottom,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.history, size: 64, color: Colors.grey[400]),
-              const SizedBox(height: 16),
-              Text(
-                'No Review History',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w600,
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No Review History',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Review session history will appear here once you start reviewing this quiz.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed:
+                  state.isReadyForReview
+                      ? () async {
+                        await context.push(
+                          '/review-session/${widget.quizId}?sessionType=mixed&maxItems=20',
+                        );
+                        // Refresh the quiz data to update due items count
+                        ref
+                            .read(
+                              quizDetailViewModelProvider(
+                                widget.quizId,
+                              ).notifier,
+                            )
+                            .refreshQuizData(widget.quizId);
+                      }
+                      : null,
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('Start First Review'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.athenaSupportiveGreen,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Review session history will appear here once you start reviewing this quiz.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed:
-                    state.isReadyForReview
-                        ? () async {
-                          await context.push(
-                            '/review-session/${widget.quizId}?sessionType=mixed&maxItems=20',
-                          );
-                          // Refresh the quiz data to update due items count
-                          ref
-                              .read(
-                                quizDetailViewModelProvider(
-                                  widget.quizId,
-                                ).notifier,
-                              )
-                              .refreshQuizData(widget.quizId);
-                        }
-                        : null,
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Start First Review'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.athenaSupportiveGreen,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }

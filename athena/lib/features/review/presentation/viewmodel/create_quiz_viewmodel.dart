@@ -3,8 +3,11 @@ import 'package:athena/core/providers/auth_provider.dart';
 import 'package:athena/features/review/domain/entities/quiz_entity.dart';
 import 'package:athena/features/review/domain/entities/quiz_item_entity.dart';
 import 'package:athena/features/review/domain/usecases/params/create_quiz_params.dart';
+import 'package:athena/features/review/domain/usecases/generate_ai_questions_usecase.dart';
 import 'package:athena/features/review/presentation/providers/review_providers.dart';
 import 'package:athena/features/review/presentation/viewmodel/create_quiz_state.dart';
+import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
+import 'package:athena/features/study_materials/presentation/providers/study_material_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'create_quiz_viewmodel.g.dart';
@@ -21,6 +24,18 @@ class CreateQuizViewModel extends _$CreateQuizViewModel {
   String? _getCurrentUserId() {
     final user = ref.read(appAuthProvider).valueOrNull;
     return user?.id;
+  }
+
+  // Helper method to convert ContentType to display string
+  String _getContentTypeDisplayName(ContentType contentType) {
+    switch (contentType) {
+      case ContentType.typedText:
+        return 'Text';
+      case ContentType.textFile:
+        return 'Text File';
+      case ContentType.imageFile:
+        return 'Image File';
+    }
   }
 
   @override
@@ -45,7 +60,7 @@ class CreateQuizViewModel extends _$CreateQuizViewModel {
     }
 
     // Update state if anything changed
-    if (updatedStudyMaterialId != state.selectedStudyMaterialId || 
+    if (updatedStudyMaterialId != state.selectedStudyMaterialId ||
         updatedMode != state.mode) {
       state = state.copyWith(
         selectedStudyMaterialId: updatedStudyMaterialId,
@@ -61,16 +76,42 @@ class CreateQuizViewModel extends _$CreateQuizViewModel {
     state = state.copyWith(isLoadingStudyMaterials: true, error: null);
 
     try {
-      // TODO: Implement GetAllStudyMaterialsUseCase call
-      // final useCase = ref.read(getAllStudyMaterialsUseCaseProvider);
-      // final result = await useCase.call(userId);
+      final userId = _getCurrentUserId();
+      if (userId == null) {
+        state = state.copyWith(
+          isLoadingStudyMaterials: false,
+          error: 'User not authenticated',
+        );
+        return;
+      }
 
-      // For now, simulate loading with empty list
-      await Future.delayed(const Duration(milliseconds: 500));
+      final useCase = ref.read(getAllStudyMaterialsUseCaseProvider);
+      final result = await useCase.call(userId);
 
-      state = state.copyWith(
-        isLoadingStudyMaterials: false,
-        availableStudyMaterials: [], // TODO: Replace with actual data
+      result.fold(
+        (failure) {
+          state = state.copyWith(
+            isLoadingStudyMaterials: false,
+            error: 'Failed to load study materials: ${failure.message}',
+          );
+        },
+        (studyMaterials) {
+          // Convert StudyMaterialEntity to StudyMaterialOption
+          final options =
+              studyMaterials.map((material) {
+                return StudyMaterialOption(
+                  id: material.id,
+                  title: material.title,
+                  subject: material.subject,
+                  contentType: _getContentTypeDisplayName(material.contentType),
+                );
+              }).toList();
+
+          state = state.copyWith(
+            isLoadingStudyMaterials: false,
+            availableStudyMaterials: options,
+          );
+        },
       );
     } catch (e) {
       state = state.copyWith(
@@ -174,7 +215,8 @@ class CreateQuizViewModel extends _$CreateQuizViewModel {
   }
 
   // AI Generation
-  Future<void> generateAiQuestions({int numQuestions = 5}) async {
+  Future<void> generateAiQuestions({int numQuestions = 10}) async {
+    // AI determines optimal count up to this maximum
     if (state.selectedStudyMaterialId == null) {
       state = state.copyWith(
         fieldError: 'Please select a study material first',
@@ -185,44 +227,119 @@ class CreateQuizViewModel extends _$CreateQuizViewModel {
     state = state.copyWith(isGeneratingAi: true, error: null);
 
     try {
-      // TODO: Implement GenerateAiQuizUseCase call
-      // final useCase = ref.read(generateAiQuizUseCaseProvider);
-      // final result = await useCase.call(GenerateAiQuizParams(
-      //   studyMaterialId: state.selectedStudyMaterialId!,
-      //   numQuestions: numQuestions,
-      //   quizType: state.selectedQuizType!,
-      // ));
+      final useCase = ref.read(generateAiQuestionsUseCaseProvider);
+      final params = GenerateAiQuestionsParams(
+        studyMaterialId: state.selectedStudyMaterialId!,
+        quizType:
+            state.selectedQuizType == QuizType.flashcard
+                ? 'flashcard'
+                : 'multiple_choice',
+        maxQuestions: numQuestions, // Changed from numQuestions to maxQuestions
+        difficultyLevel: 'medium',
+      );
 
-      // Simulate AI generation for now
-      await Future.delayed(const Duration(seconds: 2));
+      print(
+        '🤖 Generating AI questions with params: ${params.studyMaterialId}, ${params.quizType}, ${params.maxQuestions}',
+      );
 
-      final itemType =
-          state.selectedQuizType == QuizType.flashcard
-              ? QuizItemType.flashcard
-              : QuizItemType.multipleChoice;
-      final generatedItems = List.generate(numQuestions, (index) {
-        return QuizItemData(
-          id: _generateTempId(),
-          type: itemType,
-          question: 'Generated Question ${index + 1}',
-          answer:
-              itemType == QuizItemType.flashcard
-                  ? 'Generated Answer ${index + 1}'
-                  : '', // For MCQ, answer field is not used
-          mcqOptions:
-              itemType == QuizItemType.multipleChoice
-                  ? ['Option A', 'Option B', 'Option C', 'Option D']
-                  : [],
-          correctOptionIndex: 0,
-          isExpanded: false,
-        );
-      });
+      final result = await useCase.call(params);
 
-      state = state.copyWith(isGeneratingAi: false, quizItems: generatedItems);
+      result.fold(
+        (failure) {
+          // Debug print the detailed error for developers
+          print('❌ AI Question Generation Failed:');
+          print('   Study Material ID: ${params.studyMaterialId}');
+          print('   Quiz Type: ${params.quizType}');
+          print('   Max Questions: ${params.maxQuestions}');
+          print('   Error Type: ${failure.runtimeType}');
+          print('   Error Message: ${failure.toString()}');
+
+          // Provide user-friendly error messages
+          String userFriendlyMessage;
+          final errorMessage = failure.toString().toLowerCase();
+
+          if (errorMessage.contains('no text content available')) {
+            userFriendlyMessage =
+                'Unable to generate questions from this study material. The content may be empty or not suitable for quiz generation.';
+          } else if (errorMessage.contains('type validation failed') ||
+              errorMessage.contains('validation failed')) {
+            userFriendlyMessage =
+                'AI generated an unexpected response format. Please try again - this usually resolves on retry.';
+          } else if (errorMessage.contains('authentication required')) {
+            userFriendlyMessage = 'Please sign in again to generate questions.';
+          } else if (errorMessage.contains('material not found')) {
+            userFriendlyMessage =
+                'The selected study material could not be found. Please try selecting a different material.';
+          } else if (errorMessage.contains('too short')) {
+            userFriendlyMessage =
+                'This study material is too short to generate meaningful questions. Please select material with more content.';
+          } else if (errorMessage.contains('network') ||
+              errorMessage.contains('connection')) {
+            userFriendlyMessage =
+                'Unable to connect to our AI service. Please check your internet connection and try again.';
+          } else if (errorMessage.contains('timeout')) {
+            userFriendlyMessage =
+                'The AI service is taking too long to respond. Please try again in a moment.';
+          } else if (errorMessage.contains('rate limit') ||
+              errorMessage.contains('quota')) {
+            userFriendlyMessage =
+                'AI service is temporarily busy. Please wait a moment and try again.';
+          } else {
+            userFriendlyMessage =
+                'Unable to generate questions at the moment. Please try again or select a different study material.';
+          }
+
+          state = state.copyWith(
+            isGeneratingAi: false,
+            error: userFriendlyMessage,
+          );
+        },
+        (questions) {
+          print(
+            '✅ AI Question Generation Successful: Generated ${questions.length} questions',
+          );
+
+          final generatedItems =
+              questions.map<QuizItemData>((q) {
+                final itemType =
+                    state.selectedQuizType == QuizType.flashcard
+                        ? QuizItemType.flashcard
+                        : QuizItemType.multipleChoice;
+
+                return QuizItemData(
+                  id: q['id']?.toString() ?? _generateTempId(),
+                  type: itemType,
+                  question: q['question']?.toString() ?? '',
+                  answer: q['answer']?.toString() ?? '',
+                  mcqOptions:
+                      itemType == QuizItemType.multipleChoice
+                          ? List<String>.from(q['options'] ?? ['', '', '', ''])
+                          : [],
+                  correctOptionIndex: q['correct_option_index'] ?? 0,
+                  isExpanded: false,
+                );
+              }).toList();
+
+          state = state.copyWith(
+            isGeneratingAi: false,
+            quizItems: generatedItems,
+          );
+        },
+      );
     } catch (e) {
+      // Debug print unexpected errors
+      print('🚨 Unexpected AI Generation Error:');
+      print('   Study Material ID: ${state.selectedStudyMaterialId}');
+      print('   Quiz Type: ${state.selectedQuizType}');
+      print('   Exception Type: ${e.runtimeType}');
+      print('   Exception: $e');
+      print('   Stack Trace: ${StackTrace.current}');
+
+      // Provide a generic user-friendly message for unexpected errors
       state = state.copyWith(
         isGeneratingAi: false,
-        error: 'Failed to generate AI questions: ${e.toString()}',
+        error:
+            'An unexpected error occurred while generating questions. Please try again or contact support if the problem persists.',
       );
     }
   }

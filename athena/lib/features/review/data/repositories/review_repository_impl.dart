@@ -105,7 +105,35 @@ class ReviewRepositoryImpl implements ReviewRepository {
       return Left(ServerFailure('Failed to generate AI quiz: ${e.message}'));
     } catch (e) {
       return Left(
-        ServerFailure('An unexpected error occurred: ${e.toString()}'),
+        ServerFailure('Unexpected error during AI quiz generation: $e'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> generateAiQuestions({
+    required String studyMaterialId,
+    required String quizType,
+    int maxQuestions = 10, // Changed from numQuestions to maxQuestions
+    String difficultyLevel = 'medium',
+  }) async {
+    try {
+      final result = await _remoteDataSource.generateAiQuestions(
+        studyMaterialId: studyMaterialId,
+        quizType: quizType,
+        maxQuestions: maxQuestions, // Updated parameter name
+        difficultyLevel: difficultyLevel,
+      );
+
+      final questions = result['questions'] as List;
+      return Right(questions.cast<Map<String, dynamic>>());
+    } on ServerException catch (e) {
+      return Left(
+        ServerFailure('Failed to generate AI questions: ${e.message}'),
+      );
+    } catch (e) {
+      return Left(
+        ServerFailure('Unexpected error during AI question generation: $e'),
       );
     }
   }

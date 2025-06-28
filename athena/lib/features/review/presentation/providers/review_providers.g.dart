@@ -163,6 +163,27 @@ final generateAiQuizUseCaseProvider =
 // ignore: unused_element
 typedef GenerateAiQuizUseCaseRef =
     AutoDisposeProviderRef<GenerateAiQuizUseCase>;
+String _$generateAiQuestionsUseCaseHash() =>
+    r'70773aefada79ee24fe7a0aece91baac749634f3';
+
+/// See also [generateAiQuestionsUseCase].
+@ProviderFor(generateAiQuestionsUseCase)
+final generateAiQuestionsUseCaseProvider =
+    AutoDisposeProvider<GenerateAiQuestionsUseCase>.internal(
+      generateAiQuestionsUseCase,
+      name: r'generateAiQuestionsUseCaseProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$generateAiQuestionsUseCaseHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef GenerateAiQuestionsUseCaseRef =
+    AutoDisposeProviderRef<GenerateAiQuestionsUseCase>;
 String _$getAllQuizItemsUseCaseHash() =>
     r'26cbdabfdb1a3ae0b0cb42c46486e8f4ecaf42a3';
 

@@ -12,6 +12,15 @@ abstract class ReviewRemoteDataSource {
   Future<QuizModel> updateQuiz(QuizModel quiz);
   Future<void> deleteQuiz(String quizId);
   Future<QuizModel> generateAiQuiz(String? studyMaterialId);
+  
+  /// Generates AI questions from study material
+  Future<Map<String, dynamic>> generateAiQuestions({
+    required String studyMaterialId,
+    required String quizType,
+    int maxQuestions = 10, // Changed from numQuestions to maxQuestions
+    String difficultyLevel = 'medium',
+  });
+
   // Quiz item operations
   Future<List<QuizItemModel>> getAllQuizItems(String quizId);
   Future<QuizItemModel> getQuizItemById(String itemId);

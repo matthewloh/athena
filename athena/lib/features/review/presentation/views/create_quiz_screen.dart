@@ -382,6 +382,9 @@ class _CreateQuizScreenState extends ConsumerState<CreateQuizScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.athenaSupportiveGreen,
+                  ),
                   onPressed:
                       state.selectedStudyMaterialId != null &&
                               !state.isGeneratingAi
@@ -404,37 +407,18 @@ class _CreateQuizScreenState extends ConsumerState<CreateQuizScreen> {
               ),
             ] else ...[
               Text(
-                '${state.quizItems.length} questions generated. Review and edit as needed.',
+                '${state.quizItems.length} questions generated. Review and regenerate if needed.',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 12),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed:
-                          !state.isGeneratingAi
-                              ? () => viewModel.generateAiQuestions()
-                              : null,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Regenerate'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed:
-                          state.quizItems.isNotEmpty
-                              ? () => viewModel.generateAiQuestions(
-                                numQuestions: 10,
-                              )
-                              : null,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add More'),
-                    ),
-                  ),
-                ],
+              TextButton.icon(
+                onPressed:
+                    !state.isGeneratingAi
+                        ? () => viewModel.generateAiQuestions()
+                        : null,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Regenerate'),
               ),
             ],
           ],
@@ -556,29 +540,18 @@ class _CreateQuizScreenState extends ConsumerState<CreateQuizScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Generated Questions Preview',
+                  'Generated Questions (${state.quizItems.length})',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 16),
-                ...state.quizItems
-                    .take(3)
-                    .map(
-                      (item) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
-                        child: _buildQuizItemPreview(item),
-                      ),
-                    ),
-                if (state.quizItems.length > 3) ...[
-                  const Divider(),
-                  Text(
-                    '... and ${state.quizItems.length - 3} more questions',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                ...state.quizItems.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: _buildQuizItemPreview(item),
                   ),
-                ],
+                ),
               ],
             ),
           ),
@@ -625,14 +598,71 @@ class _CreateQuizScreenState extends ConsumerState<CreateQuizScreen> {
               context,
             ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
           ),
+          const SizedBox(height: 8),
           if (item.type == QuizItemType.flashcard) ...[
-            const SizedBox(height: 4),
-            Text(
-              item.answer,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(6.0),
+              ),
+              child: Text(
+                item.answer,
+                style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
+          ] else if (item.type == QuizItemType.multipleChoice) ...[
+            ...item.mcqOptions.asMap().entries.map((entry) {
+              final index = entry.key;
+              final option = entry.value;
+              final isCorrect = index == item.correctOptionIndex;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4.0),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color:
+                            isCorrect
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.outline,
+                      ),
+                      child: Center(
+                        child: Text(
+                          String.fromCharCode(65 + index), // A, B, C, D
+                          style: TextStyle(
+                            color:
+                                isCorrect
+                                    ? Theme.of(context).colorScheme.onPrimary
+                                    : Theme.of(context).colorScheme.onSurface,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        option,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: isCorrect ? FontWeight.w500 : null,
+                          color:
+                              isCorrect
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
           ],
         ],
       ),
