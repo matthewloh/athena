@@ -44,17 +44,26 @@ abstract class QuizDetailState with _$QuizDetailState {
   bool get hasDueItems => dueItems > 0;
   bool get hasAnyLoading => isLoading || isLoadingItems || isLoadingHistory || isRefreshing;
 
-  // Get completion percentage
-  double get completionPercentage {
+  // Get mastery percentage (performance-based learning progress)
+  double get masteryPercentage {
     if (totalItems == 0) return 0.0;
-    return masteredItems / totalItems;
+    return accuracy; // Use accuracy as the mastery indicator
   }
 
-  // Get review progress percentage
+  // Get review progress percentage (progress through current due items)
   double get reviewProgress {
     if (totalItems == 0) return 0.0;
-    final reviewedItems = totalItems - _getNewItems().length;
-    return reviewedItems / totalItems;
+    
+    // If no items are due, today's review is complete
+    if (dueItems == 0) return 1.0;
+    
+    // Show progress as: items reviewed today / (items reviewed today + items still due)
+    final itemsReviewedToday = _getItemsReviewedToday();
+    final totalItemsNeedingAttention = itemsReviewedToday + dueItems;
+    
+    if (totalItemsNeedingAttention == 0) return 0.0;
+    
+    return itemsReviewedToday / totalItemsNeedingAttention;
   }
 
   // Get formatted accuracy
@@ -77,8 +86,20 @@ abstract class QuizDetailState with _$QuizDetailState {
   List<QuizItemEntity> get hardItems =>
       quizItems.where((item) => item.easinessFactor < 2.0).toList();
 
-  List<QuizItemEntity> _getNewItems() =>
-      quizItems.where((item) => item.repetitions == 0).toList();
+  // Helper method to count items reviewed today
+  int _getItemsReviewedToday() {
+    final today = DateTime.now();
+    return sessionHistory
+        .where((session) => _isSameDay(session.startedAt, today))
+        .fold(0, (sum, session) => sum + session.completedItems);
+  }
+
+  // Helper method to check if two dates are the same day
+  bool _isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+           date1.month == date2.month &&
+           date1.day == date2.day;
+  }
 
   // Get next review date (earliest future review, not past due items)
   DateTime? get nextReviewDate {

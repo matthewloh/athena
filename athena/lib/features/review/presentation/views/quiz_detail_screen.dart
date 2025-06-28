@@ -528,8 +528,8 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
           ),
           const SizedBox(height: 20),
           _buildProgressBar(
-            'Completion',
-            state.completionPercentage,
+            'Mastery',
+            state.masteryPercentage,
             AppColors.athenaSupportiveGreen,
           ),
           const SizedBox(height: 16),
