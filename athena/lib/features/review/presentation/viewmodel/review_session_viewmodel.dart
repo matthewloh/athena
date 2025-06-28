@@ -112,7 +112,8 @@ class ReviewSessionViewModel extends _$ReviewSessionViewModel {
   /// Selects an option for a multiple choice question.
   ///
   /// [optionKey] - The key of the selected option (e.g., "A", "B", "C", "D")
-  void selectMcqOption(String optionKey) {
+  /// For MCQ questions, this will automatically submit the response with auto-determined difficulty.
+  Future<void> selectMcqOption(String optionKey) async {
     if (!state.isCurrentItemMcq) return;
 
     // Validate that the option exists and is within allowed range
@@ -137,6 +138,30 @@ class ReviewSessionViewModel extends _$ReviewSessionViewModel {
     }
 
     state = state.copyWith(selectedMcqOption: optionKey, hasMcqAnswered: true);
+
+    // Auto-submit the MCQ response with auto-determined difficulty
+    await _submitMcqResponse();
+  }
+
+  /// Automatically submits the MCQ response with difficulty rating based on correctness.
+  /// 
+  /// This method implements the auto-rating logic for MCQ questions:
+  /// - Correct answers are rated as "easy" (indicating the user knew the material well)
+  /// - Incorrect answers are rated as "hard" (indicating the user needs more practice)
+  /// 
+  /// This removes the need for users to manually rate MCQ difficulty, as the objective
+  /// correctness provides a clear indication of their knowledge level.
+  Future<void> _submitMcqResponse() async {
+    if (!state.isCurrentItemMcq || !state.hasMcqAnswered) return;
+
+    // Determine difficulty rating based on correctness
+    final isCorrect = state.isMcqSelectionCorrect;
+    final difficultyRating = isCorrect ? DifficultyRating.easy : DifficultyRating.hard;
+
+    debugPrint('Auto-submitting MCQ response: correct=$isCorrect, rating=$difficultyRating');
+
+    // Submit the response
+    await submitResponse(difficultyRating);
   }
 
   /// Submits a response for the current quiz item.

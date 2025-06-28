@@ -402,7 +402,7 @@ class _ReviewSessionScreenState extends ConsumerState<ReviewSessionScreen> {
         correctOption: state.correctMcqOption,
         showCorrectAnswer: state.hasMcqAnswered,
         onOptionSelected:
-            (option) => ref
+            (option) async => await ref
                 .read(reviewSessionViewModelProvider.notifier)
                 .selectMcqOption(option),
       );
@@ -440,10 +440,13 @@ class _ReviewSessionScreenState extends ConsumerState<ReviewSessionScreen> {
   }
 
   bool _shouldShowDifficultyRating(state) {
+    // Only show difficulty rating for flashcards
+    // MCQ questions are auto-rated based on correctness
     if (state.isCurrentItemFlashcard) {
       return state.isShowingAnswer;
     } else {
-      return state.hasMcqAnswered;
+      // MCQ questions don't show difficulty rating - they are auto-rated
+      return false;
     }
   }
 

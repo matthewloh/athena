@@ -25,7 +25,7 @@ class MultipleChoiceWidget extends StatelessWidget {
   final bool showCorrectAnswer;
 
   /// Callback when an option is selected
-  final ValueChanged<String> onOptionSelected;
+  final Function(String) onOptionSelected;
 
   const MultipleChoiceWidget({
     super.key,
