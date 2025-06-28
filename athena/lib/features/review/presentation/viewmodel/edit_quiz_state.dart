@@ -2,6 +2,7 @@ import 'package:athena/domain/enums/subject.dart';
 import 'package:athena/features/review/domain/entities/quiz_entity.dart';
 import 'package:athena/features/review/domain/entities/quiz_item_entity.dart';
 import 'package:athena/features/review/presentation/viewmodel/create_quiz_state.dart';
+import 'package:athena/features/study_materials/domain/entities/study_material_entity.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'edit_quiz_state.freezed.dart';
@@ -37,6 +38,10 @@ abstract class EditQuizState with _$EditQuizState {
     // Data
     @Default([]) List<StudyMaterialOption> availableStudyMaterials,
     
+    // Linked study material metadata (for AI-generated quizzes)
+    StudyMaterialEntity? linkedStudyMaterial,
+    @Default(false) bool isLoadingLinkedStudyMaterial,
+    
     // Error handling
     String? error,
     String? fieldError,
@@ -48,7 +53,7 @@ abstract class EditQuizState with _$EditQuizState {
 
   // Computed properties
   bool get hasError => error != null || fieldError != null;
-  bool get hasAnyLoading => isLoading || isLoadingQuizData || isUpdating || isLoadingStudyMaterials;
+  bool get hasAnyLoading => isLoading || isLoadingQuizData || isUpdating || isLoadingStudyMaterials || isLoadingLinkedStudyMaterial;
   bool get hasOriginalQuiz => originalQuiz != null;
   
   bool get isFormValid {
@@ -77,6 +82,15 @@ abstract class EditQuizState with _$EditQuizState {
 
   bool get hasLinkedStudyMaterial => selectedStudyMaterialId != null;
 
+  // Check if this is an AI-generated quiz (has linked study material)
+  bool get isAiGeneratedQuiz => originalQuiz?.studyMaterialId != null;
+
+  // Check if we should show the study material section
+  bool get shouldShowStudyMaterialSection => isAiGeneratedQuiz;
+
+  // Get the linked study material ID for display (read-only for AI-generated quizzes)
+  String? get linkedStudyMaterialId => originalQuiz?.studyMaterialId;
+
   List<QuizItemData> get validQuizItems =>
       quizItems.where((item) => item.isValid).toList();
 
@@ -84,10 +98,15 @@ abstract class EditQuizState with _$EditQuizState {
   bool get _hasBasicInfoChanges {
     if (originalQuiz == null) return false;
     
-    return title.trim() != originalQuiz!.title ||
+    final hasBasicChanges = title.trim() != originalQuiz!.title ||
         description.trim() != (originalQuiz!.description ?? '') ||
-        selectedSubject != originalQuiz!.subject ||
+        selectedSubject != originalQuiz!.subject;
+    
+    // For manually created quizzes, also check study material changes
+    final hasStudyMaterialChanges = !isAiGeneratedQuiz && 
         selectedStudyMaterialId != originalQuiz!.studyMaterialId;
+    
+    return hasBasicChanges || hasStudyMaterialChanges;
   }
 
   bool get _hasQuizItemsChanges {

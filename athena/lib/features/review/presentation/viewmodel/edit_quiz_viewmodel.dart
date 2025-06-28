@@ -8,6 +8,7 @@ import 'package:athena/features/review/presentation/viewmodel/create_quiz_state.
 import 'package:athena/features/review/presentation/viewmodel/edit_quiz_state.dart';
 import 'package:athena/features/review/presentation/viewmodel/quiz_detail_viewmodel.dart';
 import 'package:athena/features/review/presentation/viewmodel/review_viewmodel.dart';
+import 'package:athena/features/study_materials/presentation/providers/study_material_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'edit_quiz_viewmodel.g.dart';
@@ -103,8 +104,10 @@ class EditQuizViewModel extends _$EditQuizViewModel {
         error: null,
       );
 
-      // Load study materials
-      _loadStudyMaterials();
+      // Load linked study material metadata for AI-generated quizzes
+      if (quiz.studyMaterialId != null) {
+        _loadLinkedStudyMaterial(quiz.studyMaterialId!);
+      }
     } catch (e) {
       state = state.copyWith(
         isLoadingQuizData: false,
@@ -140,26 +143,33 @@ class EditQuizViewModel extends _$EditQuizViewModel {
     return sortedKeys.indexOf(item.mcqCorrectOptionKey!).clamp(0, sortedKeys.length - 1);
   }
 
-  // Load available study materials
-  Future<void> _loadStudyMaterials() async {
-    final userId = _getCurrentUserId();
-    if (userId == null) return;
-
+  // Load linked study material metadata for display
+  Future<void> _loadLinkedStudyMaterial(String studyMaterialId) async {
     try {
-      state = state.copyWith(isLoadingStudyMaterials: true);
+      state = state.copyWith(isLoadingLinkedStudyMaterial: true);
 
-      // TODO: Load study materials from repository
-      // For now, we'll use empty list
-      final studyMaterials = <StudyMaterialOption>[];
+      final getStudyMaterialUseCase = ref.read(getStudyMaterialUseCaseProvider);
+      final result = await getStudyMaterialUseCase(studyMaterialId);
+
+      if (result.isLeft()) {
+        final failure = result.fold((l) => l, (r) => null);
+        state = state.copyWith(
+          isLoadingLinkedStudyMaterial: false,
+          error: failure?.message ?? 'Failed to load study material',
+        );
+        return;
+      }
+
+      final studyMaterial = result.fold((l) => null, (r) => r)!;
 
       state = state.copyWith(
-        isLoadingStudyMaterials: false,
-        availableStudyMaterials: studyMaterials,
+        isLoadingLinkedStudyMaterial: false,
+        linkedStudyMaterial: studyMaterial,
       );
     } catch (e) {
       state = state.copyWith(
-        isLoadingStudyMaterials: false,
-        error: 'Failed to load study materials: ${e.toString()}',
+        isLoadingLinkedStudyMaterial: false,
+        error: 'Failed to load study material: ${e.toString()}',
       );
     }
   }
@@ -188,6 +198,11 @@ class EditQuizViewModel extends _$EditQuizViewModel {
   }
 
   void updateStudyMaterial(String? studyMaterialId) {
+    // Prevent changing study material for AI-generated quizzes
+    if (state.isAiGeneratedQuiz) {
+      return; // Do nothing - study material is locked for AI-generated quizzes
+    }
+    
     state = state.copyWith(
       selectedStudyMaterialId: studyMaterialId,
       hasUnsavedChanges: true,
@@ -296,11 +311,16 @@ class EditQuizViewModel extends _$EditQuizViewModel {
       state = state.copyWith(isUpdating: true, error: null);
 
       // Update basic quiz info
+      // For AI-generated quizzes, preserve the original study material ID
+      final studyMaterialId = state.isAiGeneratedQuiz 
+          ? originalQuiz.studyMaterialId 
+          : state.selectedStudyMaterialId;
+          
       final updateQuizParams = UpdateQuizParams(
         id: originalQuiz.id,
         userId: userId,
         title: state.title.trim(),
-        studyMaterialId: state.selectedStudyMaterialId,
+        studyMaterialId: studyMaterialId,
         subject: state.selectedSubject,
         description: state.description.trim().isEmpty ? null : state.description.trim(),
       );

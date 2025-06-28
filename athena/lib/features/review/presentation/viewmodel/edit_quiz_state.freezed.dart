@@ -21,7 +21,8 @@ mixin _$EditQuizState {
  List<QuizItemData> get quizItems;// Loading states
  bool get isLoading; bool get isLoadingQuizData; bool get isUpdating; bool get isLoadingStudyMaterials;// UI states
  bool get showValidationErrors; bool get hasUnsavedChanges;// Data
- List<StudyMaterialOption> get availableStudyMaterials;// Error handling
+ List<StudyMaterialOption> get availableStudyMaterials;// Linked study material metadata (for AI-generated quizzes)
+ StudyMaterialEntity? get linkedStudyMaterial; bool get isLoadingLinkedStudyMaterial;// Error handling
  String? get error; String? get fieldError;// Success state
  QuizEntity? get updatedQuiz; bool get isSuccess;
 /// Create a copy of EditQuizState
@@ -34,16 +35,16 @@ $EditQuizStateCopyWith<EditQuizState> get copyWith => _$EditQuizStateCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EditQuizState&&(identical(other.originalQuiz, originalQuiz) || other.originalQuiz == originalQuiz)&&const DeepCollectionEquality().equals(other.originalQuizItems, originalQuizItems)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.selectedSubject, selectedSubject) || other.selectedSubject == selectedSubject)&&(identical(other.selectedStudyMaterialId, selectedStudyMaterialId) || other.selectedStudyMaterialId == selectedStudyMaterialId)&&const DeepCollectionEquality().equals(other.quizItems, quizItems)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isLoadingQuizData, isLoadingQuizData) || other.isLoadingQuizData == isLoadingQuizData)&&(identical(other.isUpdating, isUpdating) || other.isUpdating == isUpdating)&&(identical(other.isLoadingStudyMaterials, isLoadingStudyMaterials) || other.isLoadingStudyMaterials == isLoadingStudyMaterials)&&(identical(other.showValidationErrors, showValidationErrors) || other.showValidationErrors == showValidationErrors)&&(identical(other.hasUnsavedChanges, hasUnsavedChanges) || other.hasUnsavedChanges == hasUnsavedChanges)&&const DeepCollectionEquality().equals(other.availableStudyMaterials, availableStudyMaterials)&&(identical(other.error, error) || other.error == error)&&(identical(other.fieldError, fieldError) || other.fieldError == fieldError)&&(identical(other.updatedQuiz, updatedQuiz) || other.updatedQuiz == updatedQuiz)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EditQuizState&&(identical(other.originalQuiz, originalQuiz) || other.originalQuiz == originalQuiz)&&const DeepCollectionEquality().equals(other.originalQuizItems, originalQuizItems)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.selectedSubject, selectedSubject) || other.selectedSubject == selectedSubject)&&(identical(other.selectedStudyMaterialId, selectedStudyMaterialId) || other.selectedStudyMaterialId == selectedStudyMaterialId)&&const DeepCollectionEquality().equals(other.quizItems, quizItems)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isLoadingQuizData, isLoadingQuizData) || other.isLoadingQuizData == isLoadingQuizData)&&(identical(other.isUpdating, isUpdating) || other.isUpdating == isUpdating)&&(identical(other.isLoadingStudyMaterials, isLoadingStudyMaterials) || other.isLoadingStudyMaterials == isLoadingStudyMaterials)&&(identical(other.showValidationErrors, showValidationErrors) || other.showValidationErrors == showValidationErrors)&&(identical(other.hasUnsavedChanges, hasUnsavedChanges) || other.hasUnsavedChanges == hasUnsavedChanges)&&const DeepCollectionEquality().equals(other.availableStudyMaterials, availableStudyMaterials)&&(identical(other.linkedStudyMaterial, linkedStudyMaterial) || other.linkedStudyMaterial == linkedStudyMaterial)&&(identical(other.isLoadingLinkedStudyMaterial, isLoadingLinkedStudyMaterial) || other.isLoadingLinkedStudyMaterial == isLoadingLinkedStudyMaterial)&&(identical(other.error, error) || other.error == error)&&(identical(other.fieldError, fieldError) || other.fieldError == fieldError)&&(identical(other.updatedQuiz, updatedQuiz) || other.updatedQuiz == updatedQuiz)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,originalQuiz,const DeepCollectionEquality().hash(originalQuizItems),title,description,selectedSubject,selectedStudyMaterialId,const DeepCollectionEquality().hash(quizItems),isLoading,isLoadingQuizData,isUpdating,isLoadingStudyMaterials,showValidationErrors,hasUnsavedChanges,const DeepCollectionEquality().hash(availableStudyMaterials),error,fieldError,updatedQuiz,isSuccess);
+int get hashCode => Object.hashAll([runtimeType,originalQuiz,const DeepCollectionEquality().hash(originalQuizItems),title,description,selectedSubject,selectedStudyMaterialId,const DeepCollectionEquality().hash(quizItems),isLoading,isLoadingQuizData,isUpdating,isLoadingStudyMaterials,showValidationErrors,hasUnsavedChanges,const DeepCollectionEquality().hash(availableStudyMaterials),linkedStudyMaterial,isLoadingLinkedStudyMaterial,error,fieldError,updatedQuiz,isSuccess]);
 
 @override
 String toString() {
-  return 'EditQuizState(originalQuiz: $originalQuiz, originalQuizItems: $originalQuizItems, title: $title, description: $description, selectedSubject: $selectedSubject, selectedStudyMaterialId: $selectedStudyMaterialId, quizItems: $quizItems, isLoading: $isLoading, isLoadingQuizData: $isLoadingQuizData, isUpdating: $isUpdating, isLoadingStudyMaterials: $isLoadingStudyMaterials, showValidationErrors: $showValidationErrors, hasUnsavedChanges: $hasUnsavedChanges, availableStudyMaterials: $availableStudyMaterials, error: $error, fieldError: $fieldError, updatedQuiz: $updatedQuiz, isSuccess: $isSuccess)';
+  return 'EditQuizState(originalQuiz: $originalQuiz, originalQuizItems: $originalQuizItems, title: $title, description: $description, selectedSubject: $selectedSubject, selectedStudyMaterialId: $selectedStudyMaterialId, quizItems: $quizItems, isLoading: $isLoading, isLoadingQuizData: $isLoadingQuizData, isUpdating: $isUpdating, isLoadingStudyMaterials: $isLoadingStudyMaterials, showValidationErrors: $showValidationErrors, hasUnsavedChanges: $hasUnsavedChanges, availableStudyMaterials: $availableStudyMaterials, linkedStudyMaterial: $linkedStudyMaterial, isLoadingLinkedStudyMaterial: $isLoadingLinkedStudyMaterial, error: $error, fieldError: $fieldError, updatedQuiz: $updatedQuiz, isSuccess: $isSuccess)';
 }
 
 
@@ -54,7 +55,7 @@ abstract mixin class $EditQuizStateCopyWith<$Res>  {
   factory $EditQuizStateCopyWith(EditQuizState value, $Res Function(EditQuizState) _then) = _$EditQuizStateCopyWithImpl;
 @useResult
 $Res call({
- QuizEntity? originalQuiz, List<QuizItemEntity> originalQuizItems, String title, String description, Subject? selectedSubject, String? selectedStudyMaterialId, List<QuizItemData> quizItems, bool isLoading, bool isLoadingQuizData, bool isUpdating, bool isLoadingStudyMaterials, bool showValidationErrors, bool hasUnsavedChanges, List<StudyMaterialOption> availableStudyMaterials, String? error, String? fieldError, QuizEntity? updatedQuiz, bool isSuccess
+ QuizEntity? originalQuiz, List<QuizItemEntity> originalQuizItems, String title, String description, Subject? selectedSubject, String? selectedStudyMaterialId, List<QuizItemData> quizItems, bool isLoading, bool isLoadingQuizData, bool isUpdating, bool isLoadingStudyMaterials, bool showValidationErrors, bool hasUnsavedChanges, List<StudyMaterialOption> availableStudyMaterials, StudyMaterialEntity? linkedStudyMaterial, bool isLoadingLinkedStudyMaterial, String? error, String? fieldError, QuizEntity? updatedQuiz, bool isSuccess
 });
 
 
@@ -71,7 +72,7 @@ class _$EditQuizStateCopyWithImpl<$Res>
 
 /// Create a copy of EditQuizState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? originalQuiz = freezed,Object? originalQuizItems = null,Object? title = null,Object? description = null,Object? selectedSubject = freezed,Object? selectedStudyMaterialId = freezed,Object? quizItems = null,Object? isLoading = null,Object? isLoadingQuizData = null,Object? isUpdating = null,Object? isLoadingStudyMaterials = null,Object? showValidationErrors = null,Object? hasUnsavedChanges = null,Object? availableStudyMaterials = null,Object? error = freezed,Object? fieldError = freezed,Object? updatedQuiz = freezed,Object? isSuccess = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? originalQuiz = freezed,Object? originalQuizItems = null,Object? title = null,Object? description = null,Object? selectedSubject = freezed,Object? selectedStudyMaterialId = freezed,Object? quizItems = null,Object? isLoading = null,Object? isLoadingQuizData = null,Object? isUpdating = null,Object? isLoadingStudyMaterials = null,Object? showValidationErrors = null,Object? hasUnsavedChanges = null,Object? availableStudyMaterials = null,Object? linkedStudyMaterial = freezed,Object? isLoadingLinkedStudyMaterial = null,Object? error = freezed,Object? fieldError = freezed,Object? updatedQuiz = freezed,Object? isSuccess = null,}) {
   return _then(_self.copyWith(
 originalQuiz: freezed == originalQuiz ? _self.originalQuiz : originalQuiz // ignore: cast_nullable_to_non_nullable
 as QuizEntity?,originalQuizItems: null == originalQuizItems ? _self.originalQuizItems : originalQuizItems // ignore: cast_nullable_to_non_nullable
@@ -87,7 +88,9 @@ as bool,isLoadingStudyMaterials: null == isLoadingStudyMaterials ? _self.isLoadi
 as bool,showValidationErrors: null == showValidationErrors ? _self.showValidationErrors : showValidationErrors // ignore: cast_nullable_to_non_nullable
 as bool,hasUnsavedChanges: null == hasUnsavedChanges ? _self.hasUnsavedChanges : hasUnsavedChanges // ignore: cast_nullable_to_non_nullable
 as bool,availableStudyMaterials: null == availableStudyMaterials ? _self.availableStudyMaterials : availableStudyMaterials // ignore: cast_nullable_to_non_nullable
-as List<StudyMaterialOption>,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
+as List<StudyMaterialOption>,linkedStudyMaterial: freezed == linkedStudyMaterial ? _self.linkedStudyMaterial : linkedStudyMaterial // ignore: cast_nullable_to_non_nullable
+as StudyMaterialEntity?,isLoadingLinkedStudyMaterial: null == isLoadingLinkedStudyMaterial ? _self.isLoadingLinkedStudyMaterial : isLoadingLinkedStudyMaterial // ignore: cast_nullable_to_non_nullable
+as bool,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
 as String?,fieldError: freezed == fieldError ? _self.fieldError : fieldError // ignore: cast_nullable_to_non_nullable
 as String?,updatedQuiz: freezed == updatedQuiz ? _self.updatedQuiz : updatedQuiz // ignore: cast_nullable_to_non_nullable
 as QuizEntity?,isSuccess: null == isSuccess ? _self.isSuccess : isSuccess // ignore: cast_nullable_to_non_nullable
@@ -102,7 +105,7 @@ as bool,
 
 
 class _EditQuizState extends EditQuizState {
-  const _EditQuizState({this.originalQuiz, final  List<QuizItemEntity> originalQuizItems = const [], this.title = '', this.description = '', this.selectedSubject, this.selectedStudyMaterialId, final  List<QuizItemData> quizItems = const [], this.isLoading = false, this.isLoadingQuizData = false, this.isUpdating = false, this.isLoadingStudyMaterials = false, this.showValidationErrors = false, this.hasUnsavedChanges = false, final  List<StudyMaterialOption> availableStudyMaterials = const [], this.error, this.fieldError, this.updatedQuiz, this.isSuccess = false}): _originalQuizItems = originalQuizItems,_quizItems = quizItems,_availableStudyMaterials = availableStudyMaterials,super._();
+  const _EditQuizState({this.originalQuiz, final  List<QuizItemEntity> originalQuizItems = const [], this.title = '', this.description = '', this.selectedSubject, this.selectedStudyMaterialId, final  List<QuizItemData> quizItems = const [], this.isLoading = false, this.isLoadingQuizData = false, this.isUpdating = false, this.isLoadingStudyMaterials = false, this.showValidationErrors = false, this.hasUnsavedChanges = false, final  List<StudyMaterialOption> availableStudyMaterials = const [], this.linkedStudyMaterial, this.isLoadingLinkedStudyMaterial = false, this.error, this.fieldError, this.updatedQuiz, this.isSuccess = false}): _originalQuizItems = originalQuizItems,_quizItems = quizItems,_availableStudyMaterials = availableStudyMaterials,super._();
   
 
 // Core data
@@ -145,6 +148,9 @@ class _EditQuizState extends EditQuizState {
   return EqualUnmodifiableListView(_availableStudyMaterials);
 }
 
+// Linked study material metadata (for AI-generated quizzes)
+@override final  StudyMaterialEntity? linkedStudyMaterial;
+@override@JsonKey() final  bool isLoadingLinkedStudyMaterial;
 // Error handling
 @override final  String? error;
 @override final  String? fieldError;
@@ -162,16 +168,16 @@ _$EditQuizStateCopyWith<_EditQuizState> get copyWith => __$EditQuizStateCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EditQuizState&&(identical(other.originalQuiz, originalQuiz) || other.originalQuiz == originalQuiz)&&const DeepCollectionEquality().equals(other._originalQuizItems, _originalQuizItems)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.selectedSubject, selectedSubject) || other.selectedSubject == selectedSubject)&&(identical(other.selectedStudyMaterialId, selectedStudyMaterialId) || other.selectedStudyMaterialId == selectedStudyMaterialId)&&const DeepCollectionEquality().equals(other._quizItems, _quizItems)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isLoadingQuizData, isLoadingQuizData) || other.isLoadingQuizData == isLoadingQuizData)&&(identical(other.isUpdating, isUpdating) || other.isUpdating == isUpdating)&&(identical(other.isLoadingStudyMaterials, isLoadingStudyMaterials) || other.isLoadingStudyMaterials == isLoadingStudyMaterials)&&(identical(other.showValidationErrors, showValidationErrors) || other.showValidationErrors == showValidationErrors)&&(identical(other.hasUnsavedChanges, hasUnsavedChanges) || other.hasUnsavedChanges == hasUnsavedChanges)&&const DeepCollectionEquality().equals(other._availableStudyMaterials, _availableStudyMaterials)&&(identical(other.error, error) || other.error == error)&&(identical(other.fieldError, fieldError) || other.fieldError == fieldError)&&(identical(other.updatedQuiz, updatedQuiz) || other.updatedQuiz == updatedQuiz)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EditQuizState&&(identical(other.originalQuiz, originalQuiz) || other.originalQuiz == originalQuiz)&&const DeepCollectionEquality().equals(other._originalQuizItems, _originalQuizItems)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.selectedSubject, selectedSubject) || other.selectedSubject == selectedSubject)&&(identical(other.selectedStudyMaterialId, selectedStudyMaterialId) || other.selectedStudyMaterialId == selectedStudyMaterialId)&&const DeepCollectionEquality().equals(other._quizItems, _quizItems)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isLoadingQuizData, isLoadingQuizData) || other.isLoadingQuizData == isLoadingQuizData)&&(identical(other.isUpdating, isUpdating) || other.isUpdating == isUpdating)&&(identical(other.isLoadingStudyMaterials, isLoadingStudyMaterials) || other.isLoadingStudyMaterials == isLoadingStudyMaterials)&&(identical(other.showValidationErrors, showValidationErrors) || other.showValidationErrors == showValidationErrors)&&(identical(other.hasUnsavedChanges, hasUnsavedChanges) || other.hasUnsavedChanges == hasUnsavedChanges)&&const DeepCollectionEquality().equals(other._availableStudyMaterials, _availableStudyMaterials)&&(identical(other.linkedStudyMaterial, linkedStudyMaterial) || other.linkedStudyMaterial == linkedStudyMaterial)&&(identical(other.isLoadingLinkedStudyMaterial, isLoadingLinkedStudyMaterial) || other.isLoadingLinkedStudyMaterial == isLoadingLinkedStudyMaterial)&&(identical(other.error, error) || other.error == error)&&(identical(other.fieldError, fieldError) || other.fieldError == fieldError)&&(identical(other.updatedQuiz, updatedQuiz) || other.updatedQuiz == updatedQuiz)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,originalQuiz,const DeepCollectionEquality().hash(_originalQuizItems),title,description,selectedSubject,selectedStudyMaterialId,const DeepCollectionEquality().hash(_quizItems),isLoading,isLoadingQuizData,isUpdating,isLoadingStudyMaterials,showValidationErrors,hasUnsavedChanges,const DeepCollectionEquality().hash(_availableStudyMaterials),error,fieldError,updatedQuiz,isSuccess);
+int get hashCode => Object.hashAll([runtimeType,originalQuiz,const DeepCollectionEquality().hash(_originalQuizItems),title,description,selectedSubject,selectedStudyMaterialId,const DeepCollectionEquality().hash(_quizItems),isLoading,isLoadingQuizData,isUpdating,isLoadingStudyMaterials,showValidationErrors,hasUnsavedChanges,const DeepCollectionEquality().hash(_availableStudyMaterials),linkedStudyMaterial,isLoadingLinkedStudyMaterial,error,fieldError,updatedQuiz,isSuccess]);
 
 @override
 String toString() {
-  return 'EditQuizState(originalQuiz: $originalQuiz, originalQuizItems: $originalQuizItems, title: $title, description: $description, selectedSubject: $selectedSubject, selectedStudyMaterialId: $selectedStudyMaterialId, quizItems: $quizItems, isLoading: $isLoading, isLoadingQuizData: $isLoadingQuizData, isUpdating: $isUpdating, isLoadingStudyMaterials: $isLoadingStudyMaterials, showValidationErrors: $showValidationErrors, hasUnsavedChanges: $hasUnsavedChanges, availableStudyMaterials: $availableStudyMaterials, error: $error, fieldError: $fieldError, updatedQuiz: $updatedQuiz, isSuccess: $isSuccess)';
+  return 'EditQuizState(originalQuiz: $originalQuiz, originalQuizItems: $originalQuizItems, title: $title, description: $description, selectedSubject: $selectedSubject, selectedStudyMaterialId: $selectedStudyMaterialId, quizItems: $quizItems, isLoading: $isLoading, isLoadingQuizData: $isLoadingQuizData, isUpdating: $isUpdating, isLoadingStudyMaterials: $isLoadingStudyMaterials, showValidationErrors: $showValidationErrors, hasUnsavedChanges: $hasUnsavedChanges, availableStudyMaterials: $availableStudyMaterials, linkedStudyMaterial: $linkedStudyMaterial, isLoadingLinkedStudyMaterial: $isLoadingLinkedStudyMaterial, error: $error, fieldError: $fieldError, updatedQuiz: $updatedQuiz, isSuccess: $isSuccess)';
 }
 
 
@@ -182,7 +188,7 @@ abstract mixin class _$EditQuizStateCopyWith<$Res> implements $EditQuizStateCopy
   factory _$EditQuizStateCopyWith(_EditQuizState value, $Res Function(_EditQuizState) _then) = __$EditQuizStateCopyWithImpl;
 @override @useResult
 $Res call({
- QuizEntity? originalQuiz, List<QuizItemEntity> originalQuizItems, String title, String description, Subject? selectedSubject, String? selectedStudyMaterialId, List<QuizItemData> quizItems, bool isLoading, bool isLoadingQuizData, bool isUpdating, bool isLoadingStudyMaterials, bool showValidationErrors, bool hasUnsavedChanges, List<StudyMaterialOption> availableStudyMaterials, String? error, String? fieldError, QuizEntity? updatedQuiz, bool isSuccess
+ QuizEntity? originalQuiz, List<QuizItemEntity> originalQuizItems, String title, String description, Subject? selectedSubject, String? selectedStudyMaterialId, List<QuizItemData> quizItems, bool isLoading, bool isLoadingQuizData, bool isUpdating, bool isLoadingStudyMaterials, bool showValidationErrors, bool hasUnsavedChanges, List<StudyMaterialOption> availableStudyMaterials, StudyMaterialEntity? linkedStudyMaterial, bool isLoadingLinkedStudyMaterial, String? error, String? fieldError, QuizEntity? updatedQuiz, bool isSuccess
 });
 
 
@@ -199,7 +205,7 @@ class __$EditQuizStateCopyWithImpl<$Res>
 
 /// Create a copy of EditQuizState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? originalQuiz = freezed,Object? originalQuizItems = null,Object? title = null,Object? description = null,Object? selectedSubject = freezed,Object? selectedStudyMaterialId = freezed,Object? quizItems = null,Object? isLoading = null,Object? isLoadingQuizData = null,Object? isUpdating = null,Object? isLoadingStudyMaterials = null,Object? showValidationErrors = null,Object? hasUnsavedChanges = null,Object? availableStudyMaterials = null,Object? error = freezed,Object? fieldError = freezed,Object? updatedQuiz = freezed,Object? isSuccess = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? originalQuiz = freezed,Object? originalQuizItems = null,Object? title = null,Object? description = null,Object? selectedSubject = freezed,Object? selectedStudyMaterialId = freezed,Object? quizItems = null,Object? isLoading = null,Object? isLoadingQuizData = null,Object? isUpdating = null,Object? isLoadingStudyMaterials = null,Object? showValidationErrors = null,Object? hasUnsavedChanges = null,Object? availableStudyMaterials = null,Object? linkedStudyMaterial = freezed,Object? isLoadingLinkedStudyMaterial = null,Object? error = freezed,Object? fieldError = freezed,Object? updatedQuiz = freezed,Object? isSuccess = null,}) {
   return _then(_EditQuizState(
 originalQuiz: freezed == originalQuiz ? _self.originalQuiz : originalQuiz // ignore: cast_nullable_to_non_nullable
 as QuizEntity?,originalQuizItems: null == originalQuizItems ? _self._originalQuizItems : originalQuizItems // ignore: cast_nullable_to_non_nullable
@@ -215,7 +221,9 @@ as bool,isLoadingStudyMaterials: null == isLoadingStudyMaterials ? _self.isLoadi
 as bool,showValidationErrors: null == showValidationErrors ? _self.showValidationErrors : showValidationErrors // ignore: cast_nullable_to_non_nullable
 as bool,hasUnsavedChanges: null == hasUnsavedChanges ? _self.hasUnsavedChanges : hasUnsavedChanges // ignore: cast_nullable_to_non_nullable
 as bool,availableStudyMaterials: null == availableStudyMaterials ? _self._availableStudyMaterials : availableStudyMaterials // ignore: cast_nullable_to_non_nullable
-as List<StudyMaterialOption>,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
+as List<StudyMaterialOption>,linkedStudyMaterial: freezed == linkedStudyMaterial ? _self.linkedStudyMaterial : linkedStudyMaterial // ignore: cast_nullable_to_non_nullable
+as StudyMaterialEntity?,isLoadingLinkedStudyMaterial: null == isLoadingLinkedStudyMaterial ? _self.isLoadingLinkedStudyMaterial : isLoadingLinkedStudyMaterial // ignore: cast_nullable_to_non_nullable
+as bool,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
 as String?,fieldError: freezed == fieldError ? _self.fieldError : fieldError // ignore: cast_nullable_to_non_nullable
 as String?,updatedQuiz: freezed == updatedQuiz ? _self.updatedQuiz : updatedQuiz // ignore: cast_nullable_to_non_nullable
 as QuizEntity?,isSuccess: null == isSuccess ? _self.isSuccess : isSuccess // ignore: cast_nullable_to_non_nullable

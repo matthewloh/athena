@@ -5,6 +5,7 @@ import 'package:athena/features/review/presentation/viewmodel/edit_quiz_viewmode
 import 'package:athena/features/review/presentation/widgets/quiz_item_editor.dart';
 import 'package:athena/features/review/presentation/widgets/study_material_selector.dart';
 import 'package:athena/features/shared/widgets/subject_searchable_dropdown.dart';
+import 'package:athena/features/shared/utils/subject_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -189,8 +190,11 @@ class _EditQuizScreenState extends ConsumerState<EditQuizScreen> {
                 const SizedBox(height: 16),
                 _buildBasicInfoCard(state, viewModel),
                 const SizedBox(height: 16),
-                _buildStudyMaterialCard(state, viewModel),
-                const SizedBox(height: 16),
+                // Only show study material section for AI-generated quizzes
+                if (state.shouldShowStudyMaterialSection) ...[
+                  _buildStudyMaterialCard(state, viewModel),
+                  const SizedBox(height: 16),
+                ],
                 _buildQuizItemsHeader(state, viewModel),
                 const SizedBox(height: 8),
               ]),
@@ -384,25 +388,183 @@ class _EditQuizScreenState extends ConsumerState<EditQuizScreen> {
                     fontSize: 16,
                   ),
                 ),
+                if (state.isAiGeneratedQuiz) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.athenaBlue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'AI-Generated',
+                      style: TextStyle(
+                        color: AppColors.athenaBlue,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 8),
             Text(
-              'Link this quiz to study material for better organization',
+              state.isAiGeneratedQuiz 
+                  ? 'This quiz was automatically generated from the linked study material. The link cannot be changed.'
+                  : 'Link this quiz to study material for better organization',
               style: TextStyle(
                 color: Colors.grey[600],
                 fontSize: 14,
               ),
             ),
             const SizedBox(height: 16),
-            StudyMaterialSelector(
-              selectedMaterialId: state.selectedStudyMaterialId,
-              availableMaterials: state.availableStudyMaterials,
-              onChanged: viewModel.updateStudyMaterial,
-              isLoading: state.isLoadingStudyMaterials,
+            
+            if (state.isAiGeneratedQuiz) 
+              // Show linked study material info (read-only)
+              _buildLinkedStudyMaterialInfo(state)
+            else
+              // Show study material selector (editable)
+              StudyMaterialSelector(
+                selectedMaterialId: state.selectedStudyMaterialId,
+                availableMaterials: state.availableStudyMaterials,
+                onChanged: viewModel.updateStudyMaterial,
+                isLoading: state.isLoadingStudyMaterials,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLinkedStudyMaterialInfo(EditQuizState state) {
+    if (state.linkedStudyMaterialId == null) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey[300]!),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.link_off, color: Colors.grey[500], size: 20),
+            const SizedBox(width: 12),
+            Text(
+              'No study material linked',
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
           ],
         ),
+      );
+    }
+
+    // Show loading state while fetching study material metadata
+    if (state.isLoadingLinkedStudyMaterial) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.athenaSupportiveGreen.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.athenaSupportiveGreen.withOpacity(0.2)),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.athenaSupportiveGreen,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Loading study material...',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final studyMaterial = state.linkedStudyMaterial;
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.athenaSupportiveGreen.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.athenaSupportiveGreen.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.athenaSupportiveGreen.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.auto_awesome,
+              color: AppColors.athenaSupportiveGreen,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'AI-Generated Quiz',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: AppColors.athenaSupportiveGreen,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                if (studyMaterial != null) ...[
+                  Text(
+                    studyMaterial.title,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  if (studyMaterial.subject != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                    SubjectUtils.getDisplayName(studyMaterial.subject),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ] else ...[
+                  Text(
+                    'Study material details unavailable',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Icon(
+            Icons.lock_outline,
+            color: Colors.grey[500],
+            size: 16,
+          ),
+        ],
       ),
     );
   }
