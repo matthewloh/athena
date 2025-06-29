@@ -16,6 +16,7 @@ class AppRouteNames {
   static const String materials = 'materials';
   static const String review = 'review';
   static const String planner = 'planner';
+  static const String progressInsights = 'progress-insights';
 
   // Materials routes
   static const String materialDetail = 'material-detail';

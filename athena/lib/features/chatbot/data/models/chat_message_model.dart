@@ -1,4 +1,5 @@
 import 'package:athena/features/chatbot/domain/entities/chat_message_entity.dart';
+import 'package:athena/features/chatbot/data/models/file_attachment_model.dart';
 
 class ChatMessageModel extends ChatMessageEntity {
   final bool isStreaming;
@@ -11,6 +12,8 @@ class ChatMessageModel extends ChatMessageEntity {
     required super.sender,
     required super.timestamp,
     super.metadata,
+    super.attachments,
+    super.hasAttachments,
     this.isStreaming = false,
     this.isComplete = true,
   });
@@ -18,7 +21,7 @@ class ChatMessageModel extends ChatMessageEntity {
   factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
     MessageSender sender;
     final senderStr = json['sender'] as String?;
-    
+
     switch (senderStr?.toLowerCase()) {
       case 'user':
         sender = MessageSender.user;
@@ -34,6 +37,17 @@ class ChatMessageModel extends ChatMessageEntity {
         throw ArgumentError('Invalid sender type: $senderStr');
     }
 
+    // Parse attachments if present
+    final List<FileAttachment> attachments = [];
+    if (json['attachments'] != null) {
+      final attachmentsList = json['attachments'] as List<dynamic>;
+      for (final attachmentJson in attachmentsList) {
+        attachments.add(
+          FileAttachmentModel.fromJson(attachmentJson as Map<String, dynamic>),
+        );
+      }
+    }
+
     return ChatMessageModel(
       id: json['id'] as String,
       conversationId: json['conversation_id'] as String,
@@ -41,6 +55,9 @@ class ChatMessageModel extends ChatMessageEntity {
       sender: sender,
       timestamp: DateTime.parse(json['timestamp'] as String),
       metadata: json['metadata'] as Map<String, dynamic>?,
+      attachments: attachments,
+      hasAttachments:
+          json['has_attachments'] as bool? ?? attachments.isNotEmpty,
       isStreaming: json['is_streaming'] as bool? ?? false,
       isComplete: json['is_complete'] as bool? ?? true,
     );
@@ -59,7 +76,7 @@ class ChatMessageModel extends ChatMessageEntity {
         senderStr = 'system';
         break;
     }
-    
+
     return {
       'id': id,
       'conversation_id': conversationId,
@@ -102,6 +119,7 @@ class ChatMessageModel extends ChatMessageEntity {
     required String conversationId,
     required String text,
     Map<String, dynamic>? metadata,
+    List<FileAttachment>? attachments,
   }) {
     return ChatMessageModel(
       id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
@@ -110,6 +128,8 @@ class ChatMessageModel extends ChatMessageEntity {
       sender: MessageSender.user,
       timestamp: DateTime.now(),
       metadata: metadata,
+      attachments: attachments ?? [],
+      hasAttachments: (attachments?.isNotEmpty) ?? false,
       isComplete: false,
     );
   }
@@ -122,6 +142,8 @@ class ChatMessageModel extends ChatMessageEntity {
     MessageSender? sender,
     DateTime? timestamp,
     Map<String, dynamic>? metadata,
+    List<FileAttachment>? attachments,
+    bool? hasAttachments,
     bool? isStreaming,
     bool? isComplete,
   }) {
@@ -132,6 +154,8 @@ class ChatMessageModel extends ChatMessageEntity {
       sender: sender ?? this.sender,
       timestamp: timestamp ?? this.timestamp,
       metadata: metadata ?? this.metadata,
+      attachments: attachments ?? this.attachments,
+      hasAttachments: hasAttachments ?? this.hasAttachments,
       isStreaming: isStreaming ?? this.isStreaming,
       isComplete: isComplete ?? this.isComplete,
     );
@@ -139,24 +163,14 @@ class ChatMessageModel extends ChatMessageEntity {
 
   // Mark message as complete (stop streaming)
   ChatMessageModel markComplete() {
-    return copyWith(
-      isStreaming: false,
-      isComplete: true,
-    );
+    return copyWith(isStreaming: false, isComplete: true);
   }
 
   // Update streaming content
   ChatMessageModel updateStreamingContent(String newText) {
-    return copyWith(
-      text: newText,
-      timestamp: DateTime.now(),
-    );
+    return copyWith(text: newText, timestamp: DateTime.now());
   }
 
   @override
-  List<Object?> get props => [
-        ...super.props,
-        isStreaming,
-        isComplete,
-      ];
+  List<Object?> get props => [...super.props, isStreaming, isComplete];
 }

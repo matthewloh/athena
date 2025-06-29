@@ -2,13 +2,18 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:math';
 
 import 'package:athena/core/errors/exceptions.dart';
 import 'package:athena/features/chatbot/data/datasources/chat_remote_datasource.dart';
 import 'package:athena/features/chatbot/data/models/chat_message_model.dart';
 import 'package:athena/features/chatbot/data/models/conversation_model.dart';
+import 'package:athena/features/chatbot/data/models/file_attachment_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as path;
 
 class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
   final SupabaseClient _client;
@@ -407,6 +412,173 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
       throw ServerException(
         'Failed to get conversation stats: ${e.toString()}',
       );
+    }
+  }
+
+  // File upload methods implementation
+
+  @override
+  Future<FileAttachmentModel> uploadFile({
+    required String messageId,
+    required PlatformFile file,
+    required String userId,
+  }) async {
+    try {
+      if (file.bytes == null) {
+        throw ServerException('File bytes are null');
+      }
+
+      // Generate unique file path
+      final fileExtension = path.extension(file.name);
+      final fileName = path.basenameWithoutExtension(file.name);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final randomId = Random().nextInt(999999).toString().padLeft(6, '0');
+      final storagePath =
+          '$userId/messages/$messageId/${fileName}_${timestamp}_$randomId$fileExtension';
+
+      // Upload to Supabase Storage
+      final uploadResponse = await _client.storage
+          .from('chat-attachments')
+          .uploadBinary(
+            storagePath,
+            file.bytes!,
+            fileOptions: FileOptions(
+              contentType: _getMimeType(file.name),
+              upsert: false,
+            ),
+          );
+
+      // Get the public URL
+      final publicUrl = _client.storage
+          .from('chat-attachments')
+          .getPublicUrl(storagePath);
+
+      // Generate thumbnail path for images
+      String? thumbnailPath;
+      if (_isImageFile(file.name)) {
+        thumbnailPath = await _generateImageThumbnail(storagePath, file.bytes!);
+      }
+
+      // Create file attachment record in database
+      final attachmentData = {
+        'message_id': messageId,
+        'file_name': file.name,
+        'file_size': file.size,
+        'mime_type': _getMimeType(file.name),
+        'storage_path': storagePath,
+        'thumbnail_path': thumbnailPath,
+        'upload_status': 'completed',
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      final response =
+          await _client
+              .from('file_attachments')
+              .insert(attachmentData)
+              .select()
+              .single();
+
+      return FileAttachmentModel.fromJson(response);
+    } on StorageException catch (e) {
+      throw ServerException('Storage error: ${e.message}');
+    } on PostgrestException catch (e) {
+      throw ServerException('Database error: ${e.message}');
+    } catch (e) {
+      throw ServerException('Failed to upload file: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<String> getFileDownloadUrl(String storagePath) async {
+    try {
+      return _client.storage.from('chat-attachments').getPublicUrl(storagePath);
+    } catch (e) {
+      throw ServerException('Failed to get download URL: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<void> deleteFile(String storagePath) async {
+    try {
+      await _client.storage.from('chat-attachments').remove([storagePath]);
+    } on StorageException catch (e) {
+      throw ServerException('Storage error: ${e.message}');
+    } catch (e) {
+      throw ServerException('Failed to delete file: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<Uint8List?> generateThumbnail(String storagePath) async {
+    try {
+      // For now, return null - thumbnail generation will be implemented later
+      // This could use image processing libraries or Supabase Edge Functions
+      return null;
+    } catch (e) {
+      throw ServerException('Failed to generate thumbnail: ${e.toString()}');
+    }
+  }
+
+  // Helper methods for file handling
+
+  String _getMimeType(String fileName) {
+    final extension = path.extension(fileName).toLowerCase();
+    switch (extension) {
+      case '.jpg':
+      case '.jpeg':
+        return 'image/jpeg';
+      case '.png':
+        return 'image/png';
+      case '.gif':
+        return 'image/gif';
+      case '.webp':
+        return 'image/webp';
+      case '.pdf':
+        return 'application/pdf';
+      case '.doc':
+        return 'application/msword';
+      case '.docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      case '.txt':
+        return 'text/plain';
+      case '.mp4':
+        return 'video/mp4';
+      case '.mov':
+        return 'video/quicktime';
+      case '.mp3':
+        return 'audio/mpeg';
+      case '.wav':
+        return 'audio/wav';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
+  bool _isImageFile(String fileName) {
+    final extension = path.extension(fileName).toLowerCase();
+    return ['.jpg', '.jpeg', '.png', '.gif', '.webp'].contains(extension);
+  }
+
+  Future<String?> _generateImageThumbnail(
+    String originalPath,
+    Uint8List imageBytes,
+  ) async {
+    try {
+      // For now, we'll skip thumbnail generation and return null
+      // In a production app, you'd want to:
+      // 1. Resize the image to thumbnail size (e.g., 200x200)
+      // 2. Upload the thumbnail to a thumbnails folder
+      // 3. Return the thumbnail path
+
+      // This could be implemented using:
+      // - image package for resizing
+      // - or a Supabase Edge Function for server-side processing
+
+      return null;
+    } catch (e) {
+      print('Failed to generate thumbnail: $e');
+      return null;
     }
   }
 }

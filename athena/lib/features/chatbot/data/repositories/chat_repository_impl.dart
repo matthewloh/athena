@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:athena/core/errors/exceptions.dart';
 import 'package:athena/core/errors/failures.dart';
@@ -10,6 +11,7 @@ import 'package:athena/features/chatbot/domain/entities/conversation_entity.dart
 import 'package:athena/features/chatbot/domain/repositories/chat_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dartz/dartz.dart';
+import 'package:file_picker/file_picker.dart';
 // ignore: depend_on_referenced_packages
 
 class ChatRepositoryImpl implements ChatRepository {
@@ -209,4 +211,87 @@ class ChatRepositoryImpl implements ChatRepository {
   // getAiResponseStream needs to be adapted if the ChatRepository interface changes.
   // For now, assuming ChatRepository expects Stream<String> directly for AI responses.
   // If it needs to return Either<Failure, Stream<String>>, this implementation would need adjustment.
+
+  // File upload methods implementation
+
+  @override
+  Future<Either<Failure, FileAttachment>> uploadFile({
+    required String messageId,
+    required PlatformFile file,
+  }) async {
+    try {
+      final userId = _getCurrentUserId();
+      final fileAttachmentModel = await _remoteDataSource.uploadFile(
+        messageId: messageId,
+        file: file,
+        userId: userId,
+      );
+
+      // Convert model to entity
+      final fileAttachment = FileAttachment(
+        id: fileAttachmentModel.id,
+        fileName: fileAttachmentModel.fileName,
+        fileSize: fileAttachmentModel.fileSize,
+        mimeType: fileAttachmentModel.mimeType,
+        storagePath: fileAttachmentModel.storagePath,
+        thumbnailPath: fileAttachmentModel.thumbnailPath,
+        uploadStatus: fileAttachmentModel.uploadStatus,
+        createdAt: fileAttachmentModel.createdAt,
+      );
+
+      return Right(fileAttachment);
+    } on AuthException catch (e) {
+      return Left(AuthFailure(e.message));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(
+        ServerFailure('An unexpected error occurred: ${e.toString()}'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> getFileDownloadUrl(String storagePath) async {
+    try {
+      final url = await _remoteDataSource.getFileDownloadUrl(storagePath);
+      return Right(url);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(
+        ServerFailure('An unexpected error occurred: ${e.toString()}'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteFile(String storagePath) async {
+    try {
+      await _remoteDataSource.deleteFile(storagePath);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(
+        ServerFailure('An unexpected error occurred: ${e.toString()}'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, Uint8List?>> generateThumbnail(
+    String storagePath,
+  ) async {
+    try {
+      final thumbnail = await _remoteDataSource.generateThumbnail(storagePath);
+      return Right(thumbnail);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(
+        ServerFailure('An unexpected error occurred: ${e.toString()}'),
+      );
+    }
+  }
 }

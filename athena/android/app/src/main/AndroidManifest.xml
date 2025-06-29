@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="app.helloathena.athena">
     <application
+        android:enableOnBackInvokedCallback="true"
         android:label="Athena"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">

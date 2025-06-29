@@ -5,6 +5,8 @@ import 'package:athena/features/chatbot/domain/entities/conversation_entity.dart
 import 'package:athena/features/chatbot/presentation/providers/chat_providers.dart';
 import 'package:athena/core/errors/failures.dart'; // For Failure type
 import 'package:dartz/dartz.dart'; // For Either type
+import 'package:file_picker/file_picker.dart';
+import 'package:uuid/uuid.dart';
 
 part 'chat_viewmodel.g.dart';
 
@@ -304,7 +306,10 @@ class ChatViewModel extends _$ChatViewModel {
     );
   }
 
-  Future<void> sendMessage(String text) async {
+  Future<void> sendMessage(
+    String text, {
+    List<PlatformFile>? attachments,
+  }) async {
     if (_activeConversationId == null) {
       // If no active conversation, create one first with the user's message
       await createNewConversation(
@@ -314,13 +319,80 @@ class ChatViewModel extends _$ChatViewModel {
       return;
     }
 
-    final tempId = DateTime.now().millisecondsSinceEpoch.toString();
+    // Generate a proper UUID for the message ID
+    const uuid = Uuid();
+    final tempId = uuid.v4();
+
+    // Handle file attachments - upload files to storage and create FileAttachment entities
+    final List<FileAttachment> fileAttachments = [];
+    if (attachments != null && attachments.isNotEmpty) {
+      // Show loading state for file uploads
+      final previousStateValue = state.valueOrNull ?? _initialChatState();
+      state = AsyncData(
+        previousStateValue.copyWith(isLoading: true, clearError: true),
+      );
+
+      try {
+        // Upload each file and create FileAttachment entities
+        for (int i = 0; i < attachments.length; i++) {
+          final file = attachments[i];
+
+          final uploadResult = await ref
+              .read(chatRepositoryProvider)
+              .uploadFile(messageId: tempId, file: file);
+
+          await uploadResult.fold(
+            (failure) {
+              // Handle upload failure
+              state = AsyncData(
+                (state.valueOrNull ?? _initialChatState()).copyWith(
+                  isLoading: false,
+                  error: ChatError(
+                    'Failed to upload ${file.name}: ${failure.message}',
+                  ),
+                ),
+              );
+              throw Exception('File upload failed: ${failure.message}');
+            },
+            (fileAttachment) async {
+              fileAttachments.add(fileAttachment);
+            },
+          );
+        }
+
+        // Clear loading state after successful uploads
+        print(
+          'All files uploaded successfully! Total: ${fileAttachments.length}',
+        );
+        state = AsyncData(
+          (state.valueOrNull ?? _initialChatState()).copyWith(
+            isLoading: false,
+            clearError: true,
+          ),
+        );
+      } catch (e) {
+        // Handle any upload errors
+        print('File upload failed: ${e.toString()}');
+        state = AsyncData(
+          (state.valueOrNull ?? _initialChatState()).copyWith(
+            isLoading: false,
+            error: ChatError('File upload failed: ${e.toString()}'),
+          ),
+        );
+        return; // Don't send message if file upload failed
+      }
+    } else {
+      print('No files to upload, proceeding with text message only');
+    }
+
     final userMessage = ChatMessageEntity(
       id: tempId,
       conversationId: _activeConversationId!,
       text: text,
       sender: MessageSender.user,
       timestamp: DateTime.now(),
+      attachments: fileAttachments,
+      hasAttachments: fileAttachments.isNotEmpty,
     );
 
     final previousStateValue = state.valueOrNull ?? _initialChatState();

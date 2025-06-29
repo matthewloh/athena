@@ -8,6 +8,7 @@ import 'package:athena/features/chatbot/presentation/widgets/conversation_list_d
 import 'package:athena/features/chatbot/presentation/widgets/message_input_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
 
 class ChatbotScreen extends ConsumerStatefulWidget {
   const ChatbotScreen({super.key});
@@ -375,19 +376,19 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen>
           child: chatStateAsync.maybeWhen(
             data:
                 (data) => MessageInputBar(
-                  onSend: (String message) {
+                  onSend: (String message, List<PlatformFile>? attachments) {
                     ref
                         .read(vm.chatViewModelProvider.notifier)
-                        .sendMessage(message);
+                        .sendMessage(message, attachments: attachments);
                   },
                   isLoading: data.isReceivingAiResponse,
                 ),
             orElse:
                 () => MessageInputBar(
-                  onSend: (String message) {
+                  onSend: (String message, List<PlatformFile>? attachments) {
                     ref
                         .read(vm.chatViewModelProvider.notifier)
-                        .sendMessage(message);
+                        .sendMessage(message, attachments: attachments);
                   },
                   isLoading: false,
                 ),

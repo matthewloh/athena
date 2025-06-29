@@ -15,6 +15,7 @@ import 'package:athena/features/errors/presentation/views/not_found_screen.dart'
 import 'package:athena/features/home/presentation/views/home_screen.dart';
 import 'package:athena/features/navigation/main_navigation_screen.dart';
 import 'package:athena/features/planner/presentation/views/planner_screen.dart';
+import 'package:athena/features/planner/presentation/views/progress_insights_screen.dart';
 import 'package:athena/features/review/presentation/views/review_screen.dart';
 import 'package:athena/features/study_materials/presentation/views/materials_screen.dart';
 import 'package:athena/features/study_materials/presentation/views/material_detail_screen.dart';
@@ -247,6 +248,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             name: AppRouteNames.planner,
             builder: (context, state) => const PlannerScreen(),
           ),
+          GoRoute(
+            path: '/${AppRouteNames.progressInsights}',
+            name: AppRouteNames.progressInsights,
+            builder: (context, state) => const ProgressInsightsScreen(),
+          ),
         ],
       ),
 
@@ -258,7 +264,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final materialId = state.pathParameters['materialId']!;
           return MaterialDetailScreen(materialId: materialId);
         },
-      ),      GoRoute(
+      ),
+      GoRoute(
         path: '/${AppRouteNames.addEditMaterial}',
         name: AppRouteNames.addEditMaterial,
         builder: (context, state) {

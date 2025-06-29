@@ -23,7 +23,8 @@ This feature follows the Clean Architecture principles adopted by the Athena pro
 
 - **Entities:**
   - `ConversationEntity.dart`: Represents a single chat conversation (e.g., ID, title, last message snippet, timestamp).
-  - `ChatMessageEntity.dart`: Represents a single message within a conversation (e.g., ID, text, sender, timestamp, conversation ID). Includes `MessageSender` enum (`user`, `ai`, `system`).
+  - `ChatMessageEntity.dart`: Represents a single message within a conversation (e.g., ID, text, sender, timestamp, conversation ID, attachments list). Includes `MessageSender` enum (`user`, `ai`, `system`).
+  - `FileAttachment.dart`: Represents a file attachment (e.g., ID, file name, size, MIME type, storage path, thumbnail path).
 - **Repositories:**
   - `ChatRepository.dart` (Interface): Defines the contract for all chat-related data operations, including:
     - Getting all conversations.
@@ -42,7 +43,8 @@ This feature follows the Clean Architecture principles adopted by the Athena pro
 
 - **Models:**
   - `ConversationModel.dart`: Data Transfer Object (DTO) for conversations, with `fromJson`/`toJson` for Supabase.
-  - `ChatMessageModel.dart`: DTO for chat messages, with `fromJson`/`toJson` for Supabase.
+  - `ChatMessageModel.dart`: DTO for chat messages, with `fromJson`/`toJson` for Supabase and file attachments support.
+  - `FileAttachmentModel.dart`: DTO for file attachments, with `fromJson`/`toJson` for Supabase storage integration.
 - **Data Sources:**
   - `ChatRemoteDataSource.dart` (Interface): Defines methods for interacting with the backend (Supabase).
   - `ChatSupabaseDataSourceImpl.dart`: Concrete implementation using Supabase client to:
@@ -68,14 +70,19 @@ This feature follows the Clean Architecture principles adopted by the Athena pro
 - **Views (Screens):**
   - `chatbot_screen.dart`: The main screen for the chat interface. Displays messages and the input bar.
 - **Widgets:**
-  - `ChatBubble.dart`: Renders individual chat messages, differentiating user vs. AI, and displays user avatars.
-  - `MessageInputBar.dart`: Provides the text input field and send button.
+  - `ChatBubble.dart`: Renders individual chat messages, differentiating user vs. AI, displays user avatars, and shows file attachments with thumbnails.
+  - `MessageInputBar.dart`: Provides the text input field, send button, and file upload functionality with preview.
+  - `FileUploadWidget.dart`: Handles file selection from camera, gallery, or documents with popup menu interface.
+  - `FileAttachmentPreview.dart`: Shows selected files before sending with thumbnails and remove functionality.
 
 ### 3.4. Backend Integration (Supabase)
 
 - **Tables:**
   - `conversations`: Stores metadata for each conversation (e.g., `id`, `user_id`, `title`, `created_at`, `updated_at`, `last_message_snippet`).
-  - `chat_messages`: Stores individual messages (e.g., `id`, `conversation_id`, `sender` (`user` or `ai`), `content`, `timestamp`, `metadata`).
+  - `chat_messages`: Stores individual messages (e.g., `id`, `conversation_id`, `sender` (`user` or `ai`), `content`, `timestamp`, `metadata`, `has_attachments`).
+  - `file_attachments`: Stores file attachment metadata (e.g., `id`, `message_id`, `file_name`, `file_size`, `mime_type`, `storage_path`, `thumbnail_path`, `upload_status`).
+- **Storage:**
+  - `chat-attachments` bucket: Stores uploaded files with proper RLS policies for secure access.
 - **Edge Function:**
   - A TypeScript Edge Function (e.g., `chat-handler`) will be responsible for:
     - Receiving user prompts and conversation history.
@@ -95,9 +102,38 @@ This feature follows the Clean Architecture principles adopted by the Athena pro
 - **Basic UI Created:** `ChatbotScreen` displays messages using `ChatBubble` (which now includes user avatars) and includes a `MessageInputBar`.
 - **Profile Integration:** User avatars are fetched via `currentUserProfileProvider` and displayed in `ChatBubble`.
 - **Routing:** Navigation to `ChatbotScreen` is set up.
+- **File Upload System (90% Complete):**
+  - ✅ **Database Schema:** `file_attachments` table with RLS policies and `chat-attachments` storage bucket
+  - ✅ **Entity & Models:** `FileAttachment` entity and models for data layer integration
+  - ✅ **UI Components:** Complete file upload widget with camera, gallery, and document selection
+  - ✅ **File Preview:** Attachment preview system with thumbnails and remove functionality
+  - ✅ **Chat Bubble Display:** Comprehensive attachment display in chat messages
+  - ✅ **Message Input Integration:** File attachments fully integrated with message sending
+  - ✅ **Multiple File Support:** Users can attach multiple files per message
+  - ✅ **File Type Detection:** Automatic MIME type detection and appropriate icons
+  - 🚧 **Placeholder Implementation:** Currently creates placeholder attachments (not uploaded to storage)
 
 ## 6. Next Steps & To-Do
 
+### 6.1. **IMMEDIATE PRIORITY: Complete File Upload System**
+- **🎯 Actual File Upload to Supabase Storage:**
+  - Implement real file upload in `ChatSupabaseDataSourceImpl`
+  - Handle upload progress and error states
+  - Generate proper storage URLs for file attachments
+- **🖼️ Image Fullscreen Viewer:**
+  - Create fullscreen image viewer widget
+  - Support pinch-to-zoom and pan gestures
+  - Implement smooth transition animations
+- **📥 File Download Functionality:**
+  - Add download capability for file attachments
+  - Handle different file types appropriately
+  - Implement download progress indicators
+- **🖼️ Real Image Thumbnails:**
+  - Generate thumbnails from Supabase Storage URLs
+  - Implement caching for better performance
+  - Handle loading states for thumbnails
+
+### 6.2. **Core Chat Functionality**
 - **Database Schema:** Finalize and implement the `conversations` and `chat_messages` table schemas in Supabase.
 - **Supabase DataSource:** Fully implement `ChatSupabaseDataSourceImpl.dart` to perform CRUD operations on the Supabase tables.
 - **Edge Function Development:**
@@ -108,6 +144,8 @@ This feature follows the Clean Architecture principles adopted by the Athena pro
 - **Connect Frontend to Backend Streaming:**
   - Update `ChatRepositoryImpl` and `ChatSupabaseDataSourceImpl` to correctly call and handle the streaming response from the Edge Function.
   - Ensure `ChatViewModel` correctly processes and displays the streamed AI response.
+
+### 6.3. **UI/UX Enhancements**
 - **Conversation Management UI:**
   - Implement UI for users to view a list of their past conversations.
   - Allow users to select a conversation to continue or start a new one.

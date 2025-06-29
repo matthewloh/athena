@@ -1,3 +1,4 @@
+import 'package:athena/core/constants/app_route_names.dart';
 import 'package:athena/core/theme/app_colors.dart';
 import 'package:athena/features/planner/domain/entities/study_goal_entity.dart';
 import 'package:athena/features/planner/domain/entities/study_session_entity.dart';
@@ -5,6 +6,7 @@ import 'package:athena/features/planner/presentation/viewmodel/study_goals_viewm
 import 'package:athena/features/planner/presentation/viewmodel/study_sessions_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 class PlannerScreen extends ConsumerStatefulWidget {
@@ -57,9 +59,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           IconButton(
             icon: const Icon(Icons.insights),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Progress insights coming soon!')),
-              );
+              context.pushNamed(AppRouteNames.progressInsights);
             },
           ),
         ],
@@ -338,6 +338,22 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     );
   }
 
+  /// Returns a contrasting color for better readability
+  Color _getContrastingColor(Color backgroundColor) {
+    // Calculate luminance to determine if we need a light or dark text color
+    final luminance = backgroundColor.computeLuminance();
+
+    // For darker backgrounds, use a darker shade of the same color
+    // For lighter backgrounds, use the original color but darker
+    if (luminance > 0.5) {
+      // Light background - return a much darker version
+      return Color.lerp(backgroundColor, Colors.black, 0.7) ?? backgroundColor;
+    } else {
+      // Dark background - return a darker but still visible version
+      return Color.lerp(backgroundColor, Colors.black, 0.3) ?? backgroundColor;
+    }
+  }
+
   Widget _buildSessionCard(BuildContext context, StudySessionEntity session) {
     Color subjectColor;
     IconData subjectIcon;
@@ -379,10 +395,14 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: subjectColor.withValues(alpha: 0.1),
+                color: subjectColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(subjectIcon, color: subjectColor, size: 24),
+              child: Icon(
+                subjectIcon,
+                color: _getContrastingColor(subjectColor),
+                size: 24,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -414,9 +434,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                     child: Text(
                       session.subject ?? 'General',
                       style: TextStyle(
-                        color: subjectColor,
+                        color: _getContrastingColor(subjectColor),
                         fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -436,12 +456,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                             : Colors.grey,
                     size: 28,
                   ),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Mark as completed feature coming soon!'),
-                      ),
-                    );
+                  onPressed: () async {
+                    await _toggleSessionCompletion(session);
                   },
                 ),
                 IconButton(
@@ -475,11 +491,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 title: const Text('Edit Session'),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Edit session functionality coming soon!'),
-                    ),
-                  );
+                  _showEditSessionDialog(context, session);
                 },
               ),
               ListTile(
@@ -487,13 +499,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 title: const Text('Delete Session'),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Delete session functionality coming soon!',
-                      ),
-                    ),
-                  );
+                  _showDeleteSessionConfirmation(context, session);
                 },
               ),
               ListTile(
@@ -501,11 +507,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 title: const Text('Manage Reminders'),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Reminder management coming soon!'),
-                    ),
-                  );
+                  _showReminderSettings(context, session);
                 },
               ),
             ],
@@ -781,9 +783,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Edit goal coming soon!')),
-                      );
+                      _showEditGoalDialog(context, goal);
                     },
                     icon: const Icon(Icons.edit_outlined, size: 18),
                     label: const Text('Edit'),
@@ -797,18 +797,14 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Update progress coming soon!'),
-                        ),
-                      );
+                      _showUpdateProgressDialog(context, goal);
                     },
                     icon: const Icon(Icons.update, size: 18),
-                    label: const Text('Update'),
+                    label: const Text('Progress'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange,
                       foregroundColor: Colors.white,
@@ -819,6 +815,63 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       elevation: 0,
                     ),
                   ),
+                ),
+                const SizedBox(width: 8),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert),
+                  onSelected: (value) async {
+                    switch (value) {
+                      case 'complete':
+                        _markGoalCompleted(goal);
+                        break;
+                      case 'delete':
+                        _showDeleteGoalConfirmation(context, goal);
+                        break;
+                    }
+                  },
+                  itemBuilder:
+                      (context) => [
+                        PopupMenuItem(
+                          value: 'complete',
+                          child: Row(
+                            children: [
+                              Icon(
+                                goal.isCompleted
+                                    ? Icons.undo
+                                    : Icons.check_circle,
+                                size: 20,
+                                color:
+                                    goal.isCompleted
+                                        ? Colors.orange
+                                        : Colors.green,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                goal.isCompleted
+                                    ? 'Mark Incomplete'
+                                    : 'Mark Complete',
+                              ),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.delete_outline,
+                                size: 20,
+                                color: Colors.red,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Delete Goal',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                 ),
               ],
             ),
@@ -1221,6 +1274,636 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                     ),
                   ],
                 ),
+          ),
+    );
+  }
+
+  void _showEditGoalDialog(BuildContext context, StudyGoalEntity goal) {
+    final titleController = TextEditingController(text: goal.title);
+    final descriptionController = TextEditingController(text: goal.description);
+    final subjectController = TextEditingController(text: goal.subject);
+    DateTime? selectedDate = goal.targetDate;
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setState) => AlertDialog(
+                  title: const Text('Edit Study Goal'),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: titleController,
+                          decoration: const InputDecoration(
+                            labelText: 'Goal Title *',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: descriptionController,
+                          decoration: const InputDecoration(
+                            labelText: 'Description',
+                            border: OutlineInputBorder(),
+                          ),
+                          maxLines: 2,
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: subjectController,
+                          decoration: const InputDecoration(
+                            labelText: 'Subject',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ListTile(
+                          title: Text(
+                            selectedDate != null
+                                ? 'Target: ${DateFormat('MMM d, y').format(selectedDate!)}'
+                                : 'Select Target Date',
+                          ),
+                          leading: const Icon(Icons.calendar_today),
+                          onTap: () async {
+                            final date = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate,
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 365),
+                              ),
+                            );
+                            if (date != null) {
+                              setState(() {
+                                selectedDate = date;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (titleController.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please enter a goal title'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        Navigator.pop(context);
+
+                        // Use our ViewModel to update the goal
+                        final updatedGoal = goal.copyWith(
+                          title: titleController.text.trim(),
+                          description:
+                              descriptionController.text.trim().isEmpty
+                                  ? null
+                                  : descriptionController.text.trim(),
+                          subject:
+                              subjectController.text.trim().isEmpty
+                                  ? null
+                                  : subjectController.text.trim(),
+                          targetDate: selectedDate,
+                          updatedAt: DateTime.now(),
+                        );
+
+                        final success = await ref
+                            .read(studyGoalsViewModelProvider.notifier)
+                            .updateGoal(updatedGoal);
+
+                        if (!success) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Failed to update goal'),
+                              ),
+                            );
+                          }
+                        } else {
+                          if (mounted) {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Goal updated successfully!'),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      child: const Text('Update'),
+                    ),
+                  ],
+                ),
+          ),
+    );
+  }
+
+  void _showUpdateProgressDialog(BuildContext context, StudyGoalEntity goal) {
+    double currentProgress = goal.progress * 100; // Convert to 0-100 scale
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setState) => AlertDialog(
+                  title: Text('Update Progress: ${goal.title}'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Current Progress: ${currentProgress.round()}%',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Slider(
+                        value: currentProgress,
+                        min: 0,
+                        max: 100,
+                        divisions: 20,
+                        label: '${currentProgress.round()}%',
+                        activeColor: Colors.orange,
+                        onChanged: (value) {
+                          setState(() {
+                            currentProgress = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      LinearProgressIndicator(
+                        value: currentProgress / 100,
+                        backgroundColor: Colors.grey[200],
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _getProgressColor(currentProgress / 100),
+                        ),
+                        minHeight: 10,
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(context);
+
+                        // Use our ViewModel to update the goal progress
+                        final success = await ref
+                            .read(studyGoalsViewModelProvider.notifier)
+                            .updateGoalProgress(
+                              goal.id,
+                              currentProgress / 100.0,
+                            );
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                success
+                                    ? 'Progress updated to ${currentProgress.round()}%!'
+                                    : 'Failed to update progress',
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Update'),
+                    ),
+                  ],
+                ),
+          ),
+    );
+  }
+
+  Future<void> _markGoalCompleted(StudyGoalEntity goal) async {
+    final success = await ref
+        .read(studyGoalsViewModelProvider.notifier)
+        .markGoalCompleted(goal.id);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? 'Goal marked as ${goal.isCompleted ? 'incomplete' : 'completed'}!'
+                : 'Failed to update goal status',
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showDeleteGoalConfirmation(BuildContext context, StudyGoalEntity goal) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Goal'),
+            content: Text('Are you sure you want to delete "${goal.title}"?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+
+                  final success = await ref
+                      .read(studyGoalsViewModelProvider.notifier)
+                      .deleteGoal(goal.id);
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          success
+                              ? 'Goal deleted successfully!'
+                              : 'Failed to delete goal',
+                        ),
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _toggleSessionCompletion(StudySessionEntity session) async {
+    final isCompleted = session.status == StudySessionStatus.completed;
+    final success =
+        isCompleted
+            ? await ref
+                .read(studySessionsViewModelProvider.notifier)
+                .updateSession(
+                  session.copyWith(
+                    status: StudySessionStatus.scheduled,
+                    updatedAt: DateTime.now(),
+                  ),
+                )
+            : await ref
+                .read(studySessionsViewModelProvider.notifier)
+                .completeSession(session.id);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? 'Session marked as ${isCompleted ? 'scheduled' : 'completed'}!'
+                : 'Failed to update session status',
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showEditSessionDialog(
+    BuildContext context,
+    StudySessionEntity session,
+  ) {
+    final titleController = TextEditingController(text: session.title);
+    final descriptionController = TextEditingController(text: session.notes);
+    final subjectController = TextEditingController(text: session.subject);
+    DateTime selectedDate = DateTime(
+      session.startTime.year,
+      session.startTime.month,
+      session.startTime.day,
+    );
+    TimeOfDay startTime = TimeOfDay.fromDateTime(session.startTime);
+    TimeOfDay endTime = TimeOfDay.fromDateTime(session.endTime);
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setState) => AlertDialog(
+                  title: const Text('Edit Study Session'),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: titleController,
+                          decoration: const InputDecoration(
+                            labelText: 'Session Title *',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: descriptionController,
+                          decoration: const InputDecoration(
+                            labelText: 'Notes',
+                            border: OutlineInputBorder(),
+                          ),
+                          maxLines: 2,
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: subjectController,
+                          decoration: const InputDecoration(
+                            labelText: 'Subject',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ListTile(
+                          title: Text(
+                            'Date: ${DateFormat('MMM d, y').format(selectedDate)}',
+                          ),
+                          leading: const Icon(Icons.calendar_today),
+                          onTap: () async {
+                            final date = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate,
+                              firstDate: DateTime.now().subtract(
+                                const Duration(days: 365),
+                              ),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 365),
+                              ),
+                            );
+                            if (date != null) {
+                              setState(() {
+                                selectedDate = date;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ListTile(
+                                title: Text(
+                                  'Start: ${startTime.format(context)}',
+                                ),
+                                leading: const Icon(Icons.access_time),
+                                onTap: () async {
+                                  final time = await showTimePicker(
+                                    context: context,
+                                    initialTime: startTime,
+                                  );
+                                  if (time != null) {
+                                    setState(() {
+                                      startTime = time;
+                                      // Auto-adjust end time to be 1 hour later if needed
+                                      if (endTime.hour * 60 + endTime.minute <=
+                                          time.hour * 60 + time.minute) {
+                                        final newEndTime = time.hour + 1;
+                                        endTime = TimeOfDay(
+                                          hour:
+                                              newEndTime < 24 ? newEndTime : 23,
+                                          minute: time.minute,
+                                        );
+                                      }
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                            Expanded(
+                              child: ListTile(
+                                title: Text('End: ${endTime.format(context)}'),
+                                leading: const Icon(Icons.access_time_filled),
+                                onTap: () async {
+                                  final time = await showTimePicker(
+                                    context: context,
+                                    initialTime: endTime,
+                                  );
+                                  if (time != null) {
+                                    setState(() {
+                                      endTime = time;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (titleController.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please enter a session title'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        // Validate time
+                        final startDateTime = DateTime(
+                          selectedDate.year,
+                          selectedDate.month,
+                          selectedDate.day,
+                          startTime.hour,
+                          startTime.minute,
+                        );
+                        final endDateTime = DateTime(
+                          selectedDate.year,
+                          selectedDate.month,
+                          selectedDate.day,
+                          endTime.hour,
+                          endTime.minute,
+                        );
+
+                        if (endDateTime.isBefore(startDateTime) ||
+                            endDateTime.isAtSameMomentAs(startDateTime)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'End time must be after start time',
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+
+                        Navigator.pop(context);
+
+                        // Update the session
+                        final updatedSession = session.copyWith(
+                          title: titleController.text.trim(),
+                          notes:
+                              descriptionController.text.trim().isEmpty
+                                  ? null
+                                  : descriptionController.text.trim(),
+                          subject:
+                              subjectController.text.trim().isEmpty
+                                  ? null
+                                  : subjectController.text.trim(),
+                          startTime: startDateTime,
+                          endTime: endDateTime,
+                          updatedAt: DateTime.now(),
+                        );
+
+                        final success = await ref
+                            .read(studySessionsViewModelProvider.notifier)
+                            .updateSession(updatedSession);
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                success
+                                    ? 'Session updated successfully!'
+                                    : 'Failed to update session',
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Update'),
+                    ),
+                  ],
+                ),
+          ),
+    );
+  }
+
+  void _showDeleteSessionConfirmation(
+    BuildContext context,
+    StudySessionEntity session,
+  ) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Session'),
+            content: Text(
+              'Are you sure you want to delete "${session.title}"?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+
+                  final success = await ref
+                      .read(studySessionsViewModelProvider.notifier)
+                      .deleteSession(session.id);
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          success
+                              ? 'Session deleted successfully!'
+                              : 'Failed to delete session',
+                        ),
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showReminderSettings(BuildContext context, StudySessionEntity session) {
+    // For now, show a dialog with reminder options
+    // In a full implementation, this would connect to flutter_local_notifications
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('Reminder Settings: ${session.title}'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Reminder notifications will be available in a future update!',
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Planned features:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text('• 15 minutes before session'),
+                const Text('• 1 hour before session'),
+                const Text('• 1 day before session'),
+                const Text('• Custom reminder times'),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'This requires Flutter Local Notifications setup for platform-specific push notifications.',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ],
           ),
     );
   }
