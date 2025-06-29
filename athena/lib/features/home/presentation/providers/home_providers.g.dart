@@ -92,9 +92,9 @@ final isDashboardLoadingProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef IsDashboardLoadingRef = AutoDisposeProviderRef<bool>;
-String _$materialCountHash() => r'a1d09cbe77021b1ab8f1eae4b0b19e7ad2b6deec';
+String _$materialCountHash() => r'053ec5abae36229c26b2f15709b48c987939d086';
 
-/// Provider for dashboard material count
+/// Provider for dashboard material count (using real study materials data)
 ///
 /// Copied from [materialCount].
 @ProviderFor(materialCount)
@@ -112,9 +112,9 @@ final materialCountProvider = AutoDisposeFutureProvider<int>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef MaterialCountRef = AutoDisposeFutureProviderRef<int>;
-String _$quizItemCountHash() => r'4b2c61e57ff622d3ee2d191ba00d1bae41216c52';
+String _$quizItemCountHash() => r'2a4d60662d9053c18d84d92a9d7b97cba07f9efc';
 
-/// Provider for dashboard quiz items count
+/// Provider for dashboard quiz count (using real quiz data)
 ///
 /// Copied from [quizItemCount].
 @ProviderFor(quizItemCount)
@@ -132,9 +132,9 @@ final quizItemCountProvider = AutoDisposeFutureProvider<int>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef QuizItemCountRef = AutoDisposeFutureProviderRef<int>;
-String _$upcomingSessionsHash() => r'f78c54802299db7007229ec55ce41cffd1f96d40';
+String _$upcomingSessionsHash() => r'3cc7aaadb53901341c30a97ff976808e2d61de46';
 
-/// Provider for upcoming sessions
+/// Provider for upcoming sessions (using real planner data)
 ///
 /// Copied from [upcomingSessions].
 @ProviderFor(upcomingSessions)
@@ -154,9 +154,9 @@ final upcomingSessionsProvider =
 // ignore: unused_element
 typedef UpcomingSessionsRef =
     AutoDisposeFutureProviderRef<List<UpcomingSession>>;
-String _$reviewItemsHash() => r'7f4cd99391ff1cf1faeaea262b059f1235766625';
+String _$reviewItemsHash() => r'fd339ac62af984e5c5f094ae326baad186330d01';
 
-/// Provider for review items
+/// Provider for review items due (using real review data)
 ///
 /// Copied from [reviewItems].
 @ProviderFor(reviewItems)

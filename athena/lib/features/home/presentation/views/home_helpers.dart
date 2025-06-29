@@ -1,5 +1,7 @@
 import 'package:athena/core/theme/app_colors.dart';
+import 'package:athena/domain/enums/subject.dart';
 import 'package:athena/features/home/domain/entities/dashboard_data.dart';
+import 'package:athena/features/shared/utils/subject_utils.dart';
 import 'package:flutter/material.dart';
 
 // Helper functions that can be used to display loading, error states and data for the HomeScreen
@@ -298,8 +300,8 @@ Widget buildReviewItemsCard(BuildContext context, List<ReviewItem> items) {
           buildQuizDueCard(
             items.first.title,
             '${items.first.count} items',
-            getColorForType(items.first.type)[0],
-            getColorForType(items.first.type)[1],
+            getColorForSubject(items.first.subject)[0],
+            getColorForSubject(items.first.subject)[1],
           )
         else
           Row(
@@ -313,8 +315,8 @@ Widget buildReviewItemsCard(BuildContext context, List<ReviewItem> items) {
                     child: buildQuizDueCard(
                       items[i].title,
                       '${items[i].count} items',
-                      getColorForType(items[i].type)[0],
-                      getColorForType(items[i].type)[1],
+                      getColorForSubject(items[i].subject)[0],
+                      getColorForSubject(items[i].subject)[1],
                     ),
                   ),
                 ),
@@ -343,25 +345,16 @@ Widget buildReviewItemsCard(BuildContext context, List<ReviewItem> items) {
   );
 }
 
-List<Color> getColorForType(ReviewItemType type) {
-  switch (type) {
-    case ReviewItemType.biology:
-      return [Colors.green[100]!, Colors.green[700]!];
-    case ReviewItemType.chemistry:
-      return [Colors.purple[100]!, Colors.purple[700]!];
-    case ReviewItemType.physics:
-      return [Colors.blue[100]!, Colors.blue[700]!];
-    case ReviewItemType.math:
-      return [Colors.indigo[100]!, Colors.indigo[700]!];
-    case ReviewItemType.literature:
-      return [Colors.teal[100]!, Colors.teal[700]!];
-    case ReviewItemType.history:
-      return [Colors.amber[100]!, Colors.amber[700]!];
-    case ReviewItemType.language:
-      return [Colors.orange[100]!, Colors.orange[700]!];
-    case ReviewItemType.other:
-      return [Colors.grey[100]!, Colors.grey[700]!];
+List<Color> getColorForSubject(Subject? subject) {
+  final (Color color, IconData _) = SubjectUtils.getSubjectAttributes(subject);
+  
+  // If subject is null, SubjectUtils returns grey which is hard to see
+  // Use a more pronounced grey for better visibility
+  if (subject == null) {
+    return [const Color(0xFF616161).withValues(alpha: 0.1), const Color(0xFF616161)]; // Darker grey for better contrast
   }
+  
+  return [color.withValues(alpha: 0.1), color];
 }
 
 int min(int a, int b) => a < b ? a : b;

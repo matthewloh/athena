@@ -3,6 +3,7 @@ import 'package:athena/features/planner/data/datasources/planner_supabase_dataso
 import 'package:athena/features/planner/data/repositories/planner_repository_impl.dart';
 import 'package:athena/features/planner/domain/repositories/planner_repository.dart';
 import 'package:athena/features/planner/domain/usecases/get_study_goals_usecase.dart';
+import 'package:athena/features/planner/domain/usecases/get_upcoming_sessions_usecase.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -35,6 +36,13 @@ PlannerRepository plannerRepository(Ref ref) {
 GetStudyGoalsUseCase getStudyGoalsUseCase(Ref ref) {
   final repository = ref.watch(plannerRepositoryProvider);
   return GetStudyGoalsUseCase(repository);
+}
+
+/// Provides the get upcoming sessions use case
+@riverpod
+GetUpcomingSessionsUseCase getUpcomingSessionsUseCase(Ref ref) {
+  final repository = ref.watch(plannerRepositoryProvider);
+  return GetUpcomingSessionsUseCase(repository);
 }
 
 // ============================================================================
