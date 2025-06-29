@@ -14,7 +14,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final homeState = ref.watch(homeViewModelProvider);
     final homeViewModel = ref.read(homeViewModelProvider.notifier);
-    
+
     // Get display name from the viewmodel
     final userName = homeViewModel.getDisplayName();
 
@@ -152,7 +152,8 @@ class HomeScreen extends ConsumerWidget {
                         crossAxisCount: 2,
                         mainAxisSpacing: 16,
                         crossAxisSpacing: 16,
-                        childAspectRatio: 0.9, // Make cards taller to prevent text overflow
+                        childAspectRatio:
+                            0.9, // Make cards taller to prevent text overflow
                         children: [
                           _buildFeatureCard(
                             context,
@@ -210,7 +211,7 @@ class HomeScreen extends ConsumerWidget {
 
                 const SizedBox(height: 24),
 
-                // Today's focus section (TODO: Hook up to real planner data when available)
+                // Today's focus section (now shows real planner data)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Column(
@@ -255,20 +256,30 @@ class HomeScreen extends ConsumerWidget {
                                   ),
                                 ),
                                 const Spacer(),
-                                Text(
-                                  '${homeState.formattedTodaySessionsCount} today',
-                                  style: TextStyle(
-                                    color: Colors.orange,
-                                    fontWeight: FontWeight.w600,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    '${homeState.formattedTodaySessionsCount} today',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.orange,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 16),
-                            // TODO: Replace with real upcoming sessions from planner when available
-                            // Display actual upcoming sessions from state
-                            ...homeState.upcomingSessions.map((session) =>
-                              Padding(
+                            // Display actual upcoming sessions from planner
+                            ...homeState.upcomingSessions.map(
+                              (session) => Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
                                 child: _buildSessionItem(
                                   time: session.time,
@@ -277,10 +288,12 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                               ),
                             ),
-                            // If no sessions, show placeholder (currently always shown since planner is WIP)
+                            // If no sessions, show placeholder
                             if (homeState.upcomingSessions.isEmpty)
                               Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 child: Column(
                                   children: [
                                     Icon(
@@ -323,9 +336,9 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                               ),
                               child: Text(
-                                homeState.upcomingSessions.isEmpty 
-                                  ? 'Open Study Planner' 
-                                  : 'View Full Schedule',
+                                homeState.upcomingSessions.isEmpty
+                                    ? 'Open Study Planner'
+                                    : 'View Full Schedule',
                               ),
                             ),
                           ],
@@ -365,7 +378,9 @@ class HomeScreen extends ConsumerWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.athenaSupportiveGreen.withValues(alpha: 0.1),
+                              color: AppColors.athenaSupportiveGreen.withValues(
+                                alpha: 0.1,
+                              ),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -380,65 +395,90 @@ class HomeScreen extends ConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Review items display or empty state
                       if (homeState.reviewItems.isNotEmpty)
                         // Compact grid for review items
                         Wrap(
                           spacing: 12,
                           runSpacing: 12,
-                          children: homeState.reviewItems.take(4).map((item) => 
-                            Container(
-                              width: (MediaQuery.of(context).size.width - 64) / 2, // 2 columns with spacing
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: _getColorForReviewItem(item, isBackground: true),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: _getColorForReviewItem(item, isBackground: false).withValues(alpha: 0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 8,
-                                        height: 8,
-                                        decoration: BoxDecoration(
-                                          color: _getColorForReviewItem(item, isBackground: false),
-                                          shape: BoxShape.circle,
+                          children:
+                              homeState.reviewItems
+                                  .take(4)
+                                  .map(
+                                    (item) => Container(
+                                      width:
+                                          (MediaQuery.of(context).size.width -
+                                              64) /
+                                          2, // 2 columns with spacing
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: _getColorForReviewItem(
+                                          item,
+                                          isBackground: true,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: _getColorForReviewItem(
+                                            item,
+                                            isBackground: false,
+                                          ).withValues(alpha: 0.3),
+                                          width: 1,
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          item.title,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            color: _getColorForReviewItem(item, isBackground: false),
-                                            fontSize: 14,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Container(
+                                                width: 8,
+                                                height: 8,
+                                                decoration: BoxDecoration(
+                                                  color: _getColorForReviewItem(
+                                                    item,
+                                                    isBackground: false,
+                                                  ),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  item.title,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    color:
+                                                        _getColorForReviewItem(
+                                                          item,
+                                                          isBackground: false,
+                                                        ),
+                                                    fontSize: 14,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            '${item.count} items due',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: _getColorForReviewItem(
+                                                item,
+                                                isBackground: false,
+                                              ).withValues(alpha: 0.8),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    '${item.count} items due',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: _getColorForReviewItem(item, isBackground: false).withValues(alpha: 0.8),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ).toList(),
+                                  )
+                                  .toList(),
                         )
                       else
                         // Empty state
@@ -477,9 +517,9 @@ class HomeScreen extends ConsumerWidget {
                             ],
                           ),
                         ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Action button
                       SizedBox(
                         width: double.infinity,
@@ -499,9 +539,9 @@ class HomeScreen extends ConsumerWidget {
                           ),
                           icon: const Icon(Icons.play_arrow_rounded, size: 20),
                           label: Text(
-                            homeState.reviewItems.isNotEmpty 
-                              ? 'Start Review Session' 
-                              : 'Browse All Quizzes',
+                            homeState.reviewItems.isNotEmpty
+                                ? 'Start Review Session'
+                                : 'Browse All Quizzes',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -534,7 +574,9 @@ class HomeScreen extends ConsumerWidget {
   void _showEdgeFunctionDemo(BuildContext context, WidgetRef ref) {
     final homeViewModel = ref.read(homeViewModelProvider.notifier);
     final homeState = ref.read(homeViewModelProvider);
-    final textController = TextEditingController(text: homeState.edgeFunctionName);
+    final textController = TextEditingController(
+      text: homeState.edgeFunctionName,
+    );
 
     showModalBottomSheet(
       context: context,
@@ -627,15 +669,21 @@ class HomeScreen extends ConsumerWidget {
                           const SizedBox(height: 8),
                           Consumer(
                             builder: (context, ref, child) {
-                              final currentState = ref.watch(homeViewModelProvider);
+                              final currentState = ref.watch(
+                                homeViewModelProvider,
+                              );
 
                               if (currentState.isCallingEdgeFunction) {
                                 return _buildLoadingState();
                               } else if (currentState.hasEdgeFunctionError) {
-                                return _buildErrorState(currentState.edgeFunctionError!);
+                                return _buildErrorState(
+                                  currentState.edgeFunctionError!,
+                                );
                               } else if (currentState.hasEdgeFunctionResponse) {
                                 return _buildSuccessState({
-                                  'message': currentState.edgeFunctionMessage ?? 'Success!'
+                                  'message':
+                                      currentState.edgeFunctionMessage ??
+                                      'Success!',
                                 });
                               } else {
                                 return const Text('No response yet');
@@ -864,10 +912,10 @@ class HomeScreen extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: AppColors.athenaBlue.withAlpha(25),
+            color: Colors.orange.withAlpha(25),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: AppColors.athenaBlue, size: 22),
+          child: Icon(icon, color: Colors.orange, size: 22),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -913,14 +961,17 @@ class HomeScreen extends ConsumerWidget {
 
   // Helper method to get colors for review items using SubjectUtils
   Color _getColorForReviewItem(ReviewItem item, {required bool isBackground}) {
-    final (Color color, IconData _) = SubjectUtils.getSubjectAttributes(item.subject);
-    
+    final (Color color, IconData _) = SubjectUtils.getSubjectAttributes(
+      item.subject,
+    );
+
     // If subject is null, SubjectUtils returns grey which is hard to see
     // Use a more pronounced grey for better visibility
-    final Color finalColor = item.subject == null 
-        ? const Color(0xFF616161) // Darker grey for better contrast
-        : color;
-    
+    final Color finalColor =
+        item.subject == null
+            ? const Color(0xFF616161) // Darker grey for better contrast
+            : color;
+
     if (isBackground) {
       // Create a light background version of the subject color
       return finalColor.withValues(alpha: 0.1);

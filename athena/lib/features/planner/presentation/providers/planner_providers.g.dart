@@ -71,6 +71,29 @@ final getStudyGoalsUseCaseProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef GetStudyGoalsUseCaseRef = AutoDisposeProviderRef<GetStudyGoalsUseCase>;
+String _$getUpcomingSessionsUseCaseHash() =>
+    r'8c38f6789399c74a472a0b794d96ce4263a07564';
+
+/// Provides the get upcoming sessions use case
+///
+/// Copied from [getUpcomingSessionsUseCase].
+@ProviderFor(getUpcomingSessionsUseCase)
+final getUpcomingSessionsUseCaseProvider =
+    AutoDisposeProvider<GetUpcomingSessionsUseCase>.internal(
+      getUpcomingSessionsUseCase,
+      name: r'getUpcomingSessionsUseCaseProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$getUpcomingSessionsUseCaseHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef GetUpcomingSessionsUseCaseRef =
+    AutoDisposeProviderRef<GetUpcomingSessionsUseCase>;
 String _$currentUserIdHash() => r'a721cc26981c48fb97d50823142127aa9cc551ef';
 
 /// Provides the current authenticated user ID

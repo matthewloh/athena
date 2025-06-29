@@ -132,9 +132,9 @@ final quizItemCountProvider = AutoDisposeFutureProvider<int>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef QuizItemCountRef = AutoDisposeFutureProviderRef<int>;
-String _$upcomingSessionsHash() => r'fcb5b051f4c9e633063a34ccd5b75d661353a2cb';
+String _$upcomingSessionsHash() => r'3cc7aaadb53901341c30a97ff976808e2d61de46';
 
-/// Provider for upcoming sessions (TODO: Replace with real planner data when available)
+/// Provider for upcoming sessions (using real planner data)
 ///
 /// Copied from [upcomingSessions].
 @ProviderFor(upcomingSessions)
@@ -154,7 +154,7 @@ final upcomingSessionsProvider =
 // ignore: unused_element
 typedef UpcomingSessionsRef =
     AutoDisposeFutureProviderRef<List<UpcomingSession>>;
-String _$reviewItemsHash() => r'80642e2c3e39674827b0fec78973904d31a6e225';
+String _$reviewItemsHash() => r'fd339ac62af984e5c5f094ae326baad186330d01';
 
 /// Provider for review items due (using real review data)
 ///
