@@ -407,7 +407,7 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatCard(
-              'Mastered',
+              'Learned',
               state.masteredItems.toString(),
               Icons.star,
               Colors.amber,
@@ -424,41 +424,67 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
     IconData icon,
     Color color,
   ) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Colors.black87,
+    // Define tooltips for each statistic
+    String tooltip;
+    switch (label) {
+      case 'Items':
+        tooltip = 'Total number of quiz questions in this set';
+        break;
+      case 'Due':
+        tooltip =
+            'Items scheduled for review based on spaced repetition algorithm';
+        break;
+      case 'Mastery':
+        tooltip =
+            'Overall performance based on your review accuracy and ease of recall';
+        break;
+      case 'Learned':
+        tooltip =
+            'Items you\'ve mastered (easiness ≥ 2.5 and reviewed 3+ times)';
+        break;
+      default:
+        tooltip = label;
+    }
+
+    return Tooltip(
+      message: tooltip,
+      preferBelow: false,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-              fontWeight: FontWeight.w500,
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -563,38 +589,56 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
   }
 
   Widget _buildProgressBar(String label, double progress, Color color) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
+    // Define tooltips for progress bars
+    String tooltip;
+    switch (label) {
+      case 'Mastery':
+        tooltip =
+            'Your overall learning performance based on easiness factors from the spaced repetition algorithm';
+        break;
+      case 'Review Progress':
+        tooltip = 'Percentage of items that have been reviewed at least once';
+        break;
+      default:
+        tooltip = label;
+    }
+
+    return Tooltip(
+      message: tooltip,
+      preferBelow: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
               ),
-            ),
-            Text(
-              '${(progress * 100).toInt()}%',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: color,
+              Text(
+                '${(progress * 100).toInt()}%',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        LinearProgressIndicator(
-          value: progress,
-          backgroundColor: Colors.grey[200],
-          valueColor: AlwaysStoppedAnimation<Color>(color),
-          minHeight: 8,
-        ),
-      ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: progress,
+            backgroundColor: Colors.grey[200],
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+            minHeight: 8,
+          ),
+        ],
+      ),
     );
   }
 
@@ -852,6 +896,7 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
   Widget _buildQuizItemCard(BuildContext context, item) {
     final isFlashcard = item.itemType == QuizItemType.flashcard;
     final isDue = item.nextReviewDate.isBefore(DateTime.now());
+    final isLearned = _isItemLearned(item);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -885,6 +930,37 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
+                if (isLearned)
+                  Tooltip(
+                    message:
+                        'This item has been learned (easiness factor ≥ 2.5 and 3+ reviews)',
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.star, size: 12, color: Colors.amber),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Learned',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.amber,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 const Spacer(),
                 if (isDue)
                   Container(
@@ -997,6 +1073,12 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
         ),
       ],
     );
+  }
+
+  /// Determines if an item is considered "learned" based on spaced repetition metrics.
+  /// An item is learned when it has an easiness factor ≥ 2.5 and has been reviewed 3+ times.
+  bool _isItemLearned(dynamic item) {
+    return item.easinessFactor >= 2.5 && item.repetitions >= 3;
   }
 
   Widget _buildHistoryTab(BuildContext context, state) {
@@ -1134,7 +1216,7 @@ class _QuizDetailScreenState extends ConsumerState<QuizDetailScreen>
                 Expanded(
                   child: _buildSessionStat(
                     Icons.quiz,
-                    session.totalItems.toString(),
+                    '${session.completedItems}/${session.totalItems}',
                     'Items Reviewed',
                   ),
                 ),

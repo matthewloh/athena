@@ -181,7 +181,7 @@ class QuizDetailViewModel extends _$QuizDetailViewModel {
     final dueItems =
         items.where((item) => item.nextReviewDate.isBefore(now)).length;
 
-    // Count mastered items (items with high easiness factor and multiple repetitions)
+    // Count learned items (items with high easiness factor and multiple repetitions)
     final masteredItems =
         items
             .where(
