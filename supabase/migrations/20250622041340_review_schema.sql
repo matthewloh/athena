@@ -283,6 +283,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
+-- Add missing foreign key constraint for study_sessions.linked_material_id
+-- This was removed from earlier migration due to dependency issues
+ALTER TABLE public.study_sessions 
+ADD CONSTRAINT study_sessions_linked_material_id_fkey 
+FOREIGN KEY (linked_material_id) REFERENCES public.study_materials(id) ON DELETE SET NULL;
+
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;

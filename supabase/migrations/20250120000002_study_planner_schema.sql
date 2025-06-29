@@ -37,7 +37,7 @@ CREATE TABLE study_sessions (
   reminder_offset_minutes INTEGER,
   notes TEXT,
   actual_duration_minutes INTEGER,
-  linked_material_id UUID REFERENCES study_materials(id) ON DELETE SET NULL,
+  linked_material_id UUID, -- Will add foreign key constraint after study_materials table is created
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   
