@@ -168,7 +168,7 @@ class _FlashcardWidgetState extends State<FlashcardWidget>
               child: Text(
                 content,
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: textColor,
                   height: 1.4,
