@@ -19,8 +19,13 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 
 class MaterialDetailScreen extends ConsumerStatefulWidget {
   final String materialId;
+  final int initialTabIndex;
 
-  const MaterialDetailScreen({super.key, required this.materialId});
+  const MaterialDetailScreen({
+    super.key, 
+    required this.materialId,
+    this.initialTabIndex = 0,
+  });
 
   @override
   ConsumerState<MaterialDetailScreen> createState() =>
@@ -35,7 +40,11 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2, 
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 1),
+    );
   }
 
   @override

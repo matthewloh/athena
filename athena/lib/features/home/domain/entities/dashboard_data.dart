@@ -1,3 +1,5 @@
+import 'package:athena/domain/enums/subject.dart';
+
 /// A simple entity that represents the dashboard data shown on the home screen.
 /// This is currently a placeholder with dummy data, but in a real implementation
 /// it would be populated from actual data sources.
@@ -32,8 +34,8 @@ class DashboardData {
         ),
       ],
       reviewItems: [
-        ReviewItem(title: 'Biology Terms', count: 3, type: ReviewItemType.biology),
-        ReviewItem(title: 'History Dates', count: 2, type: ReviewItemType.history),
+        ReviewItem(title: 'Biology Terms', count: 3, subject: Subject.biology),
+        ReviewItem(title: 'History Dates', count: 2, subject: Subject.history),
       ],
     );
   }
@@ -56,12 +58,12 @@ class UpcomingSession {
 class ReviewItem {
   final String title;
   final int count;
-  final ReviewItemType type;
+  final Subject? subject;
 
   const ReviewItem({
     required this.title,
     required this.count,
-    required this.type,
+    required this.subject,
   });
 }
 
@@ -73,16 +75,4 @@ enum SessionIconType {
   history,
   language,
   generic
-}
-
-/// Types of review items for color coding
-enum ReviewItemType {
-  biology,
-  chemistry,
-  physics,
-  math,
-  literature,
-  history,
-  language,
-  other
 } 

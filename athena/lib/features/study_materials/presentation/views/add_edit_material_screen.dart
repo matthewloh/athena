@@ -17,7 +17,7 @@ import 'package:athena/features/study_materials/domain/usecases/params/create_st
 import 'package:athena/features/study_materials/domain/usecases/params/update_study_material_params.dart';
 import 'package:athena/features/study_materials/presentation/viewmodel/study_material_viewmodel.dart';
 import 'package:athena/features/study_materials/presentation/viewmodel/study_material_state.dart';
-import 'package:athena/features/study_materials/presentation/widgets/subject_searchable_dropdown.dart';
+import 'package:athena/features/shared/widgets/subject_searchable_dropdown.dart';
 import 'package:athena/features/study_materials/presentation/utils/ocr_utils.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:go_router/go_router.dart';

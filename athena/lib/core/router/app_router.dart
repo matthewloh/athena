@@ -15,7 +15,13 @@ import 'package:athena/features/errors/presentation/views/not_found_screen.dart'
 import 'package:athena/features/home/presentation/views/home_screen.dart';
 import 'package:athena/features/navigation/main_navigation_screen.dart';
 import 'package:athena/features/planner/presentation/views/planner_screen.dart';
+import 'package:athena/features/review/presentation/views/create_quiz_screen.dart';
+import 'package:athena/features/review/presentation/views/edit_quiz_screen.dart';
+import 'package:athena/features/review/presentation/views/quiz_detail_screen.dart';
 import 'package:athena/features/review/presentation/views/review_screen.dart';
+import 'package:athena/features/review/presentation/views/review_session_screen.dart';
+import 'package:athena/features/review/presentation/views/quiz_results_screen.dart';
+import 'package:athena/features/review/domain/entities/review_session_entity.dart';
 import 'package:athena/features/study_materials/presentation/views/materials_screen.dart';
 import 'package:athena/features/study_materials/presentation/views/material_detail_screen.dart';
 import 'package:athena/features/study_materials/presentation/views/add_edit_material_screen.dart';
@@ -256,9 +262,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: AppRouteNames.materialDetail,
         builder: (context, state) {
           final materialId = state.pathParameters['materialId']!;
-          return MaterialDetailScreen(materialId: materialId);
+          final tabParam = state.uri.queryParameters['tab'];
+          final initialTab = tabParam == 'summary' ? 1 : 0;
+          return MaterialDetailScreen(
+            materialId: materialId,
+            initialTabIndex: initialTab,
+          );
         },
-      ),      GoRoute(
+      ),
+      GoRoute(
         path: '/${AppRouteNames.addEditMaterial}',
         name: AppRouteNames.addEditMaterial,
         builder: (context, state) {
@@ -276,6 +288,72 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     )
                     : null,
           );
+        },
+      ),
+
+      // Review routes
+      GoRoute(
+        path: '/${AppRouteNames.createQuiz}',
+        name: AppRouteNames.createQuiz,
+        builder:
+            (context, state) => CreateQuizScreen(
+              studyMaterialId: state.uri.queryParameters['studyMaterialId'],
+              initialMode: state.uri.queryParameters['mode'],
+            ),
+      ),
+      GoRoute(
+        path: '/${AppRouteNames.quizDetail}/:quizId',
+        name: AppRouteNames.quizDetail,
+        builder:
+            (context, state) =>
+                QuizDetailScreen(quizId: state.pathParameters['quizId']!),
+      ),
+      GoRoute(
+        path: '/${AppRouteNames.editQuiz}/:quizId',
+        name: AppRouteNames.editQuiz,
+        builder:
+            (context, state) =>
+                EditQuizScreen(quizId: state.pathParameters['quizId']!),
+      ),
+      GoRoute(
+        path: '/${AppRouteNames.reviewSession}/:quizId',
+        name: AppRouteNames.reviewSession,
+        builder: (context, state) {
+          final quizId = state.pathParameters['quizId']!;
+          final sessionType = state.uri.queryParameters['sessionType'];
+          final maxItems = state.uri.queryParameters['maxItems'];
+
+          SessionType? parsedSessionType;
+          if (sessionType != null) {
+            switch (sessionType.toLowerCase()) {
+              case 'due':
+              case 'dueonly':
+                parsedSessionType = SessionType.dueOnly;
+                break;
+              case 'new':
+              case 'newonly':
+                parsedSessionType = SessionType.newOnly;
+                break;
+              case 'mixed':
+              default:
+                parsedSessionType = SessionType.mixed;
+                break;
+            }
+          }
+
+          return ReviewSessionScreen(
+            quizId: quizId,
+            sessionType: parsedSessionType,
+            maxItems: maxItems != null ? int.tryParse(maxItems) : null,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/${AppRouteNames.quizResults}',
+        name: AppRouteNames.quizResults,
+        builder: (context, state) {
+          final session = state.extra as ReviewSessionEntity;
+          return QuizResultsScreen(session: session);
         },
       ),
     ],

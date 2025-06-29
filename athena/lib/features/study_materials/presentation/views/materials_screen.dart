@@ -6,6 +6,8 @@ import 'package:athena/features/shared/utils/subject_utils.dart';
 import 'package:athena/features/study_materials/presentation/widgets/add_material_bottom_sheet.dart';
 import 'package:athena/features/study_materials/presentation/widgets/material_list_item_card.dart';
 import 'package:athena/features/study_materials/presentation/viewmodel/study_material_viewmodel.dart';
+import 'package:athena/features/review/presentation/providers/review_providers.dart';
+import 'package:athena/core/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -292,12 +294,15 @@ class _MaterialsScreenState extends ConsumerState<MaterialsScreen> {
             );
           },
           onSummarize: () {
-            viewModel.generateAiSummary(material.id);
+            viewModel.selectMaterial(material.id);
+            context.pushNamed(
+              AppRouteNames.materialDetail,
+              pathParameters: {'materialId': material.id},
+              queryParameters: {'tab': 'summary'},
+            );
           },
           onQuiz: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Quiz generation coming soon!')),
-            );
+            _handleQuizNavigation(context, material.id);
           },
         );
       },
@@ -408,5 +413,55 @@ class _MaterialsScreenState extends ConsumerState<MaterialsScreen> {
       ),
       builder: (context) => const AddMaterialBottomSheet(),
     );
+  }
+
+  /// Handles navigation when Quiz button is tapped
+  /// Checks if a quiz exists for this material:
+  /// - If quiz exists: navigates to quiz detail page
+  /// - If no quiz exists: navigates to create quiz page with material ID
+  Future<void> _handleQuizNavigation(BuildContext context, String materialId) async {
+    final userId = ref.read(appAuthProvider).valueOrNull?.id;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to access quizzes')),
+      );
+      return;
+    }
+
+    try {
+      // Get all quizzes for the user
+      final getAllQuizzesUseCase = ref.read(getAllQuizzesUseCaseProvider);
+      final result = await getAllQuizzesUseCase(userId);
+
+      result.fold(
+        (failure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error loading quizzes: ${failure.message}')),
+          );
+        },
+        (quizzes) {
+          // Find quiz linked to this material
+          final linkedQuiz = quizzes.where((quiz) => quiz.studyMaterialId == materialId).firstOrNull;
+
+          if (linkedQuiz != null) {
+            // Navigate to existing quiz detail page
+            context.pushNamed(
+              AppRouteNames.quizDetail,
+              pathParameters: {'quizId': linkedQuiz.id},
+            );
+          } else {
+            // Navigate to create quiz page with material ID
+            context.pushNamed(
+              AppRouteNames.createQuiz,
+              queryParameters: {'studyMaterialId': materialId},
+            );
+          }
+        },
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unexpected error: ${e.toString()}')),
+      );
+    }
   }
 }

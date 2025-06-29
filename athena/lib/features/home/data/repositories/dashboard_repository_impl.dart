@@ -1,3 +1,4 @@
+import 'package:athena/domain/enums/subject.dart';
 import 'package:athena/features/home/domain/entities/dashboard_data.dart';
 import 'package:athena/features/home/domain/repositories/dashboard_repository.dart';
 
@@ -49,8 +50,8 @@ class DashboardRepositoryImpl implements DashboardRepository {
     // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 500));
     return [
-      ReviewItem(title: 'Biology Terms', count: 3, type: ReviewItemType.biology),
-      ReviewItem(title: 'History Dates', count: 2, type: ReviewItemType.history),
+      ReviewItem(title: 'Biology Terms', count: 3, subject: Subject.biology),
+      ReviewItem(title: 'History Dates', count: 2, subject: Subject.history),
     ];
   }
 } 
