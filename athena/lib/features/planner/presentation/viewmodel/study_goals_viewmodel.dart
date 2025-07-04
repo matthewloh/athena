@@ -89,6 +89,8 @@ class StudyGoalsViewModel extends _$StudyGoalsViewModel {
     String? description,
     String? subject,
     DateTime? targetDate,
+    GoalType goalType = GoalType.academic,
+    PriorityLevel priorityLevel = PriorityLevel.medium,
   }) async {
     if (_currentUserId == null) {
       _setError('User not authenticated');
@@ -107,8 +109,10 @@ class StudyGoalsViewModel extends _$StudyGoalsViewModel {
         targetDate: targetDate,
         progress: 0.0,
         isCompleted: false,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        goalType: goalType,
+        priorityLevel: priorityLevel,
+        createdAt: DateTime.now().toUtc(),
+        updatedAt: DateTime.now().toUtc(),
       );
 
       final result = await _repository.createStudyGoal(newGoal);

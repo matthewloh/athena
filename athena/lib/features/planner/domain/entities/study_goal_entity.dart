@@ -1,5 +1,49 @@
 import 'package:equatable/equatable.dart';
 
+/// Types of study goals
+enum GoalType {
+  academic,
+  skills,
+  career,
+  personal,
+  research;
+
+  /// Display name for the goal type
+  String get displayName {
+    switch (this) {
+      case GoalType.academic:
+        return 'Academic';
+      case GoalType.skills:
+        return 'Skills';
+      case GoalType.career:
+        return 'Career';
+      case GoalType.personal:
+        return 'Personal';
+      case GoalType.research:
+        return 'Research';
+    }
+  }
+}
+
+/// Priority levels for study goals
+enum PriorityLevel {
+  high,
+  medium,
+  low;
+
+  /// Display name for the priority level
+  String get displayName {
+    switch (this) {
+      case PriorityLevel.high:
+        return 'High';
+      case PriorityLevel.medium:
+        return 'Medium';
+      case PriorityLevel.low:
+        return 'Low';
+    }
+  }
+}
+
 /// Represents a long-term study objective in the domain layer
 class StudyGoalEntity extends Equatable {
   /// Unique identifier for the goal
@@ -26,6 +70,12 @@ class StudyGoalEntity extends Equatable {
   /// Whether this goal has been marked as completed
   final bool isCompleted;
 
+  /// Type of study goal (academic, skills, career, personal, research)
+  final GoalType goalType;
+
+  /// Priority level of the goal (high, medium, low)
+  final PriorityLevel priorityLevel;
+
   /// When this goal was created
   final DateTime createdAt;
 
@@ -41,6 +91,8 @@ class StudyGoalEntity extends Equatable {
     this.targetDate,
     this.progress = 0.0,
     this.isCompleted = false,
+    this.goalType = GoalType.academic,
+    this.priorityLevel = PriorityLevel.medium,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -55,6 +107,8 @@ class StudyGoalEntity extends Equatable {
     DateTime? targetDate,
     double? progress,
     bool? isCompleted,
+    GoalType? goalType,
+    PriorityLevel? priorityLevel,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -67,6 +121,8 @@ class StudyGoalEntity extends Equatable {
       targetDate: targetDate ?? this.targetDate,
       progress: progress ?? this.progress,
       isCompleted: isCompleted ?? this.isCompleted,
+      goalType: goalType ?? this.goalType,
+      priorityLevel: priorityLevel ?? this.priorityLevel,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -99,6 +155,8 @@ class StudyGoalEntity extends Equatable {
     targetDate,
     progress,
     isCompleted,
+    goalType,
+    priorityLevel,
     createdAt,
     updatedAt,
   ];

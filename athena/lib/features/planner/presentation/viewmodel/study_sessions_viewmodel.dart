@@ -166,8 +166,8 @@ class StudySessionsViewModel extends _$StudySessionsViewModel {
         startTime: startTime,
         endTime: endTime,
         status: StudySessionStatus.scheduled,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        createdAt: DateTime.now().toUtc(),
+        updatedAt: DateTime.now().toUtc(),
       );
 
       final result = await repository.createStudySession(session);
@@ -254,7 +254,7 @@ class StudySessionsViewModel extends _$StudySessionsViewModel {
 
     final completedSession = session.copyWith(
       status: StudySessionStatus.completed,
-      updatedAt: DateTime.now(),
+      updatedAt: DateTime.now().toUtc(),
     );
 
     return await updateSession(completedSession);
@@ -269,7 +269,7 @@ class StudySessionsViewModel extends _$StudySessionsViewModel {
 
     final cancelledSession = session.copyWith(
       status: StudySessionStatus.cancelled,
-      updatedAt: DateTime.now(),
+      updatedAt: DateTime.now().toUtc(),
     );
 
     return await updateSession(cancelledSession);

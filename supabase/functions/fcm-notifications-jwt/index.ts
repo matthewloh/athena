@@ -12,7 +12,12 @@ interface NotificationRequest {
     | "goal_progress"
     | "session_created"
     | "session_completed"
-    | "test";
+    | "test"
+    | "session_reminder"
+    | "daily_checkin"
+    | "evening_summary"
+    | "overdue_goals"
+    | "streak_maintenance";
   title: string;
   body: string;
   data?: Record<string, string>;
@@ -102,6 +107,70 @@ function generateNotificationContent(
         notificationData: {
           type: "test",
           timestamp: new Date().toISOString(),
+        },
+      };
+    case "session_reminder":
+      return {
+        title: "⏰ Study Session Starting Soon!",
+        body: data.title
+          ? `"${data.title}" starts in ${data.minutesUntil || "15"} minutes`
+          : `Your study session starts in ${data.minutesUntil || "15"} minutes`,
+        notificationData: {
+          type: "session_reminder",
+          sessionId: data.sessionId || "unknown",
+          subject: data.subject || "General",
+          minutesUntil: data.minutesUntil || "15",
+        },
+      };
+    case "daily_checkin":
+      return {
+        title: "🌅 Good Morning! Ready to Study?",
+        body: data.todaySessions
+          ? `You have ${data.todaySessions} sessions planned today and ${data.activeGoals} active goals`
+          : "What will you study today? Check your goals and sessions!",
+        notificationData: {
+          type: "daily_checkin",
+          todaySessions: data.todaySessions || "0",
+          activeGoals: data.activeGoals || "0",
+        },
+      };
+    case "evening_summary":
+      return {
+        title: "🌆 Great Work Today!",
+        body: data.sessionsCompleted
+          ? `You completed ${data.sessionsCompleted} study sessions today. Keep up the momentum!`
+          : "You made progress today! Keep building your study habits.",
+        notificationData: {
+          type: "evening_summary",
+          sessionsCompleted: data.sessionsCompleted || "0",
+        },
+      };
+    case "overdue_goals":
+      return {
+        title: "⚠️ Don't Give Up on Your Goals!",
+        body: data.firstGoalTitle
+          ? `"${data.firstGoalTitle}" is overdue. Let's get back on track!`
+          : `You have ${
+            data.overdueCount || "some"
+          } overdue goals. Small steps lead to big achievements!`,
+        notificationData: {
+          type: "overdue_goals",
+          overdueCount: data.overdueCount || "0",
+          firstGoalTitle: data.firstGoalTitle || "",
+        },
+      };
+    case "streak_maintenance":
+      return {
+        title: "🔥 Keep Your Study Streak Alive!",
+        body: data.currentStreak
+          ? `You're on a ${data.currentStreak}-day study streak! Aim for ${
+            data.weekGoal || "5"
+          } days this week.`
+          : "Building consistent study habits pays off. Let's start a new streak!",
+        notificationData: {
+          type: "streak_maintenance",
+          currentStreak: data.currentStreak || "0",
+          weekGoal: data.weekGoal || "5",
         },
       };
     default:

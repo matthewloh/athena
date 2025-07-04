@@ -12,6 +12,8 @@ class StudyGoalModel extends StudyGoalEntity {
     super.targetDate,
     super.progress = 0.0,
     super.isCompleted = false,
+    super.goalType = GoalType.academic,
+    super.priorityLevel = PriorityLevel.medium,
     required super.createdAt,
     required super.updatedAt,
   });
@@ -27,6 +29,8 @@ class StudyGoalModel extends StudyGoalEntity {
       targetDate: entity.targetDate,
       progress: entity.progress,
       isCompleted: entity.isCompleted,
+      goalType: entity.goalType,
+      priorityLevel: entity.priorityLevel,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     );
@@ -43,6 +47,8 @@ class StudyGoalModel extends StudyGoalEntity {
       targetDate: targetDate,
       progress: progress,
       isCompleted: isCompleted,
+      goalType: goalType,
+      priorityLevel: priorityLevel,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -62,6 +68,8 @@ class StudyGoalModel extends StudyGoalEntity {
               : null,
       progress: (json['progress'] as num?)?.toDouble() ?? 0.0,
       isCompleted: json['is_completed'] as bool? ?? false,
+      goalType: _parseGoalType(json['goal_type'] as String?),
+      priorityLevel: _parsePriorityLevel(json['priority_level'] as String?),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -78,6 +86,8 @@ class StudyGoalModel extends StudyGoalEntity {
       'target_date': targetDate?.toIso8601String().split('T')[0], // Date only
       'progress': progress,
       'is_completed': isCompleted,
+      'goal_type': goalType.name, // Enum to string
+      'priority_level': priorityLevel.name, // Enum to string
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -112,6 +122,8 @@ class StudyGoalModel extends StudyGoalEntity {
     DateTime? targetDate,
     double? progress,
     bool? isCompleted,
+    GoalType? goalType,
+    PriorityLevel? priorityLevel,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -124,8 +136,30 @@ class StudyGoalModel extends StudyGoalEntity {
       targetDate: targetDate ?? this.targetDate,
       progress: progress ?? this.progress,
       isCompleted: isCompleted ?? this.isCompleted,
+      goalType: goalType ?? this.goalType,
+      priorityLevel: priorityLevel ?? this.priorityLevel,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
+  }
+
+  /// Parses a string to GoalType enum
+  static GoalType _parseGoalType(String? value) {
+    if (value == null) return GoalType.academic;
+    try {
+      return GoalType.values.firstWhere((e) => e.name == value);
+    } catch (e) {
+      return GoalType.academic; // Default fallback
+    }
+  }
+
+  /// Parses a string to PriorityLevel enum
+  static PriorityLevel _parsePriorityLevel(String? value) {
+    if (value == null) return PriorityLevel.medium;
+    try {
+      return PriorityLevel.values.firstWhere((e) => e.name == value);
+    } catch (e) {
+      return PriorityLevel.medium; // Default fallback
+    }
   }
 }

@@ -1,9 +1,12 @@
 import 'package:athena/core/constants/app_route_names.dart';
 import 'package:athena/core/theme/app_colors.dart';
+import 'package:athena/core/utils/timezone_utils.dart';
 import 'package:athena/features/planner/domain/entities/study_goal_entity.dart';
 import 'package:athena/features/planner/domain/entities/study_session_entity.dart';
 import 'package:athena/features/planner/presentation/viewmodel/study_goals_viewmodel.dart';
 import 'package:athena/features/planner/presentation/viewmodel/study_sessions_viewmodel.dart';
+import 'package:athena/features/planner/presentation/widgets/study_session_form.dart';
+import 'package:athena/features/planner/presentation/widgets/study_goal_form.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,7 +22,7 @@ class PlannerScreen extends ConsumerStatefulWidget {
 class _PlannerScreenState extends ConsumerState<PlannerScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  DateTime _selectedDate = DateTime.now();
+  DateTime _selectedDate = TimezoneUtils.nowInMalaysia();
 
   // No more dummy data - using real ViewModels!
 
@@ -112,10 +115,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                         final DateTime? picked = await showDatePicker(
                           context: context,
                           initialDate: _selectedDate,
-                          firstDate: DateTime.now().subtract(
+                          firstDate: TimezoneUtils.nowInMalaysia().subtract(
                             const Duration(days: 365),
                           ),
-                          lastDate: DateTime.now().add(
+                          lastDate: TimezoneUtils.nowInMalaysia().add(
                             const Duration(days: 365),
                           ),
                         );
@@ -169,18 +172,20 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: List.generate(7, (index) {
-                        final date = DateTime.now().add(
+                        final date = TimezoneUtils.nowInMalaysia().add(
                           Duration(days: index - 3),
                         );
-                        final isSelected = DateUtils.isSameDay(
+                        final isSelected = TimezoneUtils.isSameDayMalaysia(
                           date,
                           _selectedDate,
                         );
 
                         // Check if this date has any sessions
                         final hasSession = sessionsState.sessions.any(
-                          (session) =>
-                              DateUtils.isSameDay(session.startTime, date),
+                          (session) => TimezoneUtils.isSameDayMalaysia(
+                            session.startTime,
+                            date,
+                          ),
                         );
 
                         return Padding(
@@ -268,7 +273,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   );
                   final filteredSessions =
                       sessionsState.sessions.where((session) {
-                        return DateUtils.isSameDay(
+                        return TimezoneUtils.isSameDayMalaysia(
                           session.startTime,
                           _selectedDate,
                         );
@@ -320,7 +325,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () {
-              _showAddSessionDialog(context);
+              _showModernAddSessionForm(context);
             },
             icon: const Icon(Icons.add),
             label: const Text('Add Session'),
@@ -418,7 +423,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${DateFormat('h:mm a').format(session.startTime)} - ${DateFormat('h:mm a').format(session.endTime)}',
+                    '${DateFormat('h:mm a').format(TimezoneUtils.toMalaysianTime(session.startTime))} - ${DateFormat('h:mm a').format(TimezoneUtils.toMalaysianTime(session.endTime))}',
                     style: const TextStyle(color: Colors.black87),
                   ),
                   const SizedBox(height: 4),
@@ -574,7 +579,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () {
-              _showAddGoalDialog(context);
+              _showModernAddGoalForm(context);
             },
             icon: const Icon(Icons.add),
             label: const Text('Add Goal'),
@@ -783,7 +788,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () {
-                      _showEditGoalDialog(context, goal);
+                      _showModernEditGoalForm(context, goal);
                     },
                     icon: const Icon(Icons.edit_outlined, size: 18),
                     label: const Text('Edit'),
@@ -921,7 +926,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 subtitle: const Text('Schedule a time to study'),
                 onTap: () {
                   Navigator.pop(context);
-                  _showAddSessionDialog(context);
+                  _showModernAddSessionForm(context);
                 },
               ),
               const SizedBox(height: 8),
@@ -938,7 +943,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 subtitle: const Text('Set a long-term objective'),
                 onTap: () {
                   Navigator.pop(context);
-                  _showAddGoalDialog(context);
+                  _showModernAddGoalForm(context);
                 },
               ),
             ],
@@ -948,462 +953,66 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     );
   }
 
-  void _showAddSessionDialog(BuildContext context) {
-    final titleController = TextEditingController();
-    final descriptionController = TextEditingController();
-    final subjectController = TextEditingController();
-    DateTime selectedDate = _selectedDate;
-    TimeOfDay startTime = TimeOfDay.now();
-    TimeOfDay endTime = TimeOfDay.now().replacing(
-      hour: (TimeOfDay.now().hour + 1) % 24,
-    );
-
-    showDialog(
+  void _showModernAddSessionForm(BuildContext context) {
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder:
-          (context) => StatefulBuilder(
+          (context) => DraggableScrollableSheet(
+            initialChildSize: 0.9,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
             builder:
-                (context, setState) => AlertDialog(
-                  title: const Text('Add Study Session'),
-                  content: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextField(
-                          controller: titleController,
-                          decoration: const InputDecoration(
-                            labelText: 'Session Title *',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: descriptionController,
-                          decoration: const InputDecoration(
-                            labelText: 'Description',
-                            border: OutlineInputBorder(),
-                          ),
-                          maxLines: 2,
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: subjectController,
-                          decoration: const InputDecoration(
-                            labelText: 'Subject',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ListTile(
-                          title: Text(
-                            'Date: ${DateFormat('MMM d, y').format(selectedDate)}',
-                          ),
-                          leading: const Icon(Icons.calendar_today),
-                          onTap: () async {
-                            final date = await showDatePicker(
-                              context: context,
-                              initialDate: selectedDate,
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(
-                                const Duration(days: 365),
-                              ),
-                            );
-                            if (date != null) {
-                              setState(() {
-                                selectedDate = date;
-                              });
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                        ListTile(
-                          title: Text('Start: ${startTime.format(context)}'),
-                          leading: const Icon(Icons.schedule),
-                          onTap: () async {
-                            final time = await showTimePicker(
-                              context: context,
-                              initialTime: startTime,
-                            );
-                            if (time != null) {
-                              setState(() {
-                                startTime = time;
-                                // Ensure end time is after start time
-                                if (endTime.hour < startTime.hour ||
-                                    (endTime.hour == startTime.hour &&
-                                        endTime.minute <= startTime.minute)) {
-                                  endTime = TimeOfDay(
-                                    hour: (startTime.hour + 1) % 24,
-                                    minute: startTime.minute,
-                                  );
-                                }
-                              });
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                        ListTile(
-                          title: Text('End: ${endTime.format(context)}'),
-                          leading: const Icon(Icons.schedule),
-                          onTap: () async {
-                            final time = await showTimePicker(
-                              context: context,
-                              initialTime: endTime,
-                            );
-                            if (time != null) {
-                              setState(() {
-                                endTime = time;
-                              });
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () async {
-                        if (titleController.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please enter a session title'),
-                            ),
-                          );
-                          return;
-                        }
-
-                        // Validate time
-                        final startDateTime = DateTime(
-                          selectedDate.year,
-                          selectedDate.month,
-                          selectedDate.day,
-                          startTime.hour,
-                          startTime.minute,
-                        );
-                        final endDateTime = DateTime(
-                          selectedDate.year,
-                          selectedDate.month,
-                          selectedDate.day,
-                          endTime.hour,
-                          endTime.minute,
-                        );
-
-                        if (endDateTime.isBefore(startDateTime) ||
-                            endDateTime.isAtSameMomentAs(startDateTime)) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'End time must be after start time',
-                              ),
-                            ),
-                          );
-                          return;
-                        }
-
-                        Navigator.pop(context);
-
-                        // Use our ViewModel to create the session
-                        final success = await ref
-                            .read(studySessionsViewModelProvider.notifier)
-                            .createSession(
-                              title: titleController.text.trim(),
-                              notes:
-                                  descriptionController.text.trim().isEmpty
-                                      ? null
-                                      : descriptionController.text.trim(),
-                              subject:
-                                  subjectController.text.trim().isEmpty
-                                      ? null
-                                      : subjectController.text.trim(),
-                              startTime: startDateTime,
-                              endTime: endDateTime,
-                            );
-
-                        if (!success) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Failed to create session'),
-                              ),
-                            );
-                          }
-                        } else {
-                          if (mounted) {
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Session created successfully!'),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      child: const Text('Create'),
-                    ),
-                  ],
+                (context, scrollController) => StudySessionForm(
+                  initialDate: _selectedDate,
+                  onSessionCreated: () {
+                    // Refresh the sessions list when a new session is created
+                    // The form already handles the ViewModel call
+                  },
                 ),
           ),
     );
   }
 
-  void _showAddGoalDialog(BuildContext context) {
-    final titleController = TextEditingController();
-    final descriptionController = TextEditingController();
-    final subjectController = TextEditingController();
-    DateTime? selectedDate;
-
-    showDialog(
+  void _showModernAddGoalForm(BuildContext context) {
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder:
-          (context) => StatefulBuilder(
+          (context) => DraggableScrollableSheet(
+            initialChildSize: 0.9,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
             builder:
-                (context, setState) => AlertDialog(
-                  title: const Text('Add Study Goal'),
-                  content: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextField(
-                          controller: titleController,
-                          decoration: const InputDecoration(
-                            labelText: 'Goal Title *',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: descriptionController,
-                          decoration: const InputDecoration(
-                            labelText: 'Description',
-                            border: OutlineInputBorder(),
-                          ),
-                          maxLines: 2,
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: subjectController,
-                          decoration: const InputDecoration(
-                            labelText: 'Subject',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ListTile(
-                          title: Text(
-                            selectedDate != null
-                                ? 'Target: ${DateFormat('MMM d, y').format(selectedDate!)}'
-                                : 'Select Target Date',
-                          ),
-                          leading: const Icon(Icons.calendar_today),
-                          onTap: () async {
-                            final date = await showDatePicker(
-                              context: context,
-                              initialDate: DateTime.now().add(
-                                const Duration(days: 7),
-                              ),
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(
-                                const Duration(days: 365),
-                              ),
-                            );
-                            if (date != null) {
-                              setState(() {
-                                selectedDate = date;
-                              });
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () async {
-                        if (titleController.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please enter a goal title'),
-                            ),
-                          );
-                          return;
-                        }
-
-                        Navigator.pop(context);
-
-                        // Use our ViewModel to create the goal
-                        final success = await ref
-                            .read(studyGoalsViewModelProvider.notifier)
-                            .createGoal(
-                              title: titleController.text.trim(),
-                              description:
-                                  descriptionController.text.trim().isEmpty
-                                      ? null
-                                      : descriptionController.text.trim(),
-                              subject:
-                                  subjectController.text.trim().isEmpty
-                                      ? null
-                                      : subjectController.text.trim(),
-                              targetDate: selectedDate,
-                            );
-
-                        if (!success) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Failed to create goal'),
-                              ),
-                            );
-                          }
-                        } else {
-                          if (mounted) {
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Goal created successfully!'),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      child: const Text('Create'),
-                    ),
-                  ],
+                (context, scrollController) => StudyGoalForm(
+                  onGoalSaved: () {
+                    // Refresh the goals list when a new goal is created
+                    // The form already handles the ViewModel call
+                  },
                 ),
           ),
     );
   }
 
-  void _showEditGoalDialog(BuildContext context, StudyGoalEntity goal) {
-    final titleController = TextEditingController(text: goal.title);
-    final descriptionController = TextEditingController(text: goal.description);
-    final subjectController = TextEditingController(text: goal.subject);
-    DateTime? selectedDate = goal.targetDate;
-
-    showDialog(
+  void _showModernEditGoalForm(BuildContext context, StudyGoalEntity goal) {
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder:
-          (context) => StatefulBuilder(
+          (context) => DraggableScrollableSheet(
+            initialChildSize: 0.9,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
             builder:
-                (context, setState) => AlertDialog(
-                  title: const Text('Edit Study Goal'),
-                  content: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextField(
-                          controller: titleController,
-                          decoration: const InputDecoration(
-                            labelText: 'Goal Title *',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: descriptionController,
-                          decoration: const InputDecoration(
-                            labelText: 'Description',
-                            border: OutlineInputBorder(),
-                          ),
-                          maxLines: 2,
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: subjectController,
-                          decoration: const InputDecoration(
-                            labelText: 'Subject',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ListTile(
-                          title: Text(
-                            selectedDate != null
-                                ? 'Target: ${DateFormat('MMM d, y').format(selectedDate!)}'
-                                : 'Select Target Date',
-                          ),
-                          leading: const Icon(Icons.calendar_today),
-                          onTap: () async {
-                            final date = await showDatePicker(
-                              context: context,
-                              initialDate: selectedDate,
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(
-                                const Duration(days: 365),
-                              ),
-                            );
-                            if (date != null) {
-                              setState(() {
-                                selectedDate = date;
-                              });
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () async {
-                        if (titleController.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please enter a goal title'),
-                            ),
-                          );
-                          return;
-                        }
-
-                        Navigator.pop(context);
-
-                        // Use our ViewModel to update the goal
-                        final updatedGoal = goal.copyWith(
-                          title: titleController.text.trim(),
-                          description:
-                              descriptionController.text.trim().isEmpty
-                                  ? null
-                                  : descriptionController.text.trim(),
-                          subject:
-                              subjectController.text.trim().isEmpty
-                                  ? null
-                                  : subjectController.text.trim(),
-                          targetDate: selectedDate,
-                          updatedAt: DateTime.now(),
-                        );
-
-                        final success = await ref
-                            .read(studyGoalsViewModelProvider.notifier)
-                            .updateGoal(updatedGoal);
-
-                        if (!success) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Failed to update goal'),
-                              ),
-                            );
-                          }
-                        } else {
-                          if (mounted) {
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Goal updated successfully!'),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      child: const Text('Update'),
-                    ),
-                  ],
+                (context, scrollController) => StudyGoalForm(
+                  initialGoal: goal,
+                  onGoalSaved: () {
+                    // Refresh the goals list when a goal is updated
+                    // The form already handles the ViewModel call
+                  },
                 ),
           ),
     );
@@ -1645,10 +1254,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                             final date = await showDatePicker(
                               context: context,
                               initialDate: selectedDate,
-                              firstDate: DateTime.now().subtract(
+                              firstDate: TimezoneUtils.nowInMalaysia().subtract(
                                 const Duration(days: 365),
                               ),
-                              lastDate: DateTime.now().add(
+                              lastDate: TimezoneUtils.nowInMalaysia().add(
                                 const Duration(days: 365),
                               ),
                             );
@@ -1729,15 +1338,15 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                           return;
                         }
 
-                        // Validate time
-                        final startDateTime = DateTime(
+                        // Validate time - Create in Malaysian timezone
+                        final startDateTime = TimezoneUtils.createMalaysianTime(
                           selectedDate.year,
                           selectedDate.month,
                           selectedDate.day,
                           startTime.hour,
                           startTime.minute,
                         );
-                        final endDateTime = DateTime(
+                        final endDateTime = TimezoneUtils.createMalaysianTime(
                           selectedDate.year,
                           selectedDate.month,
                           selectedDate.day,
@@ -1770,9 +1379,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                               subjectController.text.trim().isEmpty
                                   ? null
                                   : subjectController.text.trim(),
-                          startTime: startDateTime,
-                          endTime: endDateTime,
-                          updatedAt: DateTime.now(),
+                          startTime: startDateTime.toUtc(),
+                          endTime: endDateTime.toUtc(),
+                          updatedAt: TimezoneUtils.nowInMalaysia().toUtc(),
                         );
 
                         final success = await ref

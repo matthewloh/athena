@@ -1,6 +1,7 @@
 import 'package:athena/core/router/app_router.dart';
 import 'package:athena/core/theme/app_colors.dart';
 import 'package:athena/core/services/fcm_service.dart';
+import 'package:athena/core/utils/timezone_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart';
@@ -30,6 +31,9 @@ void main() async {
 
   // Initialize FCM service
   await FCMService.initialize();
+
+  // Initialize timezone utilities
+  await TimezoneUtils.initialize();
 
   runApp(const ProviderScope(child: MyApp()));
 }
