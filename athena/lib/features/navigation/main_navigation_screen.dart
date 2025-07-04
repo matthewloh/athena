@@ -1,4 +1,5 @@
 import 'package:athena/core/constants/app_route_names.dart';
+import 'package:athena/core/services/fcm_service.dart';
 import 'package:athena/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,9 @@ class MainNavigationScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Set context for FCM notifications
+    FCMService.setContext(context);
+    
     final String currentRouteName =
         GoRouter.of(
               context,

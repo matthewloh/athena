@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Athena Use Case Diagram</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background-color: white;
+      }
+      .container {
+        width: 100%;
+        min-height: 100vh;
+        padding: 32px;
+        overflow: auto;
+        box-sizing: border-box;
+      }
+      .svg-container {
+        display: flex;
+        justify-content: center;
+      }
+      svg {
+        border: 1px solid #ccc;
+      }
+      .content {
+        margin-top: 32px;
+        max-width: 1024px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 16px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+      @media (min-width: 768px) {
+        .grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .list {
+        list-style-type: disc;
+        padding-left: 20px;
+        margin: 0;
+      }
+      .list-item {
+        margin-bottom: 4px;
+        font-size: 14px;
+      }
+      .bold {
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="svg-container">
+        <svg width="1200" height="800" viewBox="0 0 1200 800">
+          <!-- System Boundary -->
+          <rect
+            x="200"
+            y="100"
+            width="600"
+            height="600"
+            fill="none"
+            stroke="black"
+            stroke-width="2"
+          />
+          <text
+            x="500"
+            y="90"
+            text-anchor="middle"
+            font-size="16"
+            font-weight="bold"
+          >
+            Athena AI Study Assistant
+          </text>
+
+          <!-- Primary Actor - Student -->
+          <g id="student-actor">
+            <!-- Head -->
+            <circle
+              cx="100"
+              cy="250"
+              r="15"
+              fill="none"
+              stroke="black"
+              stroke-width="2"
+            />
+            <!-- Body -->
+            <line
+              x1="100"
+              y1="265"
+              x2="100"
+              y2="320"
+              stroke="black"
+              stroke-width="2"
+            />
+            <!-- Arms -->
+            <line
+              x1="80"
+              y1="285"
+              x2="120"
+              y2="285"
+              stroke="black"
+              stroke-width="2"
+            />
+            <!-- Legs -->
+            <line
+              x1="100"
+              y1="320"
+              x2="85"
+              y2="350"
+              stroke="black"
+              stroke-width="2"
+            />
+            <line
+              x1="100"
+              y1="320"
+              x2="115"
+              y2="350"
+              stroke="black"
+              stroke-width="2"
+            />
+            <text
+              x="100"
+              y="370"
+              text-anchor="middle"
+              font-size="12"
+              font-weight="bold"
+            >
+              Student
+            </text>
+          </g>
+
+          <!-- Secondary Actors -->
+          <!-- AI System -->
+          <g id="ai-system-actor">
+            <circle
+              cx="900"
+              cy="200"
+              r="15"
+              fill="none"
+              stroke="black"
+              stroke-width="2"
+            />
+            <line
+              x1="900"
+              y1="215"
+              x2="900"
+              y2="270"
+              stroke="black"
+              stroke-width="2"
+            />
+            <line
+              x1="880"
+              y1="235"
+              x2="920"
+              y2="235"
+              stroke="black"
+              stroke-width="2"
+            />
+            <line
+              x1="900"
+              y1="270"
+              x2="885"
+              y2="300"
+              stroke="black"
+              stroke-width="2"
+            />
+            <line
+              x1="900"
+              y1="270"
+              x2="915"
+              y2="300"
+              stroke="black"
+              stroke-width="2"
+            />
+            <text
+              x="900"
+              y="320"
+              text-anchor="middle"
+              font-size="12"
+              font-weight="bold"
+            >
+              AI System
+            </text>
+          </g>
+
+          <!-- External Calendar -->
+          <g id="calendar-actor">
+            <circle
+              cx="900"
+              cy="400"
+              r="15"
+              fill="none"
+              stroke="black"
+              stroke-width="2"
+            />
+            <line
+              x1="900"
+              y1="415"
+              x2="900"
+              y2="470"
+              stroke="black"
+              stroke-width="2"
+            />
+            <line
+              x1="880"
+              y1="435"
+              x2="920"
+              y2="435"
+              stroke="black"
+              stroke-width="2"
+            />
+            <line
+              x1="900"
+              y1="470"
+              x2="885"
+              y2="500"
+              stroke="black"
+              stroke-width="2"
+            />
+            <line
+              x1="900"
+              y1="470"
+              x2="915"
+              y2="500"
+              stroke="black"
+              stroke-width="2"
+            />
+            <text
+              x="900"
+              y="520"
+              text-anchor="middle"
+              font-size="12"
+              font-weight="bold"
+            >
+              External Calendar
+            </text>
+          </g>
+
+          <!-- Wikipedia API -->
+          <g id="wikipedia-actor">
+            <circle
+              cx="900"
+              cy="600"
+              r="15"
+              fill="none"
+              stroke="black"
+              stroke-width="2"
+            />
+            <line
+              x1="900"
+              y1="615"
+              x2="900"
+              y2="670"
+              stroke="black"
+              stroke-width="2"
+            />
+            <line
+              x1="880"
+              y1="635"
+              x2="920"
+              y2="635"
+              stroke="black"
+              stroke-width="2"
+            />
+            <line
+              x1="900"
+              y1="670"
+              x2="885"
+              y2="700"
+              stroke="black"
+              stroke-width="2"
+            />
+            <line
+              x1="900"
+              y1="670"
+              x2="915"
+              y2="700"
+              stroke="black"
+              stroke-width="2"
+            />
+            <text
+              x="900"
+              y="720"
+              text-anchor="middle"
+              font-size="12"
+              font-weight="bold"
+            >
+              Wikipedia API
+            </text>
+          </g>
+
+          <!-- Use Cases -->
+          <!-- Ask Academic Question -->
+          <ellipse
+            cx="350"
+            cy="180"
+            rx="70"
+            ry="25"
+            fill="none"
+            stroke="black"
+            stroke-width="2"
+          />
+          <text x="350" y="185" text-anchor="middle" font-size="11">
+            Ask Academic Question
+          </text>
+
+          <!-- Upload Notes -->
+          <ellipse
+            cx="500"
+            cy="180"
+            rx="50"
+            ry="25"
+            fill="none"
+            stroke="black"
+            stroke-width="2"
+          />
+          <text x="500" y="185" text-anchor="middle" font-size="11">
+            Upload Notes
+          </text>
+
+          <!-- Set Study Goals -->
+          <ellipse
+            cx="650"
+            cy="180"
+            rx="55"
+            ry="25"
+            fill="none"
+            stroke="black"
+            stroke-width="2"
+          />
+          <text x="650" y="185" text-anchor="middle" font-size="11">
+            Set Study Goals
+          </text>
+
+          <!-- Generate Summary -->
+          <ellipse
+            cx="350"
+            cy="280"
+            rx="60"
+            ry="25"
+            fill="none"
+            stroke="black"
+            stroke-width="2"
+          />
+          <text x="350" y="285" text-anchor="middle" font-size="11">
+            Generate Summary
+          </text>
+
+          <!-- Create Study Plan -->
+          <ellipse
+            cx="500"
+            cy="280"
+            rx="60"
+            ry="25"
+            fill="none"
+            stroke="black"
+            stroke-width="2"
+          />
+          <text x="500" y="285" text-anchor="middle" font-size="11">
+            Create Study Plan
+          </text>
+
+          <!-- Sync with Calendar -->
+          <ellipse
+            cx="650"
+            cy="280"
+            rx="60"
+            ry="25"
+            fill="none"
+            stroke="black"
+            stroke-width="2"
+          />
+          <text x="650" y="285" text-anchor="middle" font-size="11">
+            Sync with Calendar
+          </text>
+
+          <!-- Detect User Emotion -->
+          <ellipse
+            cx="350"
+            cy="380"
+            rx="65"
+            ry="25"
+            fill="none"
+            stroke="black"
+            stroke-width="2"
+          />
+          <text x="350" y="385" text-anchor="middle" font-size="11">
+            Detect User Emotion
+          </text>
+
+          <!-- Adjust Schedule -->
+          <ellipse
+            cx="500"
+            cy="380"
+            rx="55"
+            ry="25"
+            fill="none"
+            stroke="black"
+            stroke-width="2"
+          />
+          <text x="500" y="385" text-anchor="middle" font-size="11">
+            Adjust Schedule
+          </text>
+
+          <!-- Send Reminders -->
+          <ellipse
+            cx="650"
+            cy="380"
+            rx="55"
+            ry="25"
+            fill="none"
+            stroke="black"
+            stroke-width="2"
+          />
+          <text x="650" y="385" text-anchor="middle" font-size="11">
+            Send Reminders
+          </text>
+
+          <!-- Access Wikipedia -->
+          <ellipse
+            cx="350"
+            cy="480"
+            rx="60"
+            ry="25"
+            fill="none"
+            stroke="black"
+            stroke-width="2"
+          />
+          <text x="350" y="485" text-anchor="middle" font-size="11">
+            Access Wikipedia
+          </text>
+
+          <!-- Provide Emotional Support -->
+          <ellipse
+            cx="500"
+            cy="480"
+            rx="70"
+            ry="25"
+            fill="none"
+            stroke="black"
+            stroke-width="2"
+          />
+          <text x="500" y="485" text-anchor="middle" font-size="11">
+            Provide Emotional Support
+          </text>
+
+          <!-- Track Progress -->
+          <ellipse
+            cx="650"
+            cy="480"
+            rx="55"
+            ry="25"
+            fill="none"
+            stroke="black"
+            stroke-width="2"
+          />
+          <text x="650" y="485" text-anchor="middle" font-size="11">
+            Track Progress
+          </text>
+
+          <!-- Multi-Subject Support -->
+          <ellipse
+            cx="425"
+            cy="580"
+            rx="70"
+            ry="25"
+            fill="none"
+            stroke="black"
+            stroke-width="2"
+          />
+          <text x="425" y="585" text-anchor="middle" font-size="11">
+            Multi-Subject Support
+          </text>
+
+          <!-- Associations - Student to Use Cases -->
+          <line
+            x1="120"
+            y1="300"
+            x2="280"
+            y2="180"
+            stroke="black"
+            stroke-width="1"
+          />
+          <line
+            x1="120"
+            y1="300"
+            x2="450"
+            y2="180"
+            stroke="black"
+            stroke-width="1"
+          />
+          <line
+            x1="120"
+            y1="300"
+            x2="595"
+            y2="180"
+            stroke="black"
+            stroke-width="1"
+          />
+          <line
+            x1="120"
+            y1="300"
+            x2="290"
+            y2="280"
+            stroke="black"
+            stroke-width="1"
+          />
+          <line
+            x1="120"
+            y1="300"
+            x2="440"
+            y2="280"
+            stroke="black"
+            stroke-width="1"
+          />
+          <line
+            x1="120"
+            y1="300"
+            x2="590"
+            y2="280"
+            stroke="black"
+            stroke-width="1"
+          />
+
+          <!-- AI System Associations -->
+          <line
+            x1="880"
+            y1="250"
+            x2="420"
+            y2="180"
+            stroke="black"
+            stroke-width="1"
+          />
+          <line
+            x1="880"
+            y1="250"
+            x2="415"
+            y2="380"
+            stroke="black"
+            stroke-width="1"
+          />
+          <line
+            x1="880"
+            y1="250"
+            x2="570"
+            y2="480"
+            stroke="black"
+            stroke-width="1"
+          />
+
+          <!-- External Calendar Association -->
+          <line
+            x1="880"
+            y1="450"
+            x2="710"
+            y2="280"
+            stroke="black"
+            stroke-width="1"
+          />
+
+          <!-- Wikipedia API Association -->
+          <line
+            x1="880"
+            y1="650"
+            x2="410"
+            y2="480"
+            stroke="black"
+            stroke-width="1"
+          />
+
+          <!-- Include Relationships -->
+          <!-- Upload Notes includes Generate Summary -->
+          <line
+            x1="500"
+            y1="205"
+            x2="380"
+            y2="255"
+            stroke="black"
+            stroke-width="1"
+            stroke-dasharray="5,5"
+            marker-end="url(#arrowhead)"
+          />
+          <text x="440" y="235" font-size="10" fill="blue">
+            &lt;&lt;include&gt;&gt;
+          </text>
+
+          <!-- Set Study Goals includes Create Study Plan -->
+          <line
+            x1="620"
+            y1="205"
+            x2="530"
+            y2="255"
+            stroke="black"
+            stroke-width="1"
+            stroke-dasharray="5,5"
+            marker-end="url(#arrowhead)"
+          />
+          <text x="575" y="235" font-size="10" fill="blue">
+            &lt;&lt;include&gt;&gt;
+          </text>
+
+          <!-- Ask Academic Question includes Detect User Emotion -->
+          <line
+            x1="320"
+            y1="205"
+            x2="320"
+            y2="355"
+            stroke="black"
+            stroke-width="1"
+            stroke-dasharray="5,5"
+            marker-end="url(#arrowhead)"
+          />
+          <text x="240" y="280" font-size="10" fill="blue">
+            &lt;&lt;include&gt;&gt;
+          </text>
+
+          <!-- Create Study Plan includes Adjust Schedule -->
+          <line
+            x1="500"
+            y1="305"
+            x2="500"
+            y2="355"
+            stroke="black"
+            stroke-width="1"
+            stroke-dasharray="5,5"
+            marker-end="url(#arrowhead)"
+          />
+          <text x="420" y="335" font-size="10" fill="blue">
+            &lt;&lt;include&gt;&gt;
+          </text>
+
+          <!-- Extends Relationships -->
+          <!-- Multi-Subject Support extends Ask Academic Question -->
+          <line
+            x1="380"
+            y1="555"
+            x2="350"
+            y2="205"
+            stroke="black"
+            stroke-width="1"
+            stroke-dasharray="5,5"
+            marker-end="url(#arrowhead)"
+          />
+          <text x="300" y="380" font-size="10" fill="green">
+            &lt;&lt;extends&gt;&gt;
+          </text>
+
+          <!-- Provide Emotional Support extends Detect User Emotion -->
+          <line
+            x1="470"
+            y1="455"
+            x2="380"
+            y2="405"
+            stroke="black"
+            stroke-width="1"
+            stroke-dasharray="5,5"
+            marker-end="url(#arrowhead)"
+          />
+          <text x="380" y="435" font-size="10" fill="green">
+            &lt;&lt;extends&gt;&gt;
+          </text>
+
+          <!-- Arrow marker definition -->
+          <defs>
+            <marker
+              id="arrowhead"
+              markerWidth="10"
+              markerHeight="7"
+              refX="9"
+              refY="3.5"
+              orient="auto"
+            >
+              <polygon points="0 0, 10 3.5, 0 7" fill="black" />
+            </marker>
+          </defs>
+
+          <!-- Legend -->
+          <g id="legend" transform="translate(50, 500)">
+            <rect
+              x="0"
+              y="0"
+              width="140"
+              height="120"
+              fill="none"
+              stroke="black"
+              stroke-width="1"
+            />
+            <text
+              x="70"
+              y="15"
+              text-anchor="middle"
+              font-size="12"
+              font-weight="bold"
+            >
+              Legend
+            </text>
+
+            <line
+              x1="10"
+              y1="30"
+              x2="40"
+              y2="30"
+              stroke="black"
+              stroke-width="1"
+            />
+            <text x="45" y="35" font-size="10">Association</text>
+
+            <line
+              x1="10"
+              y1="50"
+              x2="40"
+              y2="50"
+              stroke="black"
+              stroke-width="1"
+              stroke-dasharray="5,5"
+            />
+            <text x="45" y="55" font-size="10" fill="blue">
+              &lt;&lt;include&gt;&gt;
+            </text>
+
+            <line
+              x1="10"
+              y1="70"
+              x2="40"
+              y2="70"
+              stroke="black"
+              stroke-width="1"
+              stroke-dasharray="5,5"
+            />
+            <text x="45" y="75" font-size="10" fill="green">
+              &lt;&lt;extends&gt;&gt;
+            </text>
+
+            <ellipse
+              cx="25"
+              cy="95"
+              rx="15"
+              ry="8"
+              fill="none"
+              stroke="black"
+              stroke-width="1"
+            />
+            <text x="45" y="100" font-size="10">Use Case</text>
+          </g>
+        </svg>
+      </div>
+
+      <div class="content">
+        <h2 class="title">Athena AI Study Assistant - Use Case Diagram</h2>
+        <div class="grid">
+          <div>
+            <h3 class="section-title">Actors</h3>
+            <ul class="list">
+              <li class="list-item">
+                <span class="bold">Student:</span> Primary user who interacts
+                with the system
+              </li>
+              <li class="list-item">
+                <span class="bold">AI System:</span> Processes requests and
+                provides intelligent responses
+              </li>
+              <li class="list-item">
+                <span class="bold">External Calendar:</span> Third-party
+                calendar service for scheduling
+              </li>
+              <li class="list-item">
+                <span class="bold">Wikipedia API:</span> External knowledge
+                source for research
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="section-title">Key Relationships</h3>
+            <ul class="list">
+              <li class="list-item">
+                <span class="bold">Include:</span> Mandatory sub-processes (blue
+                dashed lines)
+              </li>
+              <li class="list-item">
+                <span class="bold">Extends:</span> Optional enhancements (green
+                dashed lines)
+              </li>
+              <li class="list-item">
+                <span class="bold">Association:</span> Direct interaction (solid
+                lines)
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

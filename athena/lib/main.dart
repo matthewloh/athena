@@ -1,5 +1,6 @@
 import 'package:athena/core/router/app_router.dart';
 import 'package:athena/core/theme/app_colors.dart';
+import 'package:athena/core/services/fcm_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart';
@@ -7,8 +8,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   usePathUrlStrategy();
 
   await Supabase.initialize(
@@ -22,6 +27,9 @@ void main() async {
     ),
     storageOptions: const StorageClientOptions(retryAttempts: 10),
   );
+
+  // Initialize FCM service
+  await FCMService.initialize();
 
   runApp(const ProviderScope(child: MyApp()));
 }

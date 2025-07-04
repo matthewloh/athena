@@ -1,8 +1,10 @@
 import 'package:athena/core/constants/app_route_names.dart';
+import 'package:athena/core/services/fcm_service.dart';
 import 'package:athena/core/theme/app_colors.dart';
 import 'package:athena/features/home/domain/entities/dashboard_data.dart';
 import 'package:athena/features/home/presentation/viewmodel/home_viewmodel.dart';
 import 'package:athena/features/shared/utils/subject_utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -51,6 +53,24 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
         actions: [
+          // Test notification button (only show in debug mode)
+          if (kDebugMode)
+            IconButton(
+              icon: const Icon(Icons.notifications_active),
+              tooltip: 'Test Local Notifications',
+              onPressed: () {
+                _showNotificationTestDialog(context);
+              },
+            ),
+          // Real notification test button (only show in debug mode)
+          if (kDebugMode)
+            IconButton(
+              icon: const Icon(Icons.cloud_upload),
+              tooltip: 'Test Real FCM Notifications',
+              onPressed: () {
+                _showRealNotificationTestDialog(context);
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.person),
             onPressed: () {
@@ -979,5 +999,206 @@ class HomeScreen extends ConsumerWidget {
       // Use the direct subject color for text and borders
       return finalColor;
     }
+  }
+
+  /// Show dialog to test different notification types (local simulation)
+  void _showNotificationTestDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('🧪 Test Local Notifications'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Choose a notification type to test locally:'),
+            const SizedBox(height: 8),
+            const Text(
+              'These are simulated notifications that appear instantly.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            _buildNotificationTestButton(
+              '🎉 Goal Completed',
+              'goal_completed',
+              Colors.green,
+              context,
+              isReal: false,
+            ),
+            _buildNotificationTestButton(
+              '🎯 Goal Created',
+              'goal_created',
+              Colors.blue,
+              context,
+              isReal: false,
+            ),
+            _buildNotificationTestButton(
+              '📈 Goal Progress',
+              'goal_progress',
+              AppColors.athenaPurple,
+              context,
+              isReal: false,
+            ),
+            _buildNotificationTestButton(
+              '📅 Session Created',
+              'session_created',
+              Colors.blue,
+              context,
+              isReal: false,
+            ),
+            _buildNotificationTestButton(
+              '✅ Session Completed',
+              'session_completed',
+              Colors.green,
+              context,
+              isReal: false,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show dialog to test real FCM notifications via Edge Function
+  void _showRealNotificationTestDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('🚀 Test Real FCM Notifications'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Send real notifications via Supabase Edge Function:'),
+            const SizedBox(height: 8),
+            const Text(
+              'These are real FCM notifications from your backend.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            _buildNotificationTestButton(
+              '🎉 Goal Completed',
+              'goal_completed',
+              Colors.green,
+              context,
+              isReal: true,
+            ),
+            _buildNotificationTestButton(
+              '🎯 Goal Created',
+              'goal_created',
+              Colors.blue,
+              context,
+              isReal: true,
+            ),
+            _buildNotificationTestButton(
+              '📈 Goal Progress',
+              'goal_progress',
+              AppColors.athenaPurple,
+              context,
+              isReal: true,
+            ),
+            _buildNotificationTestButton(
+              '📅 Session Created',
+              'session_created',
+              Colors.blue,
+              context,
+              isReal: true,
+            ),
+            _buildNotificationTestButton(
+              '✅ Session Completed',
+              'session_completed',
+              Colors.green,
+              context,
+              isReal: true,
+            ),
+            _buildNotificationTestButton(
+              '🧪 Test Message',
+              'test',
+              Colors.orange,
+              context,
+              isReal: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationTestButton(
+    String title,
+    String type,
+    Color color,
+    BuildContext context, {
+    required bool isReal,
+  }) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ElevatedButton(
+        onPressed: () async {
+          Navigator.of(context).pop();
+          
+          if (isReal) {
+            // Show loading indicator
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('🚀 Sending real notification...'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+            
+            try {
+              await FCMService.testRealNotification(type);
+              
+              // Show success message
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('✅ Real notification sent successfully!'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+            } catch (e) {
+              // Show error message
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('❌ Failed to send notification: $e'),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+            }
+          } else {
+            // Local simulation
+            FCMService.simulateNotification(type);
+          }
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isReal) const Icon(Icons.cloud_upload, size: 16),
+            if (isReal) const SizedBox(width: 8),
+            Text(title),
+          ],
+        ),
+      ),
+    );
   }
 }

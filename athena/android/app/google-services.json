@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "454823228171",
+    "project_id": "hello-athena",
+    "storage_bucket": "hello-athena.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:454823228171:android:4cf3f3673b6e58eb77680e",
+        "android_client_info": {
+          "package_name": "app.helloathena.athena"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWdu5G8lq4OJbNdN6zy1ubll0k-RXOODo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
