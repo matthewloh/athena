@@ -7,7 +7,7 @@ part of 'quiz_detail_viewmodel.dart';
 // **************************************************************************
 
 String _$quizDetailViewModelHash() =>
-    r'1febc0be789755a102f8c83dde49cc9ae8b8cb91';
+    r'a02a606ec71d6df06ec4f73167e482686aeef592';
 
 /// Copied from Dart SDK
 class _SystemHash {

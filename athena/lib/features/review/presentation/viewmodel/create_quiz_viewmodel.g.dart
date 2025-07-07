@@ -7,7 +7,7 @@ part of 'create_quiz_viewmodel.dart';
 // **************************************************************************
 
 String _$createQuizViewModelHash() =>
-    r'b7e14fcb4fffcdb421ba20e8aba747ce2a044c73';
+    r'75366b3c65fe3675d93d672aa9713b92966bba07';
 
 /// See also [CreateQuizViewModel].
 @ProviderFor(CreateQuizViewModel)

@@ -78,10 +78,40 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           _termsAgreedNotifier.value = false;
         });
       }
-    } catch (e) {
+        } catch (e) {
+      // Debug logging to see exactly what error we're getting
+      print('🚨 Signup error: Type: ${e.runtimeType}, Message: $e');
+      if (e is AuthException) {
+        print('🚨 AuthException details: ${e.message}');
+      }
+      
       if (mounted) {
         setState(() {
-          _errorMessage = e is AuthException ? e.message : e.toString();
+          if (e is AuthException) {
+            // Handle specific case where email already exists
+            if (e.message.toLowerCase().contains('duplicate') || 
+                e.message.toLowerCase().contains('already exists') ||
+                e.message.toLowerCase().contains('unique constraint') ||
+                e.message.toLowerCase().contains('email already registered') ||
+                e.message.toLowerCase().contains('user already registered')) {
+              _errorMessage =
+                  'An account with this email already exists. Please use a different email or sign in instead.';
+            } else {
+              _errorMessage = e.message;
+            }
+          } else {
+            // Check if it's a PostgreSQL constraint violation
+            final errorString = e.toString().toLowerCase();
+            if (errorString.contains('duplicate key value') ||
+                errorString.contains('unique constraint') ||
+                errorString.contains('profiles_email_key') ||
+                errorString.contains('already exists')) {
+              _errorMessage =
+                  'An account with this email already exists. Please use a different email or sign in instead.';
+            } else {
+              _errorMessage = 'Signup failed: ${e.toString()}';
+            }
+          }
         });
       }
     } finally {
@@ -179,132 +209,136 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       ),
     );
 
-    return Scaffold(
-      backgroundColor: AppColors.athenaOffWhite,
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.05,
-            vertical: 16,
-          ),
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(height: screenHeight * 0.02),
-                      Image.asset(
-                        'assets/images/logo.png',
-                        height: screenHeight * 0.12,
-                      ),
-                      SizedBox(height: screenHeight * 0.015),
-                      const Text(
-                        'Create your Athena Account',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.athenaDarkGrey,
-                          fontFamily: 'Overused Grotesk',
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) {
+          // Navigate back to landing instead of exiting app
+          context.goNamed(AppRouteNames.landing);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.athenaOffWhite,
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.05,
+              vertical: 16,
+            ),
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(height: screenHeight * 0.02),
+                        Image.asset(
+                          'assets/images/logo.png',
+                          height: screenHeight * 0.12,
                         ),
-                      ),
-                      SizedBox(height: screenHeight * 0.03),
-                      _buildMessageArea(),
-                      SignUpFormWidget(
-                        formKey: _formKey,
-                        fullNameController: _fullNameController,
-                        emailController: _emailController,
-                        passwordController: _passwordController,
-                        confirmPasswordController: _confirmPasswordController,
-                        marketingConsentNotifier: _marketingConsentNotifier,
-                        termsAgreedNotifier: _termsAgreedNotifier,
-                        isLoading: _isLoading,
-                        onSubmit: _signUp,
-                      ),
-                      const SizedBox(height: 16),
-                      Theme(
-                        data: athenaAuthTheme,
-                        child: const Row(
-                          children: [
-                            Expanded(child: Divider()),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 10.0),
-                              child: Text(
-                                'OR SIGN UP WITH',
-                                style: TextStyle(
-                                  color: AppColors.athenaMediumGrey,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 11,
+                        SizedBox(height: screenHeight * 0.015),
+                        const Text(
+                          'Create your Athena Account',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.athenaDarkGrey,
+                            fontFamily: 'Overused Grotesk',
+                          ),
+                        ),
+                        SizedBox(height: screenHeight * 0.03),
+                        _buildMessageArea(),
+                        SignUpFormWidget(
+                          formKey: _formKey,
+                          fullNameController: _fullNameController,
+                          emailController: _emailController,
+                          passwordController: _passwordController,
+                          confirmPasswordController: _confirmPasswordController,
+                          marketingConsentNotifier: _marketingConsentNotifier,
+                          termsAgreedNotifier: _termsAgreedNotifier,
+                          isLoading: _isLoading,
+                          onSubmit: _signUp,
+                        ),
+                        const SizedBox(height: 16),
+                        Theme(
+                          data: athenaAuthTheme,
+                          child: const Row(
+                            children: [
+                              Expanded(child: Divider()),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 10.0),
+                                child: Text(
+                                  'OR SIGN UP WITH',
+                                  style: TextStyle(
+                                    color: AppColors.athenaMediumGrey,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 11,
+                                  ),
                                 ),
                               ),
-                            ),
-                            Expanded(child: Divider()),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Theme(
-                        data: athenaAuthTheme,
-                        child: SupaSocialsAuth(
-                          socialProviders: const [OAuthProvider.google],
-                          colored: true,
-                          nativeGoogleAuthConfig: const NativeGoogleAuthConfig(
-                            webClientId:
-                                '653279524622-tcbl98f4inl6hv8c4ssakc4tofeu7mor.apps.googleusercontent.com',
-                            iosClientId:
-                                '653279524622-f715bn4fm2md061pvl8qlrcfvftt5rs2.apps.googleusercontent.com',
+                              Expanded(child: Divider()),
+                            ],
                           ),
-                          redirectUrl:
-                              kIsWeb
-                                  ? null
-                                  : Constants.supabaseLoginCallbackUrlMobile,
-                          onSuccess: (Session response) {
-                            if (mounted) {
-                              setState(() {
-                                _errorMessage = null;
-                                _successMessage =
-                                    'Successfully signed up and logged in with social provider.';
-                              });
-                            }
-                          },
-                          onError: _handleSocialSignUpError,
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
+                        const SizedBox(height: 16),
+                        Theme(
+                          data: athenaAuthTheme,
+                          child: SupaSocialsAuth(
+                            socialProviders: const [OAuthProvider.google],
+                            colored: true,
+                            redirectUrl:
+                                kIsWeb
+                                    ? null
+                                    : Constants.supabaseLoginCallbackUrlMobile,
+                            onSuccess: (Session response) {
+                              if (mounted) {
+                                setState(() {
+                                  _errorMessage = null;
+                                  _successMessage =
+                                      'Successfully signed up and logged in with Google.';
+                                });
+                              }
+                            },
+                            onError: _handleSocialSignUpError,
+                            authScreenLaunchMode: LaunchMode.inAppWebView,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Already have an account?',
-                      style: TextStyle(
-                        color: AppColors.athenaDarkGrey,
-                        fontSize: 14,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => context.goNamed(AppRouteNames.login),
-                      child: const Text(
-                        'Sign In',
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Already have an account?',
                         style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
+                          color: AppColors.athenaDarkGrey,
                           fontSize: 14,
                         ),
                       ),
-                    ),
-                  ],
+                      TextButton(
+                        onPressed: () => context.goNamed(AppRouteNames.login),
+                        child: const Text(
+                          'Sign In',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -7,7 +7,7 @@ part of 'review_session_viewmodel.dart';
 // **************************************************************************
 
 String _$reviewSessionViewModelHash() =>
-    r'257b78c4e09f0666c55a91c62df4d2f858f1993d';
+    r'cf2fa01ef07cc9b7cbb250c33240cc1da8ddc2ae';
 
 /// ViewModel for managing review session state and operations.
 ///

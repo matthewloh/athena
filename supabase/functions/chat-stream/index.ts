@@ -3,6 +3,7 @@ import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { openai } from "npm:@ai-sdk/openai";
 import { CoreMessage, streamText } from "npm:ai";
 import { z } from "npm:zod";
+
 // Zod schemas for request validation
 const ChatRequestSchema = z.object({
   conversationId: z.string().uuid(),
@@ -31,6 +32,7 @@ When explaining concepts:
 - Connect new information to previously learned concepts
 
 Always maintain a helpful, encouraging, and educational tone.`;
+
 // Helper function to save message to database
 async function saveMessage(
   supabase: SupabaseClient,

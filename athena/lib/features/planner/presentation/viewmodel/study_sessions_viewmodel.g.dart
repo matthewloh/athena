@@ -225,7 +225,7 @@ final overdueSessionsProvider =
 // ignore: unused_element
 typedef OverdueSessionsRef = AutoDisposeProviderRef<List<StudySessionEntity>>;
 String _$studySessionsViewModelHash() =>
-    r'473cb605ab684bf1c8a7c20633c3fd44aee93804';
+    r'163736a80dd9e6c1d954a6ef2bc8b62d84d7d7d3';
 
 /// ViewModel for managing study sessions
 ///

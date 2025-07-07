@@ -71,7 +71,7 @@ final overdueStudyGoalsProvider =
 // ignore: unused_element
 typedef OverdueStudyGoalsRef = AutoDisposeProviderRef<List<StudyGoalEntity>>;
 String _$studyGoalsViewModelHash() =>
-    r'030f5e2455648b45f53b4e95ed77018b05d9f473';
+    r'3187b9eb59968e53e2f4bf73394518059a12f14e';
 
 /// ViewModel for managing study goals
 ///

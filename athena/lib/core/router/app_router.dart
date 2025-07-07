@@ -9,7 +9,8 @@ import 'package:athena/features/auth/presentation/views/landing_screen.dart';
 import 'package:athena/features/auth/presentation/views/login_screen.dart';
 import 'package:athena/features/auth/presentation/views/profile_screen.dart';
 import 'package:athena/features/auth/presentation/views/signup_screen.dart';
-import 'package:athena/features/auth/presentation/views/update_password_screen.dart';
+import 'package:athena/features/auth/presentation/views/custom_update_password_screen.dart';
+import 'package:athena/features/auth/presentation/views/forgot_password_screen.dart';
 import 'package:athena/features/chatbot/presentation/views/chatbot_screen.dart';
 import 'package:athena/features/errors/presentation/views/not_found_screen.dart';
 import 'package:athena/features/home/presentation/views/home_screen.dart';
@@ -82,38 +83,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final AuthChangeEvent? lastAuthEvent =
           ref.read(appAuthProvider.notifier).lastAuthEvent;
 
-      // Explicitly handle the auth callback path FIRST (for email verification, magic links, recovery)
-      if (currentLocation == '/${AppRouteNames.authCallback}') {
-        // If the event is password recovery, redirect to update password screen
-        // The Supabase SDK should have processed the URL fragment and updated the session.
-        if (lastAuthEvent == AuthChangeEvent.passwordRecovery) {
+      // Check for password recovery event FIRST, regardless of location
+      // This ensures recovery links always go to update password screen
+      if (lastAuthEvent == AuthChangeEvent.passwordRecovery) {
+        print(
+          'GoRouter redirect: Password Recovery event detected, redirecting to /update-password',
+        );
+        // Check if user has a valid session from the recovery link
+        if (Supabase.instance.client.auth.currentSession?.accessToken != null) {
+          return '/${AppRouteNames.updatePassword}';
+        } else {
           print(
-            'GoRouter redirect: AuthCallback -> Password Recovery event, redirecting to /update-password',
+            'GoRouter redirect: Password Recovery event, but no access token found in session. Going to /update-password anyway.',
           );
-          // Check if user is already "authenticated" in the sense of having a session from the recovery link
-          if (Supabase.instance.client.auth.currentSession?.accessToken !=
-              null) {
-            return '/${AppRouteNames.updatePassword}';
-          } else {
-            // If no session from recovery link somehow, maybe back to login with error?
-            // Or trust SupaResetPassword screen to handle missing token.
-            print(
-              'GoRouter redirect: AuthCallback -> Password Recovery event, but no access token found in session. Going to /update-password anyway.',
-            );
-            return '/${AppRouteNames.updatePassword}';
-          }
+          return '/${AppRouteNames.updatePassword}';
         }
+      }
 
+      // Explicitly handle the auth callback path (for email verification, magic links)
+      if (currentLocation == '/${AppRouteNames.authCallback}') {
         // If authenticated (e.g. after email verification or magic link)
         if (isAuthenticated) {
           print(
-            'GoRouter redirect: AuthCallback -> Authenticated (not password recovery), redirecting to /home',
+            'GoRouter redirect: AuthCallback -> Authenticated, redirecting to /home',
           );
           return '/${AppRouteNames.home}';
         }
 
         print(
-          'GoRouter redirect: AuthCallback -> Not authenticated or loading (and not password recovery), staying on /auth/callback',
+          'GoRouter redirect: AuthCallback -> Not authenticated or loading, staying on /auth/callback',
         );
         return null;
       }
@@ -137,7 +135,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final bool onAuthRelevantScreen =
           currentLocation == '/${AppRouteNames.login}' ||
           currentLocation == '/${AppRouteNames.signup}' ||
-          currentLocation == '/${AppRouteNames.landing}';
+          currentLocation == '/${AppRouteNames.landing}' ||
+          currentLocation == '/${AppRouteNames.forgotPassword}' ||
+          currentLocation == '/${AppRouteNames.updatePassword}';
 
       // If authenticated (and not on auth callback screen):
       if (isAuthenticated) {
@@ -188,20 +188,33 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return NotFoundScreen(routerState: state);
     },
     routes: [
-      GoRoute(
-        path: '/${AppRouteNames.landing}',
-        name: AppRouteNames.landing,
-        builder: (context, state) => const LandingScreen(),
-      ),
-      GoRoute(
-        path: '/${AppRouteNames.login}',
-        name: AppRouteNames.login,
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/${AppRouteNames.signup}',
-        name: AppRouteNames.signup,
-        builder: (context, state) => const SignUpScreen(),
+      // Authentication shell route to prevent back button from exiting app
+      ShellRoute(
+        builder: (BuildContext context, GoRouterState state, Widget child) {
+          return child;
+        },
+        routes: [
+          GoRoute(
+            path: '/${AppRouteNames.landing}',
+            name: AppRouteNames.landing,
+            builder: (context, state) => const LandingScreen(),
+          ),
+          GoRoute(
+            path: '/${AppRouteNames.login}',
+            name: AppRouteNames.login,
+            builder: (context, state) => const LoginScreen(),
+          ),
+          GoRoute(
+            path: '/${AppRouteNames.signup}',
+            name: AppRouteNames.signup,
+            builder: (context, state) => const SignUpScreen(),
+          ),
+          GoRoute(
+            path: '/${AppRouteNames.forgotPassword}',
+            name: AppRouteNames.forgotPassword,
+            builder: (context, state) => const ForgotPasswordScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: '/${AppRouteNames.profile}',
@@ -218,7 +231,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/${AppRouteNames.updatePassword}',
         name: AppRouteNames.updatePassword,
-        builder: (context, state) => const UpdatePasswordScreen(),
+        builder: (context, state) => const CustomUpdatePasswordScreen(),
       ),
       // Main navigation shell that contains the bottom navigation bar
       // This is the key change - using a ShellRoute for the main navigation

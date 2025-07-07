@@ -6,6 +6,7 @@ CREATE TABLE profiles (
   full_name TEXT,
   avatar_url TEXT,
   website TEXT,
+  email TEXT UNIQUE
 
   CONSTRAINT username_length CHECK (char_length(username) >= 3)
 );
@@ -33,8 +34,8 @@ RETURNS TRIGGER
 SECURITY DEFINER SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name, avatar_url)
-  VALUES (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url');
+  INSERT INTO public.profiles (id, full_name, avatar_url, email)
+  VALUES (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url', new.email);
   RETURN new;
 END;
 $$ LANGUAGE plpgsql;

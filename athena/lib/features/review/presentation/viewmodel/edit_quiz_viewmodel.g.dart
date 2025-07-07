@@ -6,7 +6,7 @@ part of 'edit_quiz_viewmodel.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$editQuizViewModelHash() => r'7cc39b112135c86e7ff6d46639dafbdb2d1c57da';
+String _$editQuizViewModelHash() => r'790db685bb6bc7ae03ed5619759b58b6e56a797e';
 
 /// Copied from Dart SDK
 class _SystemHash {

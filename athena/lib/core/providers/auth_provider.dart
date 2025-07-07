@@ -106,7 +106,21 @@ class AppAuth extends _$AppAuth {
     Map<String, dynamic>? data,
   }) async {
     try {
-      await supabaseClient.auth.signUp(
+      // First check if email already exists in profiles table
+      final existingProfile =
+          await supabaseClient
+              .from('profiles')
+              .select('email')
+              .eq('email', email.toLowerCase())
+              .maybeSingle();
+
+      if (existingProfile != null) {
+        throw AuthException(
+          'An account with this email already exists. Please use a different email or sign in instead.',
+        );
+      }
+
+      final response = await supabaseClient.auth.signUp(
         password: password,
         email: email,
         data: data,
@@ -115,6 +129,32 @@ class AppAuth extends _$AppAuth {
                 ? Constants.supabaseLoginCallbackUrlWeb
                 : Constants.supabaseLoginCallbackUrlMobile,
       );
+
+      // If signup succeeded but no user was returned, it might be a duplicate
+      if (response.user == null) {
+        throw AuthException('Signup failed - user could not be created');
+      }
+
+      // Wait a moment for the trigger to execute and create the profile
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Verify that the profile was actually created
+      final profile =
+          await supabaseClient
+              .from('profiles')
+              .select('id, email')
+              .eq('id', response.user!.id)
+              .maybeSingle();
+
+      if (profile == null) {
+        // Profile wasn't created, probably due to unique constraint violation
+        // Note: We can't clean up the auth user from client side,
+        // but this should be rare since we check for existing emails first
+        throw AuthException(
+          'An account with this email already exists. Please use a different email or sign in instead.',
+        );
+      }
+
       // The stream will automatically update from onAuthStateChange
     } catch (e) {
       debugPrint('Error signing up: $e');

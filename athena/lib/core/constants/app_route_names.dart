@@ -35,4 +35,5 @@ class AppRouteNames {
       'auth/callback'; // Ensure this matches the actual incoming path
   static const String updatePassword =
       'update-password'; // For setting a new password after recovery link
+  static const String forgotPassword = 'forgot-password'; // For requesting password reset
 }
