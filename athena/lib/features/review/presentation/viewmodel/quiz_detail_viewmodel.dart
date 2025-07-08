@@ -191,7 +191,7 @@ class QuizDetailViewModel extends _$QuizDetailViewModel {
 
     // Calculate overall accuracy based on easiness factors
     // Only consider items that have been reviewed at least once (repetitions > 0)
-    // Uses SM-2 algorithm range (1.3-4.0) mapped to accuracy percentage (0-100%)
+    // Uses SM-2 algorithm range (1.3-3.0) mapped to accuracy percentage (0-100%)
     // Higher easiness factor indicates better performance/accuracy
     final reviewedItems = items.where((item) => item.repetitions > 0).toList();
 
@@ -204,8 +204,8 @@ class QuizDetailViewModel extends _$QuizDetailViewModel {
           ) /
           reviewedItems.length;
 
-      // Convert easiness factor to accuracy percentage (1.3-4.0 range mapped to 0-100%)
-      accuracy = ((avgEasinessFactor - 1.3) / (4.0 - 1.3)).clamp(0.0, 1.0);
+      // Convert easiness factor to accuracy percentage (1.3-3.0 range mapped to 0-100%)
+      accuracy = ((avgEasinessFactor - 1.3) / (3.0 - 1.3)).clamp(0.0, 1.0);
     }
     // If no items have been reviewed, accuracy remains 0.0
 

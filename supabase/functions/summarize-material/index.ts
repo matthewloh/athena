@@ -155,21 +155,21 @@ function createSummaryPrompt(textContent, summaryLength, title = '') {
   const titleContext = title ? `for the material titled "${title}"` : '';
 
   return `You are an AI study assistant helping students understand their academic materials. 
-Please create a well-structured summary ${titleContext} that will help with studying and review.
+    Please create a well-structured summary ${titleContext} that will help with studying and review.
 
-${lengthInstructions}
+  ${lengthInstructions}
 
-Guidelines:
-- Focus on key concepts, definitions, and main ideas
-- Use clear, student-friendly language
-- Organize information logically with bullet points or numbered lists when appropriate
-- Highlight important facts, formulas, or principles
-- Include any critical examples or case studies mentioned
-- End with a complete sentence or thought
-- If space is limited, prioritize the most important information and conclude naturally
+  Guidelines:
+  - Focus on key concepts, definitions, and main ideas
+  - Use clear, student-friendly language
+  - Organize information logically with bullet points or numbered lists when appropriate
+  - Highlight important facts, formulas, or principles
+  - Include any critical examples or case studies mentioned
+  - End with a complete sentence or thought
+  - If space is limited, prioritize the most important information and conclude naturally
 
-Text to summarize:
-${textContent}`;
+  Text to summarize:
+  ${textContent}`;
 }
 
 // Helper function to save summary to database

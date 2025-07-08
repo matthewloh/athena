@@ -285,54 +285,54 @@ function createGenerationPrompt(textContent, quizType, maxQuestions, difficultyL
 
   return `You are an AI study assistant helping students create quiz questions ${titleContext} for effective learning and review.
 
-CRITICAL INSTRUCTIONS:
-1. MAXIMUM QUESTIONS: You MUST NOT exceed ${maxQuestions} questions under any circumstances
-2. QUALITY OVER QUANTITY: Better to have fewer excellent questions than many mediocre ones
-3. CONTENT ANALYSIS: First analyze the study material to determine how many meaningful, non-repetitive questions can be created
-4. TYPE FIELD: Each question MUST include the correct "type" field: "${quizType === 'flashcard' ? 'flashcard' : 'multiple_choice'}"
+  CRITICAL INSTRUCTIONS:
+  1. MAXIMUM QUESTIONS: You MUST NOT exceed ${maxQuestions} questions under any circumstances
+  2. QUALITY OVER QUANTITY: Better to have fewer excellent questions than many mediocre ones
+  3. CONTENT ANALYSIS: First analyze the study material to determine how many meaningful, non-repetitive questions can be created
+  4. TYPE FIELD: Each question MUST include the correct "type" field: "${quizType === 'flashcard' ? 'flashcard' : 'multiple_choice'}"
 
-Content Analysis Guidelines:
-- If the material has 1-3 distinct key concepts: Generate 2-4 questions
-- If the material has 4-6 distinct key concepts: Generate 4-7 questions  
-- If the material has 7+ distinct key concepts: Generate up to ${maxQuestions} questions
-- Always prioritize the most important and testable information
-- Do not create filler questions just to reach a number
-- Avoid redundant or overlapping questions
+  Content Analysis Guidelines:
+  - If the material has 1-3 distinct key concepts: Generate 2-4 questions
+  - If the material has 4-6 distinct key concepts: Generate 4-7 questions  
+  - If the material has 7+ distinct key concepts: Generate up to ${maxQuestions} questions
+  - Always prioritize the most important and testable information
+  - Do not create filler questions just to reach a number
+  - Avoid redundant or overlapping questions
 
-${typeInstructions}
+  ${typeInstructions}
 
-Guidelines:
-- ${difficultyInstructions[difficultyLevel]}
-- Focus on key concepts, important facts, and essential information
-- Questions should be clear, unambiguous, and educationally valuable
-- For flashcards: Prioritize key terms, definitions, formulas, and core concepts with concise answers
-- For multiple choice: Ensure incorrect options are plausible but clearly wrong
-- Avoid trick questions or overly specific details unless relevant
-- Cover different aspects of the material when possible
+  Guidelines:
+  - ${difficultyInstructions[difficultyLevel]}
+  - Focus on key concepts, important facts, and essential information
+  - Questions should be clear, unambiguous, and educationally valuable
+  - For flashcards: Prioritize key terms, definitions, formulas, and core concepts with concise answers
+  - For multiple choice: Ensure incorrect options are plausible but clearly wrong
+  - Avoid trick questions or overly specific details unless relevant
+  - Cover different aspects of the material when possible
 
-RESPONSE FORMAT:
-You must return both:
-1. optimal_count: The number of questions you determined is best for this content (must be ≤ ${maxQuestions})
-2. questions: An array of exactly that many questions (must match optimal_count and be ≤ ${maxQuestions})
+  RESPONSE FORMAT:
+  You must return both:
+  1. optimal_count: The number of questions you determined is best for this content (must be ≤ ${maxQuestions})
+  2. questions: An array of exactly that many questions (must match optimal_count and be ≤ ${maxQuestions})
 
-${quizType === 'flashcard' 
-  ? `FLASHCARD FORMAT - Each question must be:
-{
-  "question": "Your question here",
-  "answer": "Your concise answer here",
-  "type": "flashcard"
-}`
-  : `MULTIPLE CHOICE FORMAT - Each question must be:
-{
-  "question": "Your question here",
-  "options": ["Option A", "Option B", "Option C", "Option D"],
-  "correct_option_index": 0,
-  "type": "multiple_choice"
-}`
-}
+  ${quizType === 'flashcard' 
+    ? `FLASHCARD FORMAT - Each question must be:
+  {
+    "question": "Your question here",
+    "answer": "Your concise answer here",
+    "type": "flashcard"
+  }`
+    : `MULTIPLE CHOICE FORMAT - Each question must be:
+  {
+    "question": "Your question here",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correct_option_index": 0,
+    "type": "multiple_choice"
+  }`
+  }
 
-Study material content:
-${textContent}`;
+  Study material content:
+  ${textContent}`;
 }
 
 Deno.serve(async (req) => {

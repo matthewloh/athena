@@ -199,7 +199,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen>
                                     reviewState,
                                   ),
                                   _buildSortMenuItem(
-                                    'Accuracy',
+                                    'Mastery',
                                     'accuracy',
                                     reviewState,
                                   ),
