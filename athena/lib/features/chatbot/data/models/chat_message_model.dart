@@ -1,4 +1,5 @@
 import 'package:athena/features/chatbot/domain/entities/chat_message_entity.dart';
+import 'package:athena/features/chatbot/domain/entities/chat_navigation_action.dart';
 import 'package:athena/features/chatbot/data/models/file_attachment_model.dart';
 
 class ChatMessageModel extends ChatMessageEntity {
@@ -14,6 +15,7 @@ class ChatMessageModel extends ChatMessageEntity {
     super.metadata,
     super.attachments,
     super.hasAttachments,
+    super.navigationActions,
     this.isStreaming = false,
     this.isComplete = true,
   });
@@ -48,6 +50,31 @@ class ChatMessageModel extends ChatMessageEntity {
       }
     }
 
+    // Parse navigation actions from direct property or metadata
+    final List<ChatNavigationAction> navigationActions = [];
+    
+    // Check direct property first
+    if (json['navigation_actions'] != null) {
+      final actionsList = json['navigation_actions'] as List<dynamic>;
+      for (final actionJson in actionsList) {
+        navigationActions.add(
+          ChatNavigationAction.fromJson(actionJson as Map<String, dynamic>),
+        );
+      }
+    } 
+    // Check metadata for navigation actions
+    else if (json['metadata'] != null) {
+      final metadata = json['metadata'] as Map<String, dynamic>;
+      if (metadata['navigation_actions'] != null) {
+        final actionsList = metadata['navigation_actions'] as List<dynamic>;
+        for (final actionJson in actionsList) {
+          navigationActions.add(
+            ChatNavigationAction.fromJson(actionJson as Map<String, dynamic>),
+          );
+        }
+      }
+    }
+
     return ChatMessageModel(
       id: json['id'] as String,
       conversationId: json['conversation_id'] as String,
@@ -58,6 +85,7 @@ class ChatMessageModel extends ChatMessageEntity {
       attachments: attachments,
       hasAttachments:
           json['has_attachments'] as bool? ?? attachments.isNotEmpty,
+      navigationActions: navigationActions,
       isStreaming: json['is_streaming'] as bool? ?? false,
       isComplete: json['is_complete'] as bool? ?? true,
     );
@@ -101,6 +129,7 @@ class ChatMessageModel extends ChatMessageEntity {
     required String text,
     required MessageSender sender,
     Map<String, dynamic>? metadata,
+    List<ChatNavigationAction>? navigationActions,
   }) {
     return ChatMessageModel(
       id: id,
@@ -109,6 +138,7 @@ class ChatMessageModel extends ChatMessageEntity {
       sender: sender,
       timestamp: DateTime.now(),
       metadata: metadata,
+      navigationActions: navigationActions ?? [],
       isStreaming: true,
       isComplete: false,
     );
@@ -130,6 +160,7 @@ class ChatMessageModel extends ChatMessageEntity {
       metadata: metadata,
       attachments: attachments ?? [],
       hasAttachments: (attachments?.isNotEmpty) ?? false,
+      navigationActions: [],
       isComplete: false,
     );
   }
@@ -144,6 +175,7 @@ class ChatMessageModel extends ChatMessageEntity {
     Map<String, dynamic>? metadata,
     List<FileAttachment>? attachments,
     bool? hasAttachments,
+    List<ChatNavigationAction>? navigationActions,
     bool? isStreaming,
     bool? isComplete,
   }) {
@@ -156,6 +188,7 @@ class ChatMessageModel extends ChatMessageEntity {
       metadata: metadata ?? this.metadata,
       attachments: attachments ?? this.attachments,
       hasAttachments: hasAttachments ?? this.hasAttachments,
+      navigationActions: navigationActions ?? this.navigationActions,
       isStreaming: isStreaming ?? this.isStreaming,
       isComplete: isComplete ?? this.isComplete,
     );

@@ -3,6 +3,7 @@ import 'package:athena/features/auth/domain/entities/profile_entity.dart';
 import 'package:athena/features/auth/presentation/providers/profile_providers.dart';
 import 'package:athena/features/chatbot/domain/entities/chat_message_entity.dart';
 import 'package:athena/features/chatbot/presentation/widgets/fullscreen_image_viewer.dart';
+import 'package:athena/features/chatbot/presentation/widgets/navigation_chip_island.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -31,80 +32,95 @@ class ChatBubble extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
+      child: Column(
+        crossAxisAlignment:
+            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          if (!isUser) _buildAvatar(context, const AsyncValue.data(null)),
-          if (!isUser) const SizedBox(width: 8),
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: isUser ? AppColors.athenaBlue : Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(18),
-                  topRight: const Radius.circular(18),
-                  bottomLeft: Radius.circular(isUser ? 18 : 4),
-                  bottomRight: Radius.circular(isUser ? 4 : 18),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-                border:
-                    !isUser
-                        ? Border.all(
-                          color: AppColors.athenaLightGrey.withValues(
-                            alpha: 0.3,
-                          ),
-                          width: 1,
-                        )
-                        : null,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // File attachments (show first if present)
-                  if (message.hasAttachments &&
-                      message.attachments.isNotEmpty) ...[
-                    _buildAttachments(context, isUser),
-                    if (message.text.isNotEmpty) const SizedBox(height: 8),
-                  ],
-                  // Message text
-                  if (message.text.isNotEmpty)
-                    if (isUser)
-                      Text(
-                        message.text,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      )
-                    else
-                      _buildMarkdownContent(context),
-                  const SizedBox(height: 8),
-                  Text(
-                    _formatTime(message.timestamp),
-                    style: TextStyle(
-                      color:
-                          isUser
-                              ? Colors.white.withValues(alpha: 0.7)
-                              : AppColors.athenaMediumGrey,
-                      fontSize: 11,
+          Row(
+            mainAxisAlignment:
+                isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (!isUser) _buildAvatar(context, const AsyncValue.data(null)),
+              if (!isUser) const SizedBox(width: 8),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isUser ? AppColors.athenaBlue : Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(18),
+                      topRight: const Radius.circular(18),
+                      bottomLeft: Radius.circular(isUser ? 18 : 4),
+                      bottomRight: Radius.circular(isUser ? 4 : 18),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                    border:
+                        !isUser
+                            ? Border.all(
+                              color: AppColors.athenaLightGrey.withValues(
+                                alpha: 0.3,
+                              ),
+                              width: 1,
+                            )
+                            : null,
                   ),
-                ],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // File attachments (show first if present)
+                      if (message.hasAttachments &&
+                          message.attachments.isNotEmpty) ...[
+                        _buildAttachments(context, isUser),
+                        if (message.text.isNotEmpty) const SizedBox(height: 8),
+                      ],
+                      // Message text
+                      if (message.text.isNotEmpty)
+                        if (isUser)
+                          Text(
+                            message.text,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          )
+                        else
+                          _buildMarkdownContent(context),
+                      const SizedBox(height: 8),
+                      Text(
+                        _formatTime(message.timestamp),
+                        style: TextStyle(
+                          color:
+                              isUser
+                                  ? Colors.white.withValues(alpha: 0.7)
+                                  : AppColors.athenaMediumGrey,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (isUser) const SizedBox(width: 8),
+              if (isUser) _buildAvatar(context, userProfileAsyncValue),
+            ],
+          ),
+          // Navigation chips for AI messages
+          if (!isUser && message.navigationActions.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 40.0, top: 4.0),
+              child: NavigationChipIsland(
+                actions: message.navigationActions,
+                title: message.navigationActions.length > 1 ? "Quick Actions" : null,
               ),
             ),
-          ),
-          if (isUser) const SizedBox(width: 8),
-          if (isUser) _buildAvatar(context, userProfileAsyncValue),
         ],
       ),
     );

@@ -7,10 +7,27 @@ import 'package:athena/features/planner/presentation/viewmodel/study_goals_viewm
 import 'package:athena/features/planner/presentation/viewmodel/study_sessions_viewmodel.dart';
 import 'package:athena/features/planner/presentation/widgets/study_session_form.dart';
 import 'package:athena/features/planner/presentation/widgets/study_goal_form.dart';
+import 'package:athena/features/planner/presentation/widgets/session_reminder_management_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+
+enum SessionSortOption {
+  timeAscending,
+  timeDescending,
+  alphabetical,
+  alphabeticalReverse,
+}
+
+enum GoalSortOption {
+  alphabetical,
+  alphabeticalReverse,
+  targetDateAscending,
+  targetDateDescending,
+  progressAscending,
+  progressDescending,
+}
 
 class PlannerScreen extends ConsumerStatefulWidget {
   const PlannerScreen({super.key});
@@ -23,6 +40,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   DateTime _selectedDate = TimezoneUtils.nowInMalaysia();
+  
+  // Sorting state
+  SessionSortOption _sessionSortOption = SessionSortOption.timeAscending;
+  GoalSortOption _goalSortOption = GoalSortOption.targetDateAscending;
 
   // No more dummy data - using real ViewModels!
 
@@ -36,6 +57,94 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  String _getSessionSortLabel(SessionSortOption option) {
+    switch (option) {
+      case SessionSortOption.timeAscending:
+        return 'Time (Early → Late)';
+      case SessionSortOption.timeDescending:
+        return 'Time (Late → Early)';
+      case SessionSortOption.alphabetical:
+        return 'A → Z';
+      case SessionSortOption.alphabeticalReverse:
+        return 'Z → A';
+    }
+  }
+
+  String _getGoalSortLabel(GoalSortOption option) {
+    switch (option) {
+      case GoalSortOption.alphabetical:
+        return 'A → Z';
+      case GoalSortOption.alphabeticalReverse:
+        return 'Z → A';
+      case GoalSortOption.targetDateAscending:
+        return 'Target Date (Early → Late)';
+      case GoalSortOption.targetDateDescending:
+        return 'Target Date (Late → Early)';
+      case GoalSortOption.progressAscending:
+        return 'Progress (Low → High)';
+      case GoalSortOption.progressDescending:
+        return 'Progress (High → Low)';
+    }
+  }
+
+  List<StudySessionEntity> _sortSessions(List<StudySessionEntity> sessions) {
+    final sortedSessions = List<StudySessionEntity>.from(sessions);
+    
+    switch (_sessionSortOption) {
+      case SessionSortOption.timeAscending:
+        sortedSessions.sort((a, b) => a.startTime.compareTo(b.startTime));
+        break;
+      case SessionSortOption.timeDescending:
+        sortedSessions.sort((a, b) => b.startTime.compareTo(a.startTime));
+        break;
+      case SessionSortOption.alphabetical:
+        sortedSessions.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+        break;
+      case SessionSortOption.alphabeticalReverse:
+        sortedSessions.sort((a, b) => b.title.toLowerCase().compareTo(a.title.toLowerCase()));
+        break;
+    }
+    
+    return sortedSessions;
+  }
+
+  List<StudyGoalEntity> _sortGoals(List<StudyGoalEntity> goals) {
+    final sortedGoals = List<StudyGoalEntity>.from(goals);
+    
+    switch (_goalSortOption) {
+      case GoalSortOption.alphabetical:
+        sortedGoals.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+        break;
+      case GoalSortOption.alphabeticalReverse:
+        sortedGoals.sort((a, b) => b.title.toLowerCase().compareTo(a.title.toLowerCase()));
+        break;
+      case GoalSortOption.targetDateAscending:
+        sortedGoals.sort((a, b) {
+          if (a.targetDate == null && b.targetDate == null) return 0;
+          if (a.targetDate == null) return 1; // Put nulls at end
+          if (b.targetDate == null) return -1;
+          return a.targetDate!.compareTo(b.targetDate!);
+        });
+        break;
+      case GoalSortOption.targetDateDescending:
+        sortedGoals.sort((a, b) {
+          if (a.targetDate == null && b.targetDate == null) return 0;
+          if (a.targetDate == null) return 1; // Put nulls at end
+          if (b.targetDate == null) return -1;
+          return b.targetDate!.compareTo(a.targetDate!);
+        });
+        break;
+      case GoalSortOption.progressAscending:
+        sortedGoals.sort((a, b) => a.progress.compareTo(b.progress));
+        break;
+      case GoalSortOption.progressDescending:
+        sortedGoals.sort((a, b) => b.progress.compareTo(a.progress));
+        break;
+    }
+    
+    return sortedGoals;
   }
 
   @override
@@ -262,6 +371,57 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           ),
         ),
 
+        // Sort controls for sessions
+        Consumer(
+          builder: (context, ref, child) {
+            final sessionsState = ref.watch(studySessionsViewModelProvider);
+            final filteredSessions = sessionsState.sessions.where((session) {
+              return TimezoneUtils.isSameDayMalaysia(
+                session.startTime,
+                _selectedDate,
+              );
+            }).toList();
+
+            if (filteredSessions.isEmpty) {
+              return const SizedBox.shrink();
+            }
+
+            return Container(
+              color: Colors.grey[50],
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.sort, size: 20, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: DropdownButton<SessionSortOption>(
+                      value: _sessionSortOption,
+                      isExpanded: true,
+                      underline: const SizedBox.shrink(),
+                      items: SessionSortOption.values.map((option) {
+                        return DropdownMenuItem(
+                          value: option,
+                          child: Text(
+                            _getSessionSortLabel(option),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (SessionSortOption? newOption) {
+                        if (newOption != null) {
+                          setState(() {
+                            _sessionSortOption = newOption;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+
         // Session list
         Expanded(
           child: Builder(
@@ -271,23 +431,22 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   final sessionsState = ref.watch(
                     studySessionsViewModelProvider,
                   );
-                  final filteredSessions =
-                      sessionsState.sessions.where((session) {
+                  final filteredSessions = sessionsState.sessions.where((session) {
                         return TimezoneUtils.isSameDayMalaysia(
                           session.startTime,
                           _selectedDate,
                         );
                       }).toList();
 
-                  // Clean implementation without debug logs
+                  final sortedSessions = _sortSessions(filteredSessions);
 
-                  return filteredSessions.isEmpty
+                  return sortedSessions.isEmpty
                       ? _buildEmptySessionsState()
                       : ListView.builder(
                         padding: const EdgeInsets.all(16),
-                        itemCount: filteredSessions.length,
+                        itemCount: sortedSessions.length,
                         itemBuilder: (context, index) {
-                          final session = filteredSessions[index];
+                          final session = sortedSessions[index];
                           return _buildSessionCard(context, session);
                         },
                       );
@@ -539,18 +698,61 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           return _buildEmptyGoalsState();
         }
 
-        return RefreshIndicator(
+        final sortedGoals = _sortGoals(goalsState.goals);
+
+        return Column(
+          children: [
+            // Sort controls for goals
+            Container(
+              color: Colors.grey[50],
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.sort, size: 20, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: DropdownButton<GoalSortOption>(
+                      value: _goalSortOption,
+                      isExpanded: true,
+                      underline: const SizedBox.shrink(),
+                      items: GoalSortOption.values.map((option) {
+                        return DropdownMenuItem(
+                          value: option,
+                          child: Text(
+                            _getGoalSortLabel(option),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (GoalSortOption? newOption) {
+                        if (newOption != null) {
+                          setState(() {
+                            _goalSortOption = newOption;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Goals list
+            Expanded(
+              child: RefreshIndicator(
           onRefresh: () async {
             await ref.read(studyGoalsViewModelProvider.notifier).refreshGoals();
           },
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: goalsState.goals.length,
+                  itemCount: sortedGoals.length,
             itemBuilder: (context, index) {
-              final goal = goalsState.goals[index];
+                    final goal = sortedGoals[index];
               return _buildGoalCard(context, goal);
             },
           ),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -1198,215 +1400,20 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     BuildContext context,
     StudySessionEntity session,
   ) {
-    final titleController = TextEditingController(text: session.title);
-    final descriptionController = TextEditingController(text: session.notes);
-    final subjectController = TextEditingController(text: session.subject);
-    DateTime selectedDate = DateTime(
-      session.startTime.year,
-      session.startTime.month,
-      session.startTime.day,
-    );
-    TimeOfDay startTime = TimeOfDay.fromDateTime(session.startTime);
-    TimeOfDay endTime = TimeOfDay.fromDateTime(session.endTime);
-
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder:
-          (context) => StatefulBuilder(
-            builder:
-                (context, setState) => AlertDialog(
-                  title: const Text('Edit Study Session'),
-                  content: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextField(
-                          controller: titleController,
-                          decoration: const InputDecoration(
-                            labelText: 'Session Title *',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: descriptionController,
-                          decoration: const InputDecoration(
-                            labelText: 'Notes',
-                            border: OutlineInputBorder(),
-                          ),
-                          maxLines: 2,
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: subjectController,
-                          decoration: const InputDecoration(
-                            labelText: 'Subject',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ListTile(
-                          title: Text(
-                            'Date: ${DateFormat('MMM d, y').format(selectedDate)}',
-                          ),
-                          leading: const Icon(Icons.calendar_today),
-                          onTap: () async {
-                            final date = await showDatePicker(
-                              context: context,
-                              initialDate: selectedDate,
-                              firstDate: TimezoneUtils.nowInMalaysia().subtract(
-                                const Duration(days: 365),
-                              ),
-                              lastDate: TimezoneUtils.nowInMalaysia().add(
-                                const Duration(days: 365),
-                              ),
-                            );
-                            if (date != null) {
-                              setState(() {
-                                selectedDate = date;
-                              });
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ListTile(
-                                title: Text(
-                                  'Start: ${startTime.format(context)}',
-                                ),
-                                leading: const Icon(Icons.access_time),
-                                onTap: () async {
-                                  final time = await showTimePicker(
-                                    context: context,
-                                    initialTime: startTime,
-                                  );
-                                  if (time != null) {
-                                    setState(() {
-                                      startTime = time;
-                                      // Auto-adjust end time to be 1 hour later if needed
-                                      if (endTime.hour * 60 + endTime.minute <=
-                                          time.hour * 60 + time.minute) {
-                                        final newEndTime = time.hour + 1;
-                                        endTime = TimeOfDay(
-                                          hour:
-                                              newEndTime < 24 ? newEndTime : 23,
-                                          minute: time.minute,
-                                        );
-                                      }
-                                    });
-                                  }
-                                },
-                              ),
-                            ),
-                            Expanded(
-                              child: ListTile(
-                                title: Text('End: ${endTime.format(context)}'),
-                                leading: const Icon(Icons.access_time_filled),
-                                onTap: () async {
-                                  final time = await showTimePicker(
-                                    context: context,
-                                    initialTime: endTime,
-                                  );
-                                  if (time != null) {
-                                    setState(() {
-                                      endTime = time;
-                                    });
-                                  }
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () async {
-                        if (titleController.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please enter a session title'),
-                            ),
-                          );
-                          return;
-                        }
-
-                        // Validate time - Create in Malaysian timezone
-                        final startDateTime = TimezoneUtils.createMalaysianTime(
-                          selectedDate.year,
-                          selectedDate.month,
-                          selectedDate.day,
-                          startTime.hour,
-                          startTime.minute,
-                        );
-                        final endDateTime = TimezoneUtils.createMalaysianTime(
-                          selectedDate.year,
-                          selectedDate.month,
-                          selectedDate.day,
-                          endTime.hour,
-                          endTime.minute,
-                        );
-
-                        if (endDateTime.isBefore(startDateTime) ||
-                            endDateTime.isAtSameMomentAs(startDateTime)) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'End time must be after start time',
-                              ),
-                            ),
-                          );
-                          return;
-                        }
-
-                        Navigator.pop(context);
-
-                        // Update the session
-                        final updatedSession = session.copyWith(
-                          title: titleController.text.trim(),
-                          notes:
-                              descriptionController.text.trim().isEmpty
-                                  ? null
-                                  : descriptionController.text.trim(),
-                          subject:
-                              subjectController.text.trim().isEmpty
-                                  ? null
-                                  : subjectController.text.trim(),
-                          startTime: startDateTime.toUtc(),
-                          endTime: endDateTime.toUtc(),
-                          updatedAt: TimezoneUtils.nowInMalaysia().toUtc(),
-                        );
-
-                        final success = await ref
-                            .read(studySessionsViewModelProvider.notifier)
-                            .updateSession(updatedSession);
-
-                        if (mounted) {
-                          ScaffoldMessenger.of(this.context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                success
-                                    ? 'Session updated successfully!'
-                                    : 'Failed to update session',
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Update'),
-                    ),
-                  ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => StudySessionForm(
+          initialSession: session,
+          onSessionCreated: () {
+            // Refresh the sessions list when a session is updated
+            // The form already handles the ViewModel call
+          },
                 ),
           ),
     );
@@ -1461,58 +1468,17 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   }
 
   void _showReminderSettings(BuildContext context, StudySessionEntity session) {
-    // For now, show a dialog with reminder options
-    // In a full implementation, this would connect to flutter_local_notifications
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('Reminder Settings: ${session.title}'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Reminder notifications will be available in a future update!',
-                  style: TextStyle(fontSize: 16),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Planned features:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const Text('• 15 minutes before session'),
-                const Text('• 1 hour before session'),
-                const Text('• 1 day before session'),
-                const Text('• Custom reminder times'),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Colors.orange),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'This requires Flutter Local Notifications setup for platform-specific push notifications.',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-            ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.8,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => SessionReminderManagementSheet(
+          session: session,
+        ),
           ),
     );
   }

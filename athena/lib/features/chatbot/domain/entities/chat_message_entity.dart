@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:athena/features/chatbot/domain/entities/chat_navigation_action.dart';
 
 enum MessageSender { user, ai, system }
 
@@ -68,6 +69,7 @@ class ChatMessageEntity extends Equatable {
   metadata; // For potential future use (e.g., sources, tool calls)
   final List<FileAttachment> attachments;
   final bool hasAttachments;
+  final List<ChatNavigationAction> navigationActions;
 
   const ChatMessageEntity({
     required this.id,
@@ -78,6 +80,7 @@ class ChatMessageEntity extends Equatable {
     this.metadata,
     this.attachments = const [],
     this.hasAttachments = false,
+    this.navigationActions = const [],
   });
 
   @override
@@ -90,6 +93,7 @@ class ChatMessageEntity extends Equatable {
     metadata,
     attachments,
     hasAttachments,
+    navigationActions,
   ];
 
   //copyWith
@@ -102,6 +106,7 @@ class ChatMessageEntity extends Equatable {
     Map<String, dynamic>? metadata,
     List<FileAttachment>? attachments,
     bool? hasAttachments,
+    List<ChatNavigationAction>? navigationActions,
   }) {
     return ChatMessageEntity(
       id: id ?? this.id,
@@ -112,6 +117,7 @@ class ChatMessageEntity extends Equatable {
       metadata: metadata ?? this.metadata,
       attachments: attachments ?? this.attachments,
       hasAttachments: hasAttachments ?? this.hasAttachments,
+      navigationActions: navigationActions ?? this.navigationActions,
     );
   }
 }

@@ -193,6 +193,23 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
+  Future<Either<Failure, void>> updateConversationTitle(
+    String conversationId,
+    String newTitle,
+  ) async {
+    try {
+      await _remoteDataSource.updateConversationTitle(conversationId, newTitle);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(
+        ServerFailure('An unexpected error occurred: ${e.toString()}'),
+      );
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> deleteConversation(
     String conversationId,
   ) async {

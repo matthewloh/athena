@@ -29,6 +29,7 @@ abstract class ChatRemoteDataSource {
     int? limit,
   });
   Future<void> updateConversation(ConversationModel conversation);
+  Future<void> updateConversationTitle(String conversationId, String newTitle);
   Future<void> deleteConversation(String conversationId);
 
   // File upload methods

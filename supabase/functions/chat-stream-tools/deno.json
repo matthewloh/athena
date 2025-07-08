@@ -3,6 +3,7 @@
     "jsr:@supabase/functions-js/edge-runtime.d.ts": "jsr:@supabase/functions-js@2.4.1/edge-runtime.d.ts",
     "jsr:@supabase/supabase-js@2": "jsr:@supabase/supabase-js@2.46.1",
     "npm:@ai-sdk/openai": "npm:@ai-sdk/openai@0.0.66",
+    "npm:@ai-sdk/anthropic": "npm:@ai-sdk/anthropic@1.2.12",
     "npm:ai": "npm:ai@3.4.33",
     "npm:zod": "npm:zod@3.23.8"
   }

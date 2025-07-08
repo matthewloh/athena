@@ -7,6 +7,11 @@ export type Json =
   | Json[];
 
 export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)";
+  };
   public: {
     Tables: {
       chat_messages: {
@@ -133,7 +138,10 @@ export type Database = {
           data: Json | null;
           error_message: string | null;
           id: string;
+          reminder_type: Database["public"]["Enums"]["reminder_type"] | null;
+          scheduled_for: string | null;
           sent_at: string | null;
+          session_reminder_id: string | null;
           success: boolean | null;
           title: string;
           type: string;
@@ -144,7 +152,10 @@ export type Database = {
           data?: Json | null;
           error_message?: string | null;
           id?: string;
+          reminder_type?: Database["public"]["Enums"]["reminder_type"] | null;
+          scheduled_for?: string | null;
           sent_at?: string | null;
+          session_reminder_id?: string | null;
           success?: boolean | null;
           title: string;
           type: string;
@@ -155,17 +166,29 @@ export type Database = {
           data?: Json | null;
           error_message?: string | null;
           id?: string;
+          reminder_type?: Database["public"]["Enums"]["reminder_type"] | null;
+          scheduled_for?: string | null;
           sent_at?: string | null;
+          session_reminder_id?: string | null;
           success?: boolean | null;
           title?: string;
           type?: string;
           user_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "notification_history_session_reminder_id_fkey";
+            columns: ["session_reminder_id"];
+            isOneToOne: false;
+            referencedRelation: "session_reminders";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       profiles: {
         Row: {
           avatar_url: string | null;
+          email: string | null;
           fcm_token: string | null;
           full_name: string | null;
           id: string;
@@ -175,6 +198,7 @@ export type Database = {
         };
         Insert: {
           avatar_url?: string | null;
+          email?: string | null;
           fcm_token?: string | null;
           full_name?: string | null;
           id: string;
@@ -184,6 +208,7 @@ export type Database = {
         };
         Update: {
           avatar_url?: string | null;
+          email?: string | null;
           fcm_token?: string | null;
           full_name?: string | null;
           id?: string;
@@ -301,6 +326,42 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      reminder_templates: {
+        Row: {
+          created_at: string | null;
+          description: string | null;
+          id: string;
+          is_active: boolean | null;
+          is_default: boolean | null;
+          message_template: string;
+          name: string;
+          offset_minutes: number;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          description?: string | null;
+          id?: string;
+          is_active?: boolean | null;
+          is_default?: boolean | null;
+          message_template: string;
+          name: string;
+          offset_minutes: number;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          description?: string | null;
+          id?: string;
+          is_active?: boolean | null;
+          is_default?: boolean | null;
+          message_template?: string;
+          name?: string;
+          offset_minutes?: number;
+          updated_at?: string | null;
+        };
+        Relationships: [];
       };
       review_responses: {
         Row: {
@@ -427,12 +488,86 @@ export type Database = {
           },
         ];
       };
+      session_reminders: {
+        Row: {
+          created_at: string | null;
+          custom_message: string | null;
+          delivery_status:
+            | Database["public"]["Enums"]["reminder_delivery_status"]
+            | null;
+          error_message: string | null;
+          id: string;
+          is_enabled: boolean | null;
+          notification_id: string | null;
+          offset_minutes: number;
+          scheduled_time: string | null;
+          sent_at: string | null;
+          session_id: string;
+          template_id: string | null;
+          updated_at: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          custom_message?: string | null;
+          delivery_status?:
+            | Database["public"]["Enums"]["reminder_delivery_status"]
+            | null;
+          error_message?: string | null;
+          id?: string;
+          is_enabled?: boolean | null;
+          notification_id?: string | null;
+          offset_minutes: number;
+          scheduled_time?: string | null;
+          sent_at?: string | null;
+          session_id: string;
+          template_id?: string | null;
+          updated_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          custom_message?: string | null;
+          delivery_status?:
+            | Database["public"]["Enums"]["reminder_delivery_status"]
+            | null;
+          error_message?: string | null;
+          id?: string;
+          is_enabled?: boolean | null;
+          notification_id?: string | null;
+          offset_minutes?: number;
+          scheduled_time?: string | null;
+          sent_at?: string | null;
+          session_id?: string;
+          template_id?: string | null;
+          updated_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "session_reminders_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "study_sessions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "session_reminders_template_id_fkey";
+            columns: ["template_id"];
+            isOneToOne: false;
+            referencedRelation: "reminder_templates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       study_goals: {
         Row: {
           created_at: string;
           description: string | null;
+          goal_type: Database["public"]["Enums"]["goal_type"] | null;
           id: string;
           is_completed: boolean;
+          priority_level: Database["public"]["Enums"]["priority_level"] | null;
           progress: number;
           subject: string | null;
           target_date: string | null;
@@ -443,8 +578,10 @@ export type Database = {
         Insert: {
           created_at?: string;
           description?: string | null;
+          goal_type?: Database["public"]["Enums"]["goal_type"] | null;
           id?: string;
           is_completed?: boolean;
+          priority_level?: Database["public"]["Enums"]["priority_level"] | null;
           progress?: number;
           subject?: string | null;
           target_date?: string | null;
@@ -455,8 +592,10 @@ export type Database = {
         Update: {
           created_at?: string;
           description?: string | null;
+          goal_type?: Database["public"]["Enums"]["goal_type"] | null;
           id?: string;
           is_completed?: boolean;
+          priority_level?: Database["public"]["Enums"]["priority_level"] | null;
           progress?: number;
           subject?: string | null;
           target_date?: string | null;
@@ -580,6 +719,54 @@ export type Database = {
           },
         ];
       };
+      user_reminder_preferences: {
+        Row: {
+          created_at: string | null;
+          daily_checkins_enabled: boolean | null;
+          default_reminder_template_ids: string[] | null;
+          goal_reminders_enabled: boolean | null;
+          id: string;
+          notifications_enabled: boolean | null;
+          quiet_hours_end: string | null;
+          quiet_hours_start: string | null;
+          session_reminders_enabled: boolean | null;
+          streak_reminders_enabled: boolean | null;
+          timezone: string | null;
+          updated_at: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          daily_checkins_enabled?: boolean | null;
+          default_reminder_template_ids?: string[] | null;
+          goal_reminders_enabled?: boolean | null;
+          id?: string;
+          notifications_enabled?: boolean | null;
+          quiet_hours_end?: string | null;
+          quiet_hours_start?: string | null;
+          session_reminders_enabled?: boolean | null;
+          streak_reminders_enabled?: boolean | null;
+          timezone?: string | null;
+          updated_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          daily_checkins_enabled?: boolean | null;
+          default_reminder_template_ids?: string[] | null;
+          goal_reminders_enabled?: boolean | null;
+          id?: string;
+          notifications_enabled?: boolean | null;
+          quiet_hours_end?: string | null;
+          quiet_hours_start?: string | null;
+          session_reminders_enabled?: boolean | null;
+          streak_reminders_enabled?: boolean | null;
+          timezone?: string | null;
+          updated_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -606,8 +793,19 @@ export type Database = {
     Enums: {
       content_type: "typedText" | "textFile" | "imageFile";
       difficulty_rating: "forgot" | "hard" | "good" | "easy";
+      goal_type: "academic" | "skills" | "career" | "personal" | "research";
+      priority_level: "high" | "medium" | "low";
       quiz_item_type: "flashcard" | "multipleChoice";
       quiz_type: "flashcard" | "multipleChoice";
+      reminder_delivery_status: "pending" | "sent" | "failed" | "cancelled";
+      reminder_type:
+        | "session_reminder"
+        | "session_starting_soon"
+        | "session_overdue"
+        | "goal_deadline_reminder"
+        | "study_streak_reminder"
+        | "daily_checkin"
+        | "evening_summary";
       session_status: "active" | "completed" | "abandoned";
       session_type: "mixed" | "dueOnly" | "newOnly";
       study_session_status:
@@ -684,22 +882,35 @@ export type Database = {
   };
 };
 
-type DefaultSchema = Database[Extract<keyof Database, "public">];
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
+
+type DefaultSchema =
+  DatabaseWithoutInternals[Extract<keyof Database, "public">];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database;
+    schema: keyof DatabaseWithoutInternals;
   } ? keyof (
-      & Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-      & Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"]
+      & DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]][
+        "Tables"
+      ]
+      & DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]][
+        "Views"
+      ]
     )
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database } ? (
-    & Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    & Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"]
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+} ? (
+    & DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]][
+      "Tables"
+    ]
+    & DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]][
+      "Views"
+    ]
   )[TableName] extends {
     Row: infer R;
   } ? R
@@ -719,15 +930,18 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database;
-  } ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    schema: keyof DatabaseWithoutInternals;
+  } ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]][
+      "Tables"
+    ]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][
-    TableName
-  ] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+} ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]][
+    "Tables"
+  ][TableName] extends {
     Insert: infer I;
   } ? I
   : never
@@ -741,15 +955,18 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database;
-  } ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    schema: keyof DatabaseWithoutInternals;
+  } ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]][
+      "Tables"
+    ]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][
-    TableName
-  ] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+} ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]][
+    "Tables"
+  ][TableName] extends {
     Update: infer U;
   } ? U
   : never
@@ -763,13 +980,18 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database;
-  } ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    schema: keyof DatabaseWithoutInternals;
+  } ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]][
+      "Enums"
+    ]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+} ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][
+    EnumName
+  ]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
   : never;
@@ -777,18 +999,18 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database;
-  }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]][
-      "CompositeTypes"
-    ]
+    schema: keyof DatabaseWithoutInternals;
+  } ? keyof DatabaseWithoutInternals[
+      PublicCompositeTypeNameOrOptions["schema"]
+    ]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][
-    CompositeTypeName
-  ]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+} ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]][
+    "CompositeTypes"
+  ][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends
     keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
@@ -799,8 +1021,20 @@ export const Constants = {
     Enums: {
       content_type: ["typedText", "textFile", "imageFile"],
       difficulty_rating: ["forgot", "hard", "good", "easy"],
+      goal_type: ["academic", "skills", "career", "personal", "research"],
+      priority_level: ["high", "medium", "low"],
       quiz_item_type: ["flashcard", "multipleChoice"],
       quiz_type: ["flashcard", "multipleChoice"],
+      reminder_delivery_status: ["pending", "sent", "failed", "cancelled"],
+      reminder_type: [
+        "session_reminder",
+        "session_starting_soon",
+        "session_overdue",
+        "goal_deadline_reminder",
+        "study_streak_reminder",
+        "daily_checkin",
+        "evening_summary",
+      ],
       session_status: ["active", "completed", "abandoned"],
       session_type: ["mixed", "dueOnly", "newOnly"],
       study_session_status: [

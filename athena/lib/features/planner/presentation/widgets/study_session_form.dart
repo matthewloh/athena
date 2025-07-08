@@ -1,19 +1,20 @@
-import 'package:athena/core/theme/app_colors.dart';
 import 'package:athena/core/utils/timezone_utils.dart';
+import 'package:athena/features/planner/domain/entities/study_session_entity.dart';
 import 'package:athena/features/planner/presentation/viewmodel/study_sessions_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:timezone/timezone.dart' as tz;
 
 /// Modern, beautiful study session form with Malaysian timezone support
 class StudySessionForm extends ConsumerStatefulWidget {
   final DateTime? initialDate;
+  final StudySessionEntity? initialSession;
   final VoidCallback? onSessionCreated;
 
   const StudySessionForm({
     super.key,
     this.initialDate,
+    this.initialSession,
     this.onSessionCreated,
   });
 
@@ -55,21 +56,40 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
   @override
   void initState() {
     super.initState();
-    if (widget.initialDate != null) {
-      _selectedDate = widget.initialDate!;
+
+    // Initialize form fields based on editing mode
+    if (widget.initialSession != null) {
+      // Editing existing session
+      final session = widget.initialSession!;
+      _titleController.text = session.title;
+      _notesController.text = session.notes ?? '';
+      _subjectController.text = session.subject ?? '';
+
+      // Convert from UTC to Malaysian time for display
+      final startTimeLocal = TimezoneUtils.toMalaysianTime(session.startTime);
+      final endTimeLocal = TimezoneUtils.toMalaysianTime(session.endTime);
+
+      _selectedDate = DateTime(
+        startTimeLocal.year,
+        startTimeLocal.month,
+        startTimeLocal.day,
+      );
+      _startTime = TimeOfDay.fromDateTime(startTimeLocal);
+      _endTime = TimeOfDay.fromDateTime(endTimeLocal);
+    } else {
+      // Creating new session
+      if (widget.initialDate != null) {
+        _selectedDate = widget.initialDate!;
+      }
     }
 
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
 
     _animationController.forward();
   }
@@ -90,9 +110,7 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(28),
-          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -131,16 +149,11 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Colors.orange.shade400,
-            Colors.orange.shade600,
-          ],
+          colors: [Colors.orange.shade400, Colors.orange.shade600],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(28),
-        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Row(
         children: [
@@ -150,43 +163,36 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
               color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(
-              Icons.event_note,
-              color: Colors.white,
-              size: 28,
-            ),
+            child: const Icon(Icons.event_note, color: Colors.white, size: 28),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Create Study Session',
-                  style: TextStyle(
+                  widget.initialSession != null
+                      ? 'Edit Study Session'
+                      : 'Create Study Session',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  'Schedule your focused study time',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
+                  widget.initialSession != null
+                      ? 'Update your study session details'
+                      : 'Schedule your focused study time',
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
               ],
             ),
           ),
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(
-              Icons.close,
-              color: Colors.white,
-              size: 24,
-            ),
+            icon: const Icon(Icons.close, color: Colors.white, size: 24),
           ),
         ],
       ),
@@ -199,10 +205,7 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
       children: [
         const Text(
           'Session Title',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
         TextFormField(
@@ -242,10 +245,7 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
       children: [
         const Text(
           'Subject',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
         Row(
@@ -261,7 +261,8 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
                     borderSide: BorderSide.none,
                   ),
                   filled: true,
-                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  fillColor:
+                      Theme.of(context).colorScheme.surfaceContainerHighest,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 16,
@@ -286,12 +287,16 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
               onSelected: (subject) {
                 _subjectController.text = subject;
               },
-              itemBuilder: (context) => _popularSubjects
-                  .map((subject) => PopupMenuItem(
-                        value: subject,
-                        child: Text(subject),
-                      ))
-                  .toList(),
+              itemBuilder:
+                  (context) =>
+                      _popularSubjects
+                          .map(
+                            (subject) => PopupMenuItem(
+                              value: subject,
+                              child: Text(subject),
+                            ),
+                          )
+                          .toList(),
             ),
           ],
         ),
@@ -299,20 +304,18 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
         Wrap(
           spacing: 8,
           runSpacing: 4,
-          children: _popularSubjects.take(5).map((subject) {
-            return GestureDetector(
-              onTap: () => _subjectController.text = subject,
-              child: Chip(
-                label: Text(
-                  subject,
-                  style: const TextStyle(fontSize: 12),
-                ),
-                backgroundColor: Colors.orange.shade50,
-                side: BorderSide(color: Colors.orange.shade200),
-                labelStyle: TextStyle(color: Colors.orange.shade700),
-              ),
-            );
-          }).toList(),
+          children:
+              _popularSubjects.take(5).map((subject) {
+                return GestureDetector(
+                  onTap: () => _subjectController.text = subject,
+                  child: Chip(
+                    label: Text(subject, style: const TextStyle(fontSize: 12)),
+                    backgroundColor: Colors.orange.shade50,
+                    side: BorderSide(color: Colors.orange.shade200),
+                    labelStyle: TextStyle(color: Colors.orange.shade700),
+                  ),
+                );
+              }).toList(),
         ),
       ],
     );
@@ -324,10 +327,7 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
       children: [
         const Text(
           'Notes (Optional)',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
         TextFormField(
@@ -362,10 +362,7 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
       children: [
         const Text(
           'Schedule',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         _buildDateSelector(),
@@ -412,16 +409,14 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
           ),
         ),
         subtitle: Text(
-          _isToday(_selectedDate) ? 'Today' : 
-          _isTomorrow(_selectedDate) ? 'Tomorrow' : 
-          _getDaysFromNow(_selectedDate),
+          _isToday(_selectedDate)
+              ? 'Today'
+              : _isTomorrow(_selectedDate)
+              ? 'Tomorrow'
+              : _getDaysFromNow(_selectedDate),
           style: TextStyle(color: Colors.blue.shade600),
         ),
-        trailing: Icon(
-          Icons.edit,
-          color: Colors.blue.shade600,
-          size: 20,
-        ),
+        trailing: Icon(Icons.edit, color: Colors.blue.shade600, size: 20),
         onTap: _selectDate,
       ),
     );
@@ -494,7 +489,7 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
       _endTime.hour,
       _endTime.minute,
     );
-    
+
     final duration = endDateTime.difference(startDateTime);
     final isValidDuration = duration.inMinutes > 0;
 
@@ -511,7 +506,8 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
         children: [
           Icon(
             isValidDuration ? Icons.schedule : Icons.warning,
-            color: isValidDuration ? Colors.orange.shade700 : Colors.red.shade700,
+            color:
+                isValidDuration ? Colors.orange.shade700 : Colors.red.shade700,
             size: 20,
           ),
           const SizedBox(width: 8),
@@ -521,7 +517,10 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
                   ? 'Duration: ${_formatDuration(duration)}'
                   : 'Invalid time range - end time must be after start time',
               style: TextStyle(
-                color: isValidDuration ? Colors.orange.shade700 : Colors.red.shade700,
+                color:
+                    isValidDuration
+                        ? Colors.orange.shade700
+                        : Colors.red.shade700,
                 fontWeight: FontWeight.w500,
                 fontSize: 14,
               ),
@@ -548,29 +547,37 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
               ),
               elevation: 2,
             ),
-            child: _isSubmitting
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add, size: 24),
-                      SizedBox(width: 8),
-                      Text(
-                        'Create Session',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+            child:
+                _isSubmitting
+                    ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
-                    ],
-                  ),
+                    )
+                    : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          widget.initialSession != null
+                              ? Icons.update
+                              : Icons.add,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          widget.initialSession != null
+                              ? 'Update Session'
+                              : 'Create Session',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
           ),
         ),
         const SizedBox(height: 12),
@@ -596,14 +603,19 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: TimezoneUtils.nowInMalaysia(),
+      firstDate:
+          widget.initialSession != null
+              ? TimezoneUtils.nowInMalaysia().subtract(
+                const Duration(days: 365),
+              )
+              : TimezoneUtils.nowInMalaysia(),
       lastDate: TimezoneUtils.nowInMalaysia().add(const Duration(days: 365)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: Colors.orange,
-            ),
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(primary: Colors.orange),
           ),
           child: child!,
         );
@@ -624,9 +636,9 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: Colors.orange,
-            ),
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(primary: Colors.orange),
           ),
           child: child!,
         );
@@ -638,7 +650,8 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
         if (isStartTime) {
           _startTime = picked;
           // Auto-adjust end time if it's before start time
-          if (_endTime.hour * 60 + _endTime.minute <= picked.hour * 60 + picked.minute) {
+          if (_endTime.hour * 60 + _endTime.minute <=
+              picked.hour * 60 + picked.minute) {
             final newEndTime = picked.hour + 1;
             _endTime = TimeOfDay(
               hour: newEndTime < 24 ? newEndTime : 23,
@@ -671,7 +684,8 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
       _endTime.minute,
     );
 
-    if (endDateTime.isBefore(startDateTime) || endDateTime.isAtSameMomentAs(startDateTime)) {
+    if (endDateTime.isBefore(startDateTime) ||
+        endDateTime.isAtSameMomentAs(startDateTime)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('End time must be after start time'),
@@ -685,29 +699,60 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
     setState(() => _isSubmitting = true);
 
     try {
-      final success = await ref
-          .read(studySessionsViewModelProvider.notifier)
-          .createSession(
-            title: _titleController.text.trim(),
-            notes: _notesController.text.trim().isEmpty 
-                ? null 
-                : _notesController.text.trim(),
-            subject: _subjectController.text.trim().isEmpty 
-                ? null 
-                : _subjectController.text.trim(),
-            startTime: startDateTime.toUtc(),
-            endTime: endDateTime.toUtc(),
-          );
+      bool success;
+
+      if (widget.initialSession != null) {
+        // Update existing session
+        final updatedSession = widget.initialSession!.copyWith(
+          title: _titleController.text.trim(),
+          notes:
+              _notesController.text.trim().isEmpty
+                  ? null
+                  : _notesController.text.trim(),
+          subject:
+              _subjectController.text.trim().isEmpty
+                  ? null
+                  : _subjectController.text.trim(),
+          startTime: startDateTime.toUtc(),
+          endTime: endDateTime.toUtc(),
+          updatedAt: TimezoneUtils.nowInMalaysia().toUtc(),
+        );
+
+        success = await ref
+            .read(studySessionsViewModelProvider.notifier)
+            .updateSession(updatedSession);
+      } else {
+        // Create new session
+        success = await ref
+            .read(studySessionsViewModelProvider.notifier)
+            .createSession(
+              title: _titleController.text.trim(),
+              notes:
+                  _notesController.text.trim().isEmpty
+                      ? null
+                      : _notesController.text.trim(),
+              subject:
+                  _subjectController.text.trim().isEmpty
+                      ? null
+                      : _subjectController.text.trim(),
+              startTime: startDateTime.toUtc(),
+              endTime: endDateTime.toUtc(),
+            );
+      }
 
       if (mounted) {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Row(
+              content: Row(
                 children: [
-                  Icon(Icons.check_circle, color: Colors.white),
-                  SizedBox(width: 8),
-                  Text('Session created successfully!'),
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text(
+                    widget.initialSession != null
+                        ? 'Session updated successfully!'
+                        : 'Session created successfully!',
+                  ),
                 ],
               ),
               backgroundColor: Colors.green.shade600,
@@ -719,7 +764,11 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Failed to create session. Please try again.'),
+              content: Text(
+                widget.initialSession != null
+                    ? 'Failed to update session. Please try again.'
+                    : 'Failed to create session. Please try again.',
+              ),
               backgroundColor: Colors.red.shade600,
               behavior: SnackBarBehavior.floating,
             ),
@@ -757,7 +806,7 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
   String _getDaysFromNow(DateTime date) {
     final now = TimezoneUtils.nowInMalaysia();
     final difference = date.difference(now).inDays;
-    
+
     if (difference == 0) return 'Today';
     if (difference == 1) return 'Tomorrow';
     if (difference == -1) return 'Yesterday';
@@ -768,11 +817,11 @@ class _StudySessionFormState extends ConsumerState<StudySessionForm>
   String _formatDuration(Duration duration) {
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60);
-    
+
     if (hours > 0) {
       return '${hours}h ${minutes}m';
     } else {
       return '${minutes}m';
     }
   }
-} 
+}

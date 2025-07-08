@@ -44,6 +44,12 @@ abstract class ChatRepository {
     ConversationEntity conversation,
   );
 
+  // Update conversation title specifically
+  Future<Either<Failure, void>> updateConversationTitle(
+    String conversationId,
+    String newTitle,
+  );
+
   // Delete conversation
   Future<Either<Failure, void>> deleteConversation(String conversationId);
 

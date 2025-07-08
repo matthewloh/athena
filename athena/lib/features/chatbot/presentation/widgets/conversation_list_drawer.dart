@@ -244,12 +244,33 @@ class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
                     ),
                     PopupMenuButton<String>(
                       onSelected: (value) async {
-                        if (value == 'delete') {
+                        if (value == 'edit') {
+                          await _showEditTitleDialog(context, conversation);
+                        } else if (value == 'delete') {
                           await _showDeleteDialog(context, conversation);
                         }
                       },
                       itemBuilder:
                           (context) => [
+                            PopupMenuItem(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.edit_outlined,
+                                    color: AppColors.athenaBlue,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Edit Title',
+                                    style: TextStyle(
+                                      color: AppColors.athenaBlue,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                             PopupMenuItem(
                               value: 'delete',
                               child: Row(
@@ -495,6 +516,86 @@ class _ConversationListDrawerState extends ConsumerState<ConversationListDrawer>
       await ref
           .read(vm.chatViewModelProvider.notifier)
           .deleteConversation(conversation.id);
+    }
+  }
+
+  Future<void> _showEditTitleDialog(BuildContext context, conversation) async {
+    final TextEditingController titleController = TextEditingController(
+      text: conversation.title ?? 'New Conversation',
+    );
+
+    final newTitle = await showDialog<String>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.edit_outlined,
+                color: AppColors.athenaBlue,
+              ),
+              const SizedBox(width: 8),
+              const Text('Edit Title'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Enter a new title for this conversation:',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: titleController,
+                autofocus: true,
+                maxLength: 50,
+                decoration: InputDecoration(
+                  hintText: 'Conversation title...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: AppColors.athenaBlue),
+                  ),
+                ),
+                onSubmitted: (value) {
+                  Navigator.of(dialogContext).pop(value.trim());
+                },
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.athenaBlue,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Save'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(titleController.text.trim());
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    if (newTitle != null && newTitle.isNotEmpty && newTitle != conversation.title) {
+      await ref
+          .read(vm.chatViewModelProvider.notifier)
+          .updateConversationTitle(conversation.id, newTitle);
     }
   }
 }

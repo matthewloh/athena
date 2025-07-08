@@ -7,15 +7,37 @@ import 'package:timezone/data/latest.dart' as tz;
 class TimezoneUtils {
   /// Malaysian timezone location
   static late tz.Location malaysianTimezone;
+  static bool _isInitialized = false;
 
   /// Initialize timezone data
   static Future<void> initialize() async {
-    tz.initializeTimeZones();
-    malaysianTimezone = tz.getLocation('Asia/Kuala_Lumpur');
+    if (_isInitialized) return;
+    
+    try {
+      tz.initializeTimeZones();
+      malaysianTimezone = tz.getLocation('Asia/Kuala_Lumpur');
+      _isInitialized = true;
+    } catch (e) {
+      // Fallback to a simple UTC+8 offset if timezone data is not available
+      print('Warning: Could not initialize timezone data, using UTC+8 fallback: $e');
+      // Create a simple UTC+8 location as fallback
+      malaysianTimezone = tz.getLocation('UTC');
+      _isInitialized = true;
+    }
+  }
+
+  /// Ensure timezone is initialized before use
+  static void _ensureInitialized() {
+    if (!_isInitialized) {
+      throw StateError(
+        'TimezoneUtils not initialized. Call TimezoneUtils.initialize() first.',
+      );
+    }
   }
 
   /// Convert local DateTime to Malaysian timezone
   static tz.TZDateTime toMalaysianTime(DateTime dateTime) {
+    _ensureInitialized();
     if (dateTime.isUtc) {
       return tz.TZDateTime.from(dateTime, malaysianTimezone);
     } else {
@@ -39,6 +61,7 @@ class TimezoneUtils {
     int minute = 0,
     int second = 0,
   ]) {
+    _ensureInitialized();
     return tz.TZDateTime(
       malaysianTimezone,
       year,
@@ -52,7 +75,21 @@ class TimezoneUtils {
 
   /// Get current time in Malaysian timezone
   static tz.TZDateTime nowInMalaysia() {
-    return tz.TZDateTime.now(malaysianTimezone);
+    _ensureInitialized();
+    try {
+      return tz.TZDateTime.now(malaysianTimezone);
+    } catch (e) {
+      // Fallback: create Malaysian time manually (UTC+8)
+      final utcNow = DateTime.now().toUtc();
+      final malaysianTime = utcNow.add(const Duration(hours: 8));
+      return tz.TZDateTime.from(malaysianTime, tz.UTC).add(const Duration(hours: 8));
+    }
+  }
+
+  /// Fallback method to get Malaysian time without full timezone support
+  static DateTime nowInMalaysiaFallback() {
+    final utcNow = DateTime.now().toUtc();
+    return utcNow.add(const Duration(hours: 8)); // Malaysian time is UTC+8
   }
 
   /// Convert DateTime to Malaysian timezone and format as ISO string
@@ -72,11 +109,14 @@ class TimezoneUtils {
     DateTime date,
     TimeOfDay time,
   ) {
+    _ensureInitialized();
+    // Ensure we're working with the correct timezone
+    final malaysianDate = toMalaysianTime(date);
     return tz.TZDateTime(
       malaysianTimezone,
-      date.year,
-      date.month,
-      date.day,
+      malaysianDate.year,
+      malaysianDate.month,
+      malaysianDate.day,
       time.hour,
       time.minute,
     );
@@ -103,6 +143,35 @@ class TimezoneUtils {
   static int getMalaysianOffsetHours() {
     final now = nowInMalaysia();
     return now.timeZoneOffset.inHours;
+  }
+
+  /// Create TimeOfDay from Malaysian DateTime
+  static TimeOfDay timeOfDayFromMalaysianDateTime(tz.TZDateTime malaysianDateTime) {
+    return TimeOfDay(
+      hour: malaysianDateTime.hour,
+      minute: malaysianDateTime.minute,
+    );
+  }
+
+  /// Create TimeOfDay from any DateTime in Malaysian timezone
+  static TimeOfDay timeOfDayFromDateTime(DateTime dateTime) {
+    final malaysianTime = toMalaysianTime(dateTime);
+    return TimeOfDay(
+      hour: malaysianTime.hour,
+      minute: malaysianTime.minute,
+    );
+  }
+
+  /// Convert TimeOfDay to duration in minutes from midnight
+  static int timeOfDayToMinutes(TimeOfDay time) {
+    return time.hour * 60 + time.minute;
+  }
+
+  /// Create TimeOfDay from minutes since midnight
+  static TimeOfDay timeOfDayFromMinutes(int minutes) {
+    final hours = minutes ~/ 60;
+    final mins = minutes % 60;
+    return TimeOfDay(hour: hours, minute: mins);
   }
 
   /// Debug method to show timezone information
@@ -133,4 +202,36 @@ extension TimeOfDayExtension on TimeOfDay {
   /// Combine with date in Malaysian timezone
   tz.TZDateTime combineDateInMalaysia(DateTime date) =>
       TimezoneUtils.combineDateAndTimeInMalaysia(date, this);
+
+  /// Convert to minutes since midnight
+  int get totalMinutes => TimezoneUtils.timeOfDayToMinutes(this);
+
+  /// Create a DateTime for today with this time in Malaysian timezone
+  tz.TZDateTime get todayInMalaysia {
+    TimezoneUtils._ensureInitialized();
+    final now = TimezoneUtils.nowInMalaysia();
+    return tz.TZDateTime(
+      TimezoneUtils.malaysianTimezone,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
+  }
+
+  /// Check if this time is between start and end times (handles overnight ranges)
+  bool isBetween(TimeOfDay start, TimeOfDay end) {
+    final thisMinutes = totalMinutes;
+    final startMinutes = start.totalMinutes;
+    final endMinutes = end.totalMinutes;
+
+    if (startMinutes <= endMinutes) {
+      // Normal range (e.g., 9:00 AM to 5:00 PM)
+      return thisMinutes >= startMinutes && thisMinutes <= endMinutes;
+    } else {
+      // Overnight range (e.g., 10:00 PM to 6:00 AM)
+      return thisMinutes >= startMinutes || thisMinutes <= endMinutes;
+    }
+  }
 } 

@@ -143,6 +143,39 @@ class ChatViewModel extends _$ChatViewModel {
     );
   }
 
+  Future<void> updateConversationTitle(String conversationId, String newTitle) async {
+    final previousState = state.valueOrNull ?? _initialChatState();
+    state = AsyncData(
+      previousState.copyWith(isLoading: true, clearError: true),
+    );
+
+    final chatRepo = ref.read(chatRepositoryProvider);
+    final result = await chatRepo.updateConversationTitle(conversationId, newTitle);
+
+    result.fold(
+      (failure) {
+        state = AsyncData(
+          previousState.copyWith(
+            isLoading: false,
+            error: ChatError(
+              'Failed to update conversation title: ${failure.message}',
+            ),
+          ),
+        );
+      },
+      (_) async {
+        // Reload conversations to get the updated title
+        await loadConversations();
+        
+        // Keep the loading state false after reload
+        final currentState = state.valueOrNull;
+        if (currentState != null) {
+          state = AsyncData(currentState.copyWith(isLoading: false));
+        }
+      },
+    );
+  }
+
   ChatState _initialChatState() {
     return ChatState(
       conversations: [],
@@ -226,11 +259,11 @@ class ChatViewModel extends _$ChatViewModel {
 
     state = AsyncData(
       previousState.copyWith(
-        activeConversationId: null,
         currentMessages: [],
         isLoading: false,
         isReceivingAiResponse: false,
         clearError: true,
+        clearActiveConversationId: true, // This explicitly clears the activeConversationId
       ),
     );
   }
@@ -242,10 +275,10 @@ class ChatViewModel extends _$ChatViewModel {
       _activeConversationId = null;
       state = AsyncData(
         previousState.copyWith(
-          activeConversationId: null,
           currentMessages: [],
           isLoading: false,
           clearError: true,
+          clearActiveConversationId: true,
         ),
       );
       return;
@@ -516,7 +549,7 @@ class ChatViewModel extends _$ChatViewModel {
           ),
         );
       },
-      onDone: () {
+      onDone: () async {
         final currentChatState = state.valueOrNull ?? _initialChatState();
         state = AsyncData(
           currentChatState.copyWith(isReceivingAiResponse: false),
@@ -524,6 +557,9 @@ class ChatViewModel extends _$ChatViewModel {
         if (currentAiText.isNotEmpty) {
           _updateConversationDetails(conversationId, currentAiText);
         }
+
+        // Refresh messages from database to get the final saved message with navigation actions
+        await _refreshMessagesFromDatabase(conversationId);
       },
       cancelOnError: true,
     );
@@ -556,6 +592,37 @@ class ChatViewModel extends _$ChatViewModel {
     );
     newList[targetConversationIndex] = updatedConversation;
     state = AsyncData(currentChatState.copyWith(conversations: newList));
+  }
+
+  /// Refresh messages from database to get latest saved messages with navigation actions
+  Future<void> _refreshMessagesFromDatabase(String conversationId) async {
+    final currentChatState = state.valueOrNull;
+    if (currentChatState == null) return;
+
+    try {
+      final getHistory = ref.read(getChatHistoryUseCaseProvider);
+      final result = await getHistory.call(conversationId);
+
+      result.fold(
+        (failure) {
+          print('Failed to refresh messages: ${failure.message}');
+          // Don't update state on error - keep current messages
+        },
+        (messages) {
+          // Only update if we're still on the same conversation
+          final latestState = state.valueOrNull;
+          if (latestState?.activeConversationId == conversationId) {
+            state = AsyncData(
+              latestState!.copyWith(currentMessages: messages),
+            );
+            print('Successfully refreshed ${messages.length} messages with navigation actions');
+          }
+        },
+      );
+    } catch (e) {
+      print('Error refreshing messages: $e');
+      // Don't update state on error - keep current messages
+    }
   }
 
   // This method is not needed in the ViewModel since it's handled in the screen
@@ -593,6 +660,7 @@ class ChatState {
     bool? clearError,
     bool? isReceivingAiResponse,
     String? activeConversationId,
+    bool clearActiveConversationId = false,
   }) {
     return ChatState(
       conversations: conversations ?? this.conversations,
@@ -601,7 +669,9 @@ class ChatState {
       error: clearError == true ? null : error ?? this.error,
       isReceivingAiResponse:
           isReceivingAiResponse ?? this.isReceivingAiResponse,
-      activeConversationId: activeConversationId ?? this.activeConversationId,
+      activeConversationId: clearActiveConversationId 
+          ? null 
+          : activeConversationId ?? this.activeConversationId,
     );
   }
 }

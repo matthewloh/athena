@@ -88,7 +88,7 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
       final request = http.Request(
         'POST',
         Uri.parse(
-          'https://rbxlzltxpymgioxnhivo.supabase.co/functions/v1/chat-stream',
+          'https://rbxlzltxpymgioxnhivo.supabase.co/functions/v1/chat-stream-tools',
         ),
       );
 
@@ -102,6 +102,7 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
         'message': prompt,
         'includeContext': true,
         'maxContextMessages': 10,
+        'enableTools': true,
       });
 
       final streamedResponse = await http.Client().send(request);
@@ -346,6 +347,25 @@ class ChatSupabaseDataSourceImpl implements ChatRemoteDataSource {
       throw ServerException('Database error: ${e.message}');
     } catch (e) {
       throw ServerException('Failed to update conversation: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<void> updateConversationTitle(String conversationId, String newTitle) async {
+    try {
+      final updateData = {
+        'title': newTitle,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      await _client
+          .from('conversations')
+          .update(updateData)
+          .eq('id', conversationId);
+    } on PostgrestException catch (e) {
+      throw ServerException('Database error: ${e.message}');
+    } catch (e) {
+      throw ServerException('Failed to update conversation title: ${e.toString()}');
     }
   }
 
